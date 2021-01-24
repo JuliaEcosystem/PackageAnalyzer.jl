@@ -144,7 +144,8 @@ function analyze(dir::AbstractString)
         end
         if reachable
             docs = isfile(joinpath(dest, "docs", "make.jl")) || isfile(joinpath(dest, "doc", "make.jl"))
-            runtests = isfile(joinpath(dest, "test", "runtests.jl"))
+            testpath = joinpath(dest, "test", "runtests.jl")
+            runtests = isfile(testpath) && (length(readlines(testpath))>6 || length(readdir(joinpath(dest, "test")))>1)
             travis = isfile(joinpath(dest, ".travis.yml"))
             appveyor = isfile(joinpath(dest, "appveyor.yml"))
             cirrus = isfile(joinpath(dest, ".cirrus.yml"))
