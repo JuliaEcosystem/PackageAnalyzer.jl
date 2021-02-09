@@ -31,6 +31,7 @@ The main functionality of the package is the `analyze` and `analyze_from_registr
 julia> analyze_from_registry(joinpath(general_registry(), "F", "Flux"))
 Package Flux:
   * repo: https://github.com/FluxML/Flux.jl.git
+  * uuid: 587475ba-b771-5e3f-ad9e-33799f191a9c
   * is reachable: true
   * has documentation: true
   * has tests: true
@@ -101,6 +102,7 @@ julia> using AnalyzeRegistry
 julia> analyze(pkgdir(AnalyzeRegistry))
 Package AnalyzeRegistry:
   * repo: 
+  * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
   * is reachable: true
   * has documentation: false
   * has tests: true
