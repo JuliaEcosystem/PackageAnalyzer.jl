@@ -1,16 +1,17 @@
 module AnalyzeRegistry
 
 # Standard libraries
-using Pkg, TOML
+using Pkg, TOML, UUIDs
 # Third-party packages
 using FLoops # for the `@floops` macro
 using MicroCollections # for `EmptyVector` and `SingletonVector`
 using BangBang # for `append!!`
 
-export general_registry, find_packages, analyze
+export general_registry, find_packages, analyze, analyze_from_registry, analyze_from_registry!
 
 struct Package
     name::String # name of the package
+    uuid::UUID # uuid of the package
     repo::String # URL of the repository
     reachable::Bool # can the repository be cloned?
     docs::Bool # does it have documentation?
@@ -25,7 +26,7 @@ struct Package
     azure_pipelines::Bool # does it use Azure Pipelines?
     gitlab_pipeline::Bool # does it use Gitlab Pipeline?
 end
-function Package(name, repo;
+function Package(name, uuid, repo;
                  reachable=false,
                  docs=false,
                  runtests=false,
@@ -39,7 +40,7 @@ function Package(name, repo;
                  azure_pipelines=false,
                  gitlab_pipeline=false,
                  )
-    return Package(name, repo, reachable, docs, runtests, github_actions, travis,
+    return Package(name, uuid, repo, reachable, docs, runtests, github_actions, travis,
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline)
 end
 
@@ -47,6 +48,7 @@ function Base.show(io::IO, p::Package)
     body = """
         Package $(p.name):
           * repo: $(p.repo)
+          * uuid: $(p.uuid)
           * is reachable: $(p.reachable)
         """
     if p.reachable
@@ -104,17 +106,67 @@ function find_packages(dir = general_registry())
 end
 
 """
-    analyze(dir::AbstractString) -> Package
+    analyze_from_registry!(root, dir::AbstractString) -> Package
 
-Analyze the package whose entry in the registry is in the `dir` directory.
-NOTE: the git repository of the package will be cloned, so you need Internet
-access to use this package.
+Analyze the package whose entry in the registry is in the `dir` directory,
+cloning the package code to `joinpath(root, uuid)` where `uuid` is the UUID
+of the package, if such a directory does not already exist.
+
+"""
+function analyze_from_registry!(root, dir::AbstractString)
+    # Parse the `Package.toml` file in the given directory.
+    toml = TOML.parsefile(joinpath(dir, "Package.toml"))
+    name = toml["name"]::String
+    uuid = toml["uuid"]::String
+    repo = toml["repo"]::String
+
+    dest = joinpath(root, uuid)
+    isdir(dest) && return analyze(dest; name, uuid, repo)
+
+    reachable = try
+        # Clone only latest commit on the default branch.  Note: some
+        # repositories aren't reachable because the author made them private
+        # or deleted them.  In these cases git would ask for username and
+        # password, provide it with fake values just to move on:
+        # https://stackoverflow.com/a/65705346/2442087
+        run(pipeline(`git clone -q --depth 1 --config credential.helper='!f() { echo -e "username=git\npassword="; }; f' $(repo) $(dest)`; stderr=devnull))
+        true
+    catch
+        # The repository may be unreachable
+        false
+    end
+    return reachable ? analyze(dest; repo, reachable) : Package(name, uuid, repo)
+end
+
+"""
+    analyze_from_registry!(root, packages::AbstractVector{<:AbstractString}) -> Vector{Package}
+
+Analyze all packages in the iterable `packages`, using threads, cloning them to `root`
+if a directory with their `uuid` does not already exist.  Returns a
+`Vector{Package}`.
+"""
+function analyze_from_registry!(root, packages::AbstractVector{<:AbstractString})
+    @floop for p in packages
+        ps = SingletonVector((analyze_from_registry!(root, p),))
+        @reduce(result = append!!(EmptyVector(), ps))
+    end
+    result
+end
+
+"""
+    analyze_from_registry(dir::AbstractString) -> Package
+    analyze_from_registry(packages::AbstractVector{<:AbstractString}) -> Vector{Package}
+
+Analyzes a package or list of packages using the information in their directory
+in a registry by creating a temporary directory and calling `analyze_from_registry!`,
+cleaning up the temporary directory afterwards.
 
 ## Example
 ```julia
-julia> analyze(joinpath(general_registry(), "B", "BinaryBuilder"))
+julia> analyze_from_registry(joinpath(general_registry(), "B", "BinaryBuilder"))
 Package BinaryBuilder:
   * repo: https://github.com/JuliaPackaging/BinaryBuilder.jl.git
+  * uuid: 12aac903-9f7c-5d81-afc2-d9565ea332ae
   * is reachable: true
   * has documentation: true
   * has tests: true
@@ -123,69 +175,60 @@ Package BinaryBuilder:
     * Azure Pipelines
 ```
 """
-function analyze(dir::AbstractString)
-    # Parse the `Package.toml` file in the given directory.
-    toml = TOML.parsefile(joinpath(dir, "Package.toml"))
-    name = toml["name"]::String
-    repo = toml["repo"]::String
-    # Clone the repository into a temporary directory
-    package = mktempdir() do dest
-        reachable = try
-            # Clone only latest commit on the default branch.  Note: some
-            # repositories aren't reachable because the author made them private
-            # or deleted them.  In these cases git would ask for username and
-            # password, provide it with fake values just to move on:
-            # https://stackoverflow.com/a/65705346/2442087
-            run(pipeline(`git clone -q --depth 1 --config credential.helper='!f() { echo -e "username=git\npassword="; }; f' $(repo) $(dest)`; stderr=devnull))
-            true
-        catch
-            # The repository may be unreachable
-            false
-        end
-        if reachable
-            docs = isfile(joinpath(dest, "docs", "make.jl")) || isfile(joinpath(dest, "doc", "make.jl"))
-            runtests = isfile(joinpath(dest, "test", "runtests.jl"))
-            travis = isfile(joinpath(dest, ".travis.yml"))
-            appveyor = isfile(joinpath(dest, "appveyor.yml"))
-            cirrus = isfile(joinpath(dest, ".cirrus.yml"))
-            circle = isfile(joinpath(dest, ".circleci", "config.yml"))
-            drone = isfile(joinpath(dest, ".drone.yml"))
-            azure_pipelines = isfile(joinpath(dest, "azure-pipelines.yml"))
-            buildkite = isfile(joinpath(dest, ".buildkite", "pipeline.yml"))
-            gitlab_pipeline = isfile(joinpath(dest, ".gitlab-ci.yml"))
-            github_workflows = joinpath(dest, ".github", "workflows")
-            if isdir(github_workflows)
-                # Find all workflows
-                files = readdir(github_workflows)
-                # Exclude TagBot and CompatHelper
-                filter(f -> lowercase(f) ∉ ("compathelper.yml", "tagbot.yml"), files)
-                # Assume all other files are GitHub Actions for CI.  May not
-                # _always_ be the case, but it's a good first-order approximation.
-                github_actions = length(files) > 0
-            else
-                github_actions = false
-            end
-            Package(name, repo; reachable, docs, runtests, travis, appveyor, cirrus,
-                    circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions)
-        else
-            Package(name, repo)
-        end
+function analyze_from_registry(p)
+    mktempdir() do root
+        analyze_from_registry!(root, p)
     end
-    return package
 end
 
 """
-    analyze(packages::AbstractVector{<:AbstractString}) -> Vector{Package}
+    analyze(dir::AbstractString; repo = "", reachable=true)
 
-Analyze all packages in the iterable `packages`, using threads.  Return a
-`Vector{Package}`.
+Analyze the package whose source code is located at `dir`. Optionally `repo`
+and `reachable` a boolean indicating whether or not the package is reachable online, since
+these can't be inferred from the source code.
+
+## Example
+```julia
+julia> analyze(pkgdir(AnalyzeRegistry))
+Package AnalyzeRegistry:
+  * repo: 
+  * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
+  * is reachable: true
+  * has documentation: false
+  * has tests: true
+  * has continuous integration: true
+    * GitHub Actions
+```
 """
-function analyze(packages::AbstractVector{<:AbstractString})
-    @floop for p in packages
-        ps = SingletonVector((analyze(p),))
-        @reduce(result = append!!(EmptyVector(), ps))
+function analyze(dir::AbstractString; repo = "", reachable=true)
+    project = TOML.parsefile(joinpath(dir, "Project.toml"))
+    name = project["name"]
+    uuid = UUID(project["uuid"])
+    docs = isfile(joinpath(dir, "docs", "make.jl")) || isfile(joinpath(dir, "doc", "make.jl"))
+    runtests = isfile(joinpath(dir, "test", "runtests.jl"))
+    travis = isfile(joinpath(dir, ".travis.yml"))
+    appveyor = isfile(joinpath(dir, "appveyor.yml"))
+    cirrus = isfile(joinpath(dir, ".cirrus.yml"))
+    circle = isfile(joinpath(dir, ".circleci", "config.yml"))
+    drone = isfile(joinpath(dir, ".drone.yml"))
+    azure_pipelines = isfile(joinpath(dir, "azure-pipelines.yml"))
+    buildkite = isfile(joinpath(dir, ".buildkite", "pipeline.yml"))
+    gitlab_pipeline = isfile(joinpath(dir, ".gitlab-ci.yml"))
+    github_workflows = joinpath(dir, ".github", "workflows")
+    if isdir(github_workflows)
+        # Find all workflows
+        files = readdir(github_workflows)
+        # Exclude TagBot and CompatHelper
+        filter(f -> lowercase(f) ∉ ("compathelper.yml", "tagbot.yml"), files)
+        # Assume all other files are GitHub Actions for CI.  May not
+        # _always_ be the case, but it's a good first-order approximation.
+        github_actions = length(files) > 0
+    else
+        github_actions = false
     end
-    result
+    Package(name, uuid, repo; reachable, docs, runtests, travis, appveyor, cirrus,
+            circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions)
 end
 
 end # module
