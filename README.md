@@ -25,12 +25,13 @@ Pkg.add("https://github.com/giordano/AnalyzeRegistry.jl")
 
 ## Usage
 
-The main functionality of the package is the `analyze` function:
+The main functionality of the package is the `analyze` and `analyze_from_registry` functions:
 
 ```julia
-julia> analyze(joinpath(general_registry(), "F", "Flux"))
+julia> analyze_from_registry(joinpath(general_registry(), "F", "Flux"))
 Package Flux:
   * repo: https://github.com/FluxML/Flux.jl.git
+  * uuid: 587475ba-b771-5e3f-ad9e-33799f191a9c
   * is reachable: true
   * has documentation: true
   * has tests: true
@@ -51,6 +52,7 @@ The returned value is the struct `Package`, which has the following fields:
 ```julia
 struct Package
     name::String # name of the package
+    uuid::UUID # uuid of the package
     repo::String # URL of the repository
     reachable::Bool # can the repository be cloned?
     docs::Bool # does it have documentation?
@@ -87,7 +89,26 @@ julia> find_packages(general_registry())
  "/home/user/.julia/registries/General/S/Strapping"
  [...]
 ```
-Do not abuse of this function!
+Do not abuse this function!
+
+You use `analyze_from_registry!(root, joinpath(general_registry(), "F", "Flux"))` to clone
+the package to a particular directory `root` which is not cleaned up afterwards.
+
+You can also analyze the source code of a package via `analyze`, for example
+
+```julia
+julia> using AnalyzeRegistry
+
+julia> analyze(pkgdir(AnalyzeRegistry))
+Package AnalyzeRegistry:
+  * repo: 
+  * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
+  * is reachable: true
+  * has documentation: false
+  * has tests: true
+  * has continuous integration: true
+    * GitHub Actions
+```
 
 ## License
 
