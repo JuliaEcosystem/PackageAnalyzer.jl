@@ -117,10 +117,12 @@ function analyze_from_registry!(root, dir::AbstractString)
     # Parse the `Package.toml` file in the given directory.
     toml = TOML.parsefile(joinpath(dir, "Package.toml"))
     name = toml["name"]::String
-    uuid = toml["uuid"]::String
+    uuid_string = toml["uuid"]::String
+    uuid = UUID(uuid_string)
     repo = toml["repo"]::String
 
-    dest = joinpath(root, uuid)
+    dest = joinpath(root, uuid_string)
+
     isdir(dest) && return analyze(dest; name, uuid, repo)
 
     reachable = try
@@ -135,7 +137,7 @@ function analyze_from_registry!(root, dir::AbstractString)
         # The repository may be unreachable
         false
     end
-    return reachable ? analyze(dest; repo, reachable) : Package(name, uuid, repo)
+    return reachable ? analyze(dest; repo, reachable, name, uuid) : Package(name, uuid, repo)
 end
 
 """
@@ -181,12 +183,24 @@ function analyze_from_registry(p)
     end
 end
 
+function parse_name_uuid(project_path)
+    bad_project = (; name = "Invalid Project.toml", uuid = UUID(UInt128(0)))
+    isfile(project_path) || return bad_project
+    project = TOML.tryparsefile(project_path)
+    project isa TOML.ParserError && return bad_project
+    haskey(project, "name") && haskey(project, "uuid") || return bad_project
+    uuid = tryparse(UUID, project["uuid"]::String)
+    uuid === nothing && return bad_project
+    return (; name = project["name"]::String, uuid)
+end
+
 """
-    analyze(dir::AbstractString; repo = "", reachable=true)
+    analyze(dir::AbstractString; repo = "", reachable=true, name=nothing, uuid=nothing)
 
 Analyze the package whose source code is located at `dir`. Optionally `repo`
 and `reachable` a boolean indicating whether or not the package is reachable online, since
-these can't be inferred from the source code.
+these can't be inferred from the source code. If `name` or `uuid` are `nothing`, the
+directories `Project.toml` is parsed to infer the package's name and UUID.
 
 ## Example
 ```julia
@@ -201,10 +215,10 @@ Package AnalyzeRegistry:
     * GitHub Actions
 ```
 """
-function analyze(dir::AbstractString; repo = "", reachable=true)
-    project = TOML.parsefile(joinpath(dir, "Project.toml"))
-    name = project["name"]
-    uuid = UUID(project["uuid"])
+function analyze(dir::AbstractString; repo = "", reachable=true, name=nothing, uuid=nothing)
+    if name === nothing || uuid === nothing
+        name, uuid = parse_name_uuid(joinpath(dir, "Project.toml"))
+    end
     docs = isfile(joinpath(dir, "docs", "make.jl")) || isfile(joinpath(dir, "doc", "make.jl"))
     runtests = isfile(joinpath(dir, "test", "runtests.jl"))
     travis = isfile(joinpath(dir, ".travis.yml"))

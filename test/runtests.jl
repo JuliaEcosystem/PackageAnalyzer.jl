@@ -1,6 +1,7 @@
 using Test, UUIDs
 
 using AnalyzeRegistry
+using AnalyzeRegistry: parse_name_uuid
 
 @testset "AnalyzeRegistry" begin
     general = general_registry()
@@ -41,4 +42,20 @@ end
     @test pkg.docs == false
     @test pkg.runtests == true # here we are!
     @test pkg.github_actions == true
+end
+
+@testset "`parse_name_uuid`" begin
+    bad_project = (; name = "Invalid Project.toml", uuid = UUID(UInt128(0)))
+    # malformatted TOML file
+    @test parse_name_uuid("missingquote.toml") == bad_project
+
+    # bad UUID
+    @test parse_name_uuid("baduuid.toml") == bad_project
+
+    # non-existent file
+    @test parse_name_uuid("rstratarstra") == bad_project
+
+    # proper Project.toml
+    this_project = (; name = "AnalyzeRegistry", uuid = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c"))
+    @test parse_name_uuid(joinpath(@__DIR__, "..", "Project.toml")) == this_project
 end
