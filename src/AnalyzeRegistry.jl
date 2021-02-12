@@ -98,7 +98,7 @@ registry.
 function find_packages(dir = general_registry())
     # Get the list of packages in the registry by parsing the `Registry.toml`
     # file in the given directory.
-    packages = TOML.parsefile(joinpath(general_registry(), "Registry.toml"))["packages"]
+    packages = TOML.parsefile(joinpath(dir, "Registry.toml"))["packages"]
     # Get the directories of all packages.  Filter out JLL packages: they are
     # automatically generated and we know that they don't have testing nor
     # documentation.
