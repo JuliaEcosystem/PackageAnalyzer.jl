@@ -38,6 +38,9 @@ Package Flux:
   * has continuous integration: true
     * GitHub Actions
     * Buildkite
+  * has license(s): MIT
+    * OSI approved: true
+
 ```
 
 The argument is the path to the directory of the package in the registry, where
@@ -50,6 +53,7 @@ its content.
 
 The returned value is the struct `Package`, which has the following fields:
 ```julia
+
 struct Package
     name::String # name of the package
     uuid::UUID # uuid of the package
@@ -66,6 +70,10 @@ struct Package
     buildkite::Bool # does it use Buildkite?
     azure_pipelines::Bool # does it use Azure Pipelines?
     gitlab_pipeline::Bool # does it use Gitlab Pipeline?
+    license_filename::Union{Missing, String} # e.g. `LICENSE` or `COPYING`
+    licenses_found::Vector{String} # all the licenses found in `license_filename`
+    license_file_percent_covered::Union{Missing, Float64} # how much of the license file is covered by the licenses found
+    osi_approved::Union{Missing, Bool} # are all the licenses found OSI approved
 end
 ```
 
@@ -108,6 +116,9 @@ Package AnalyzeRegistry:
   * has tests: true
   * has continuous integration: true
     * GitHub Actions
+  * has license(s): MIT
+    * OSI approved: true
+
 ```
 
 ## License

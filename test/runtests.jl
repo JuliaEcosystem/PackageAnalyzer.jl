@@ -14,6 +14,7 @@ using AnalyzeRegistry
     @test measurements.docs
     @test measurements.runtests
     @test !measurements.buildkite
+    @test measurements.osi_approved
     # Test results of a couple of packages.  Same caveat as above
     packages = [joinpath(general, p...) for p in (("C", "Cuba"), ("P", "PolynomialRoots"))]
     results = analyze_from_registry(packages)
@@ -41,4 +42,7 @@ end
     @test pkg.docs == false
     @test pkg.runtests == true # here we are!
     @test pkg.github_actions == true
+    @test pkg.licenses_found == ["MIT"]
+    @test pkg.osi_approved == true
+
 end

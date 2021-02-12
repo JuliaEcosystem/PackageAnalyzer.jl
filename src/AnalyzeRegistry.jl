@@ -6,6 +6,7 @@ using Pkg, TOML, UUIDs
 using FLoops # for the `@floops` macro
 using MicroCollections # for `EmptyVector` and `SingletonVector`
 using BangBang # for `append!!`
+using LicenseCheck # for `find_license`, `is_osi_approved`
 
 export general_registry, find_packages, analyze, analyze_from_registry, analyze_from_registry!
 
@@ -25,6 +26,10 @@ struct Package
     buildkite::Bool # does it use Buildkite?
     azure_pipelines::Bool # does it use Azure Pipelines?
     gitlab_pipeline::Bool # does it use Gitlab Pipeline?
+    license_filename::Union{Missing, String} # e.g. `LICENSE` or `COPYING`
+    licenses_found::Vector{String} # all the licenses found in `license_filename`
+    license_file_percent_covered::Union{Missing, Float64} # how much of the license file is covered by the licenses found
+    osi_approved::Union{Missing, Bool} # are all the licenses found OSI approved
 end
 function Package(name, uuid, repo;
                  reachable=false,
@@ -39,10 +44,29 @@ function Package(name, uuid, repo;
                  buildkite=false,
                  azure_pipelines=false,
                  gitlab_pipeline=false,
+                 license_filename=missing,
+                 licenses_found=String[],
+                 license_file_percent_covered=missing,
+                 osi_approved=missing
                  )
     return Package(name, uuid, repo, reachable, docs, runtests, github_actions, travis,
-                   appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline)
+                   appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
+                   license_filename, licenses_found, license_file_percent_covered, osi_approved)
 end
+
+# define `isequal`, `==`, and `hash` just in terms of the fields
+for f in (:isequal, :(==))
+    @eval begin
+        function Base.$f(A::Package, B::Package)
+            for i = 1:fieldcount(Package)
+                $f(getfield(A, i), getfield(B, i)) || return false
+            end
+            true
+        end
+    end
+end
+
+Base.hash(A::Package, h::UInt) = hash(:Package, hash(ntuple(i -> getfield(A, i), fieldcount(Package)), h))
 
 function Base.show(io::IO, p::Package)
     body = """
@@ -75,6 +99,13 @@ function Base.show(io::IO, p::Package)
             end
         else
             body *= "  * has continuous integration: false\n"
+        end
+        if isempty(p.licenses_found)
+            body *= "  * no license found"
+        else
+            lic = join(p.licenses_found, ", ")
+            body *= "  * has license(s): $lic\n"
+            body *= "    * OSI approved: $(p.osi_approved)"
         end
     end
     print(io, strip(body))
@@ -173,6 +204,8 @@ Package BinaryBuilder:
   * has continuous integration: true
     * GitHub Actions
     * Azure Pipelines
+  * has license(s): MIT
+    * OSI approved: true
 ```
 """
 function analyze_from_registry(p)
@@ -199,6 +232,8 @@ Package AnalyzeRegistry:
   * has tests: true
   * has continuous integration: true
     * GitHub Actions
+  * has license(s): MIT
+    * OSI approved: true
 ```
 """
 function analyze(dir::AbstractString; repo = "", reachable=true)
@@ -227,8 +262,13 @@ function analyze(dir::AbstractString; repo = "", reachable=true)
     else
         github_actions = false
     end
+    lic = find_license(dir)
+    if lic === nothing
+        lic = (; license_filename=missing, licenses=String[], license_file_percent_covered=missing)
+    end
     Package(name, uuid, repo; reachable, docs, runtests, travis, appveyor, cirrus,
-            circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions)
+            circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
+            lic..., osi_approved=is_osi_approved(lic))
 end
 
 end # module
