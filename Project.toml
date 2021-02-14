@@ -11,6 +11,7 @@ LicenseCheck = "726dbf0d-6eb6-41af-b36c-cd770e0f00cc"
 MicroCollections = "128add7d-3638-4c79-886c-908ea0c25c34"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
+Tokei_jll = "3ac119c9-1236-5556-b556-adc8150b0244"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [compat]

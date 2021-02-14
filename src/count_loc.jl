@@ -6,7 +6,9 @@ function count_loc(dir)
         test = count_loc_subdirs!(all_counted_dirs, ["test"])
     
         all_others = try
-            JSON3.read(read(`tokei --output json . -e$(all_counted_dirs)`))
+            tokei() do exe
+                JSON3.read(read(`$exe --output json . -e$(all_counted_dirs)`))
+            end
         catch e
             @error e
             missing
@@ -23,7 +25,9 @@ function count_loc_subdirs!(all_counted_dirs, subdirs)
     isempty(subdirs) && return missing
     append!(all_counted_dirs, ("/"*s for s in subdirs))
     return try
-        JSON3.read(read(`tokei --output json $(subdirs)`))
+        tokei() do exe
+            JSON3.read(read(`$exe --output json $(subdirs)`))
+        end
     catch e
         @error e
         missing

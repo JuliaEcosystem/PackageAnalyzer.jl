@@ -8,6 +8,7 @@ using MicroCollections # for `EmptyVector` and `SingletonVector`
 using BangBang # for `append!!`
 using LicenseCheck # for `find_license` and `is_osi_approved`
 using JSON3 # for interfacing with `tokei` to count lines of code
+using Tokei_jll # count lines of code
 
 export general_registry, find_packages, analyze, analyze_from_registry, analyze_from_registry!
 
