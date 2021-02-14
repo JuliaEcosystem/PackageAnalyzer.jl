@@ -33,14 +33,14 @@ Package Flux:
   * repo: https://github.com/FluxML/Flux.jl.git
   * uuid: 587475ba-b771-5e3f-ad9e-33799f191a9c
   * is reachable: true
+  * has license(s) in file: MIT
+    * filename: LICENSE.md
+    * OSI approved: true
   * has documentation: true
   * has tests: true
   * has continuous integration: true
     * GitHub Actions
     * Buildkite
-  * has license(s) in file: MIT
-    * filename: LICENSE.md
-    * OSI approved: true
   * lines of Julia code in `src`: 4863
   * lines of Julia code in `test`: 2034
 
@@ -115,13 +115,13 @@ Package AnalyzeRegistry:
   * repo: 
   * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
   * is reachable: true
+  * has license(s) in file: MIT
+    * filename: LICENSE
+    * OSI approved: true
   * has documentation: false
   * has tests: true
   * has continuous integration: true
     * GitHub Actions
-  * has license(s) in file: MIT
-    * filename: LICENSE
-    * OSI approved: true
   * lines of Julia code in `src`: 328
   * lines of Julia code in `test`: 58
 ```
