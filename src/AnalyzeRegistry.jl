@@ -17,6 +17,7 @@ struct Package
     name::String # name of the package
     uuid::UUID # uuid of the package
     repo::String # URL of the repository
+    subdir::String # subdirectory of the package in the repo
     reachable::Bool # can the repository be cloned?
     docs::Bool # does it have documentation?
     runtests::Bool # does it have the test/runtests.jl file?
@@ -36,6 +37,7 @@ struct Package
     lines_of_code::Vector{LoCTableEltype}
 end
 function Package(name, uuid, repo;
+                 subdir="",
                  reachable=false,
                  docs=false,
                  runtests=false,
@@ -54,7 +56,7 @@ function Package(name, uuid, repo;
                  licenses_in_project=String[],
                  lines_of_code=Vector{LoCTableEltype}()
                  )
-    return Package(name, uuid, repo, reachable, docs, runtests, github_actions, travis,
+    return Package(name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
                    license_filename, licenses_found, license_file_percent_covered, licenses_in_project,
                    lines_of_code)
@@ -146,15 +148,13 @@ Pass a list of package `names` to filter the results to only the paths
 corresponding to those packages.
 """
 function find_packages(dir = general_registry(); names = nothing)
+    name_filter = names === nothing ? name -> true : ∈(names)
     # Get the list of packages in the registry by parsing the `Registry.toml`
     # file in the given directory.
     packages = TOML.parsefile(joinpath(dir, "Registry.toml"))["packages"]
     # Get the directories of all packages.  Filter out JLL packages: they are
     # automatically generated and we know that they don't have testing nor
     # documentation.
-
-    name_filter = names === nothing ? name -> true : ∈(names)
-
     return [joinpath(dir, p["path"]) for (_, p) in packages if !endswith(p["name"], "_jll") && name_filter(p["name"])]
 end
 
@@ -173,10 +173,11 @@ function analyze_from_registry!(root, dir::AbstractString)
     uuid_string = toml["uuid"]::String
     uuid = UUID(uuid_string)
     repo = toml["repo"]::String
+    subdir = get(toml, "subdir", "")::String
 
     dest = joinpath(root, uuid_string)
 
-    isdir(dest) && return analyze(dest; repo)
+    isdir(dest) && return analyze(dest; repo, subdir)
 
     reachable = try
         # Clone only latest commit on the default branch.  Note: some
@@ -190,7 +191,7 @@ function analyze_from_registry!(root, dir::AbstractString)
         # The repository may be unreachable
         false
     end
-    return reachable ? analyze(dest; repo, reachable) : Package(name, uuid, repo)
+    return reachable ? analyze(dest; repo, reachable, subdir) : Package(name, uuid, repo; subdir)
 end
 
 """
@@ -288,10 +289,13 @@ Package AnalyzeRegistry:
 
 ```
 """
-function analyze(dir::AbstractString; repo = "", reachable=true)
-    name, uuid, licenses_in_project = parse_project(dir)
-    docs = isfile(joinpath(dir, "docs", "make.jl")) || isfile(joinpath(dir, "doc", "make.jl"))
-    runtests = isfile(joinpath(dir, "test", "runtests.jl"))
+function analyze(dir::AbstractString; repo = "", reachable=true, subdir="")
+    # we will look for docs, tests, license, and count lines of code
+    # in the `pkgdir`; we will look for CI in the `dir`.
+    pkgdir = joinpath(dir, subdir)
+    name, uuid, licenses_in_project = parse_project(pkgdir)
+    docs = isfile(joinpath(pkgdir, "docs", "make.jl")) || isfile(joinpath(pkgdir, "doc", "make.jl"))
+    runtests = isfile(joinpath(pkgdir, "test", "runtests.jl"))
     travis = isfile(joinpath(dir, ".travis.yml"))
     appveyor = isfile(joinpath(dir, "appveyor.yml"))
     cirrus = isfile(joinpath(dir, ".cirrus.yml"))
@@ -312,12 +316,12 @@ function analyze(dir::AbstractString; repo = "", reachable=true)
     else
         github_actions = false
     end
-    lic = find_license(dir)
+    lic = find_license(pkgdir)
     if lic === nothing
         lic = (; license_filename=missing, licenses_found=String[], license_file_percent_covered=missing)
     end
-    lines_of_code = count_loc(dir)
-    Package(name, uuid, repo; reachable, docs, runtests, travis, appveyor, cirrus,
+    lines_of_code = count_loc(pkgdir)
+    Package(name, uuid, repo; subdir, reachable, docs, runtests, travis, appveyor, cirrus,
             circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
             lic..., licenses_in_project, lines_of_code)
 end
