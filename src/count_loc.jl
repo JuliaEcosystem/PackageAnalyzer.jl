@@ -50,4 +50,4 @@ function make_loc_table(loc)
     return table
 end
 
-count_julia_loc(table, dir) = sum(row.lines for row in table if row.line_type == :code && row.directory == dir && row.language == :Julia)
+count_julia_loc(table, dir) = sum(row.lines for row in table if row.line_type == :code && row.directory == dir && row.language == :Julia; init=0)
