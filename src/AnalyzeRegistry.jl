@@ -292,7 +292,7 @@ function analyze(dir::AbstractString; repo = "", reachable=true)
     end
     lic = find_license(dir)
     if lic === nothing
-        lic = (; license_filename=missing, licenses=String[], license_file_percent_covered=missing)
+        lic = (; license_filename=missing, licenses_found=String[], license_file_percent_covered=missing)
     end
     Package(name, uuid, repo; reachable, docs, runtests, travis, appveyor, cirrus,
             circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,

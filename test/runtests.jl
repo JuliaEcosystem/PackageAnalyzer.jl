@@ -45,6 +45,16 @@ end
     @test pkg.licenses_found == ["MIT"]
     @test isempty(pkg.licenses_in_project)
 
+    # the tests folder isn't a package!
+    # But this helps catch issues in error paths for when things go wrong
+    bad_pkg = analyze(".")
+    @test bad_pkg.repo == ""
+    @test bad_pkg.uuid == UUID(UInt128(0))
+    @test !bad_pkg.cirrus
+    @test ismissing(bad_pkg.license_filename)
+    @test isempty(bad_pkg.licenses_found)
+    @test ismissing(bad_pkg.license_file_percent_covered)
+    @test isempty(bad_pkg.licenses_in_project)
 end
 
 @testset "`parse_project`" begin
