@@ -79,9 +79,9 @@ end
 
 To run the analysis for multiple packages you can either use broadcasting
 ```julia
-analyze.(packages)
+analyze_from_registry.(package_paths_in_registry)
 ```
-or use the method `analyze(packages::AbstractVector{<:AbstractString})` which
+or use the method `analyze_from_registry(package_paths_in_registry::AbstractVector{<:AbstractString})` which
 leaverages [`FLoops.jl`](https://github.com/JuliaFolds/FLoops.jl) to run the
 analysis with multiple threads.
 
@@ -100,9 +100,10 @@ julia> find_packages(general_registry())
 Do not abuse this function!
 
 You use `analyze_from_registry!(root, joinpath(general_registry(), "F", "Flux"))` to clone
-the package to a particular directory `root` which is not cleaned up afterwards.
+the package to a particular directory `root` which is not cleaned up afterwards, and likewise
+can pass a vector of paths to use a threaded loop over them.
 
-You can also analyze the source code of a package via `analyze`, for example
+You can also directly analyze the source code of a package via `analyze`, for example
 
 ```julia
 julia> using AnalyzeRegistry
