@@ -57,6 +57,13 @@ end
     @test isempty(bad_pkg.licenses_in_project)
 end
 
+@testset "`subdir` support" begin
+    snoop_path = first(find_packages(; names = ["SnoopCompileCore"]))
+    snoop = analyze_from_registry(snoop_path)
+    @test !isempty(snoop.subdir)
+    @test snoop.name == "SnoopCompileCore"
+end
+
 @testset "`parse_project`" begin
     bad_project = (; name="Invalid Project.toml", uuid=UUID(UInt128(0)), licenses_in_project=String[])
     # malformatted TOML file
