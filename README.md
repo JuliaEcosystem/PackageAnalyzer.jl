@@ -41,6 +41,8 @@ Package Flux:
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
+  * lines of Julia code in `src`: 4863
+  * lines of Julia code in `test`: 2034
 
 ```
 
@@ -120,6 +122,8 @@ Package AnalyzeRegistry:
   * has license(s) in file: MIT
     * filename: LICENSE
     * OSI approved: true
+  * lines of Julia code in `src`: 328
+  * lines of Julia code in `test`: 58
 ```
 
 ## License

@@ -7,8 +7,11 @@ using FLoops # for the `@floops` macro
 using MicroCollections # for `EmptyVector` and `SingletonVector`
 using BangBang # for `append!!`
 using LicenseCheck # for `find_license` and `is_osi_approved`
+using JSON3 # for interfacing with `tokei` to count lines of code
 
 export general_registry, find_packages, analyze, analyze_from_registry, analyze_from_registry!
+
+include("count_loc.jl")
 
 struct Package
     name::String # name of the package
@@ -30,6 +33,7 @@ struct Package
     licenses_found::Vector{String} # all the licenses found in `license_filename`
     license_file_percent_covered::Union{Missing, Float64} # how much of the license file is covered by the licenses found
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
+    lines_of_code::Vector{LoCTableEltype}
 end
 function Package(name, uuid, repo;
                  reachable=false,
@@ -47,11 +51,13 @@ function Package(name, uuid, repo;
                  license_filename=missing,
                  licenses_found=String[],
                  license_file_percent_covered=missing,
-                 licenses_in_project=String[]
+                 licenses_in_project=String[],
+                 lines_of_code=Vector{LoCTableEltype}()
                  )
     return Package(name, uuid, repo, reachable, docs, runtests, github_actions, travis,
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
-                   license_filename, licenses_found, license_file_percent_covered, licenses_in_project)
+                   license_filename, licenses_found, license_file_percent_covered, licenses_in_project,
+                   lines_of_code)
 end
 
 # define `isequal`, `==`, and `hash` just in terms of the fields
@@ -112,6 +118,10 @@ function Base.show(io::IO, p::Package)
             lic_project = join(p.licenses_in_project, ", ")
             body *= "  * has license(s) in Project.toml: $(lic_project)\n"
             body *= "    * OSI approved: $(all(is_osi_approved, p.licenses_in_project))\n"
+        end
+        if !isempty(p.lines_of_code)
+          body *= "  * lines of Julia code in `src`: $(count_julia_loc(p.lines_of_code, :src))\n"
+          body *= "  * lines of Julia code in `test`: $(count_julia_loc(p.lines_of_code, :test))\n"
         end
     end
     print(io, strip(body))
@@ -215,6 +225,9 @@ Package BinaryBuilder:
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
+  * lines of Julia code in `src`: 4733
+  * lines of Julia code in `test`: 1520
+  
 ```
 """
 function analyze_from_registry(p)
@@ -264,6 +277,9 @@ Package AnalyzeRegistry:
   * has license(s) in file: MIT
     * filename: LICENSE
     * OSI approved: true
+  * lines of Julia code in `src`: 322
+  * lines of Julia code in `test`: 58
+
 ```
 """
 function analyze(dir::AbstractString; repo = "", reachable=true)
@@ -294,9 +310,10 @@ function analyze(dir::AbstractString; repo = "", reachable=true)
     if lic === nothing
         lic = (; license_filename=missing, licenses_found=String[], license_file_percent_covered=missing)
     end
+    lines_of_code = count_loc(dir)
     Package(name, uuid, repo; reachable, docs, runtests, travis, appveyor, cirrus,
             circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
-            lic..., licenses_in_project)
+            lic..., licenses_in_project, lines_of_code)
 end
 
 end # module
