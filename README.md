@@ -38,7 +38,8 @@ Package Flux:
   * has continuous integration: true
     * GitHub Actions
     * Buildkite
-  * has license(s): MIT
+  * has license(s) in file: MIT
+    * filename: LICENSE.md
     * OSI approved: true
 
 ```
@@ -53,7 +54,6 @@ its content.
 
 The returned value is the struct `Package`, which has the following fields:
 ```julia
-
 struct Package
     name::String # name of the package
     uuid::UUID # uuid of the package
@@ -73,7 +73,7 @@ struct Package
     license_filename::Union{Missing, String} # e.g. `LICENSE` or `COPYING`
     licenses_found::Vector{String} # all the licenses found in `license_filename`
     license_file_percent_covered::Union{Missing, Float64} # how much of the license file is covered by the licenses found
-    osi_approved::Union{Missing, Bool} # are all the licenses found OSI approved
+    licenses_in_project::Union{Missing,Vector{String}} # any licenses in the `license` key of the Project.toml
 end
 ```
 
@@ -116,9 +116,9 @@ Package AnalyzeRegistry:
   * has tests: true
   * has continuous integration: true
     * GitHub Actions
-  * has license(s): MIT
+  * has license(s) in file: MIT
+    * filename: LICENSE
     * OSI approved: true
-
 ```
 
 ## License

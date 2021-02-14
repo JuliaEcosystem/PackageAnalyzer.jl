@@ -6,7 +6,7 @@ using Pkg, TOML, UUIDs
 using FLoops # for the `@floops` macro
 using MicroCollections # for `EmptyVector` and `SingletonVector`
 using BangBang # for `append!!`
-using LicenseCheck # for `find_license`, `is_osi_approved`
+using LicenseCheck # for `find_license` and `is_osi_approved`
 
 export general_registry, find_packages, analyze, analyze_from_registry, analyze_from_registry!
 
@@ -29,7 +29,7 @@ struct Package
     license_filename::Union{Missing, String} # e.g. `LICENSE` or `COPYING`
     licenses_found::Vector{String} # all the licenses found in `license_filename`
     license_file_percent_covered::Union{Missing, Float64} # how much of the license file is covered by the licenses found
-    osi_approved::Union{Missing, Bool} # are all the licenses found OSI approved
+    licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
 end
 function Package(name, uuid, repo;
                  reachable=false,
@@ -47,11 +47,11 @@ function Package(name, uuid, repo;
                  license_filename=missing,
                  licenses_found=String[],
                  license_file_percent_covered=missing,
-                 osi_approved=missing
+                 licenses_in_project=String[]
                  )
     return Package(name, uuid, repo, reachable, docs, runtests, github_actions, travis,
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
-                   license_filename, licenses_found, license_file_percent_covered, osi_approved)
+                   license_filename, licenses_found, license_file_percent_covered, licenses_in_project)
 end
 
 # define `isequal`, `==`, and `hash` just in terms of the fields
@@ -101,11 +101,17 @@ function Base.show(io::IO, p::Package)
             body *= "  * has continuous integration: false\n"
         end
         if isempty(p.licenses_found)
-            body *= "  * no license found"
+            body *= "  * no license found\n"
         else
             lic = join(p.licenses_found, ", ")
-            body *= "  * has license(s): $lic\n"
-            body *= "    * OSI approved: $(p.osi_approved)"
+            body *= "  * has license(s) in file: $lic\n"
+            body *= "    * filename: $(p.license_filename)\n"
+            body *= "    * OSI approved: $(all(is_osi_approved, p.licenses_found))\n"
+        end
+        if !isempty(p.licenses_in_project)
+            lic_project = join(p.licenses_in_project, ", ")
+            body *= "  * has license(s) in Project.toml: $(lic_project)\n"
+            body *= "    * OSI approved: $(all(is_osi_approved, p.licenses_in_project))\n"
         end
     end
     print(io, strip(body))
@@ -154,7 +160,7 @@ function analyze_from_registry!(root, dir::AbstractString)
 
     dest = joinpath(root, uuid_string)
 
-    isdir(dest) && return analyze(dest; name, uuid, repo)
+    isdir(dest) && return analyze(dest; repo)
 
     reachable = try
         # Clone only latest commit on the default branch.  Note: some
@@ -168,7 +174,7 @@ function analyze_from_registry!(root, dir::AbstractString)
         # The repository may be unreachable
         false
     end
-    return reachable ? analyze(dest; repo, reachable, name, uuid) : Package(name, uuid, repo)
+    return reachable ? analyze(dest; repo, reachable) : Package(name, uuid, repo)
 end
 
 """
@@ -206,7 +212,8 @@ Package BinaryBuilder:
   * has continuous integration: true
     * GitHub Actions
     * Azure Pipelines
-  * has license(s): MIT
+  * has license(s) in file: MIT
+    * filename: LICENSE.md
     * OSI approved: true
 ```
 """
@@ -216,15 +223,23 @@ function analyze_from_registry(p)
     end
 end
 
-function parse_name_uuid(project_path)
-    bad_project = (; name = "Invalid Project.toml", uuid = UUID(UInt128(0)))
+function parse_project(dir)
+    bad_project = (; name = "Invalid Project.toml", uuid = UUID(UInt128(0)), licenses_in_project=String[])
+    project_path = joinpath(dir, "Project.toml")
+    if !isfile(project_path)
+        project_path = joinpath(dir, "JuliaProject.toml")
+    end
     isfile(project_path) || return bad_project
     project = TOML.tryparsefile(project_path)
     project isa TOML.ParserError && return bad_project
     haskey(project, "name") && haskey(project, "uuid") || return bad_project
     uuid = tryparse(UUID, project["uuid"]::String)
     uuid === nothing && return bad_project
-    return (; name = project["name"]::String, uuid)
+    licenses_in_project = get(project, "license", String[])
+    if licenses_in_project isa String
+        licenses_in_project = [licenses_in_project]
+    end
+    return (; name = project["name"]::String, uuid, licenses_in_project)
 end
 
 """
@@ -246,14 +261,13 @@ Package AnalyzeRegistry:
   * has tests: true
   * has continuous integration: true
     * GitHub Actions
-  * has license(s): MIT
+  * has license(s) in file: MIT
+    * filename: LICENSE
     * OSI approved: true
 ```
 """
-function analyze(dir::AbstractString; repo = "", reachable=true, name=nothing, uuid=nothing)
-    if name === nothing || uuid === nothing
-        name, uuid = parse_name_uuid(joinpath(dir, "Project.toml"))
-    end
+function analyze(dir::AbstractString; repo = "", reachable=true)
+    name, uuid, licenses_in_project = parse_project(dir)
     docs = isfile(joinpath(dir, "docs", "make.jl")) || isfile(joinpath(dir, "doc", "make.jl"))
     runtests = isfile(joinpath(dir, "test", "runtests.jl"))
     travis = isfile(joinpath(dir, ".travis.yml"))
@@ -282,7 +296,7 @@ function analyze(dir::AbstractString; repo = "", reachable=true, name=nothing, u
     end
     Package(name, uuid, repo; reachable, docs, runtests, travis, appveyor, cirrus,
             circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
-            lic..., osi_approved=is_osi_approved(lic))
+            lic..., licenses_in_project)
 end
 
 end # module
