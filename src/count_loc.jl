@@ -5,13 +5,13 @@ function count_loc(dir)
         src = count_loc_subdirs!(all_counted_dirs, ["src"])
         test = count_loc_subdirs!(all_counted_dirs, ["test"])
     
-        other = try
+        all_others = try
             JSON3.read(read(`tokei --output json . -e$(all_counted_dirs)`))
         catch e
             @error e
             missing
         end
-        (; docs, src, test, other)
+        (; docs, src, test, all_others)
     end
     return make_loc_table(counts)
 end
@@ -30,7 +30,7 @@ function count_loc_subdirs!(all_counted_dirs, subdirs)
     end
 end
 
-const LoCTableEltype = @NamedTuple{directory::Symbol, language::Symbol, line_type::Symbol, lines::Int}
+const LoCTableEltype = @NamedTuple{directory::Symbol, language::Symbol, files::Int, code::Int, comments::Int, blanks::Int}
 
 function make_loc_table(loc)
     table = LoCTableEltype[]
@@ -40,14 +40,14 @@ function make_loc_table(loc)
             ismissing(language_loc) && continue
             language == :Total && continue
             language_loc.inaccurate && continue
-            for (line_type, lines) in pairs(language_loc)
-                lines isa Number || continue
-                line_type == :inaccurate && continue
-                push!(table, (; directory, language, line_type, lines))
-            end
+            files = length(language_loc[:reports])
+            code = language_loc[:code]
+            comments = language_loc[:comments]
+            blanks = language_loc[:blanks]
+            push!(table, (; directory, language, files, code, comments, blanks))
         end
     end
     return table
 end
 
-count_julia_loc(table, dir) = sum(row.lines for row in table if row.line_type == :code && row.directory == dir && row.language == :Julia; init=0)
+count_julia_loc(table, dir) = sum(row.code for row in table if row.directory == dir && row.language == :Julia; init=0)
