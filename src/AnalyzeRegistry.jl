@@ -136,20 +136,26 @@ general_registry() =
     first([joinpath(d, "registries", "General") for d in Pkg.depots() if isfile(joinpath(d, "registries", "General", "Registry.toml"))])
 
 """
-    find_packages(dir = general_registry()) -> Vector{String}
+    find_packages(dir = general_registry(); names = nothing) -> Vector{String}
 
 Find all packages in the given registry, the General registry by default.
 Return a vector with the paths to the directories of each package in the
 registry.
+
+Pass a list of package `names` to filter the results to only the paths
+corresponding to those packages.
 """
-function find_packages(dir = general_registry())
+function find_packages(dir = general_registry(); names = nothing)
     # Get the list of packages in the registry by parsing the `Registry.toml`
     # file in the given directory.
     packages = TOML.parsefile(joinpath(dir, "Registry.toml"))["packages"]
     # Get the directories of all packages.  Filter out JLL packages: they are
     # automatically generated and we know that they don't have testing nor
     # documentation.
-    packages_dirs = [joinpath(dir, p["path"]) for (_, p) in packages if !endswith(p["name"], "_jll")]
+
+    name_filter = names === nothing ? name -> true : ∈(names)
+
+    return [joinpath(dir, p["path"]) for (_, p) in packages if !endswith(p["name"], "_jll") && name_filter(p["name"])]
 end
 
 """
@@ -227,7 +233,7 @@ Package BinaryBuilder:
     * OSI approved: true
   * lines of Julia code in `src`: 4733
   * lines of Julia code in `test`: 1520
-  
+
 ```
 """
 function analyze_from_registry(p)
