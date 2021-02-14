@@ -33,11 +33,15 @@ Package Flux:
   * repo: https://github.com/FluxML/Flux.jl.git
   * uuid: 587475ba-b771-5e3f-ad9e-33799f191a9c
   * is reachable: true
+  * has license(s) in file: MIT
+    * filename: LICENSE.md
+    * OSI approved: true
   * has documentation: true
   * has tests: true
   * has continuous integration: true
     * GitHub Actions
     * Buildkite
+
 ```
 
 The argument is the path to the directory of the package in the registry, where
@@ -66,14 +70,18 @@ struct Package
     buildkite::Bool # does it use Buildkite?
     azure_pipelines::Bool # does it use Azure Pipelines?
     gitlab_pipeline::Bool # does it use Gitlab Pipeline?
+    license_filename::Union{Missing, String} # e.g. `LICENSE` or `COPYING`
+    licenses_found::Vector{String} # all the licenses found in `license_filename`
+    license_file_percent_covered::Union{Missing, Float64} # how much of the license file is covered by the licenses found
+    licenses_in_project::Union{Missing,Vector{String}} # any licenses in the `license` key of the Project.toml
 end
 ```
 
 To run the analysis for multiple packages you can either use broadcasting
 ```julia
-analyze.(packages)
+analyze_from_registry.(package_paths_in_registry)
 ```
-or use the method `analyze(packages::AbstractVector{<:AbstractString})` which
+or use the method `analyze_from_registry(package_paths_in_registry::AbstractVector{<:AbstractString})` which
 leaverages [`FLoops.jl`](https://github.com/JuliaFolds/FLoops.jl) to run the
 analysis with multiple threads.
 
@@ -92,9 +100,10 @@ julia> find_packages(general_registry())
 Do not abuse this function!
 
 You use `analyze_from_registry!(root, joinpath(general_registry(), "F", "Flux"))` to clone
-the package to a particular directory `root` which is not cleaned up afterwards.
+the package to a particular directory `root` which is not cleaned up afterwards, and likewise
+can pass a vector of paths to use a threaded loop over them.
 
-You can also analyze the source code of a package via `analyze`, for example
+You can also directly analyze the source code of a package via `analyze`, for example
 
 ```julia
 julia> using AnalyzeRegistry
@@ -104,6 +113,9 @@ Package AnalyzeRegistry:
   * repo: 
   * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
   * is reachable: true
+  * has license(s) in file: MIT
+    * filename: LICENSE
+    * OSI approved: true
   * has documentation: false
   * has tests: true
   * has continuous integration: true

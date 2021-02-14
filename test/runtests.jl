@@ -1,7 +1,7 @@
 using Test, UUIDs
 
 using AnalyzeRegistry
-using AnalyzeRegistry: parse_name_uuid
+using AnalyzeRegistry: parse_project
 
 @testset "AnalyzeRegistry" begin
     general = general_registry()
@@ -42,20 +42,41 @@ end
     @test pkg.docs == false
     @test pkg.runtests == true # here we are!
     @test pkg.github_actions == true
+    @test pkg.licenses_found == ["MIT"]
+    @test isempty(pkg.licenses_in_project)
+
+    # the tests folder isn't a package!
+    # But this helps catch issues in error paths for when things go wrong
+    bad_pkg = analyze(".")
+    @test bad_pkg.repo == ""
+    @test bad_pkg.uuid == UUID(UInt128(0))
+    @test !bad_pkg.cirrus
+    @test ismissing(bad_pkg.license_filename)
+    @test isempty(bad_pkg.licenses_found)
+    @test ismissing(bad_pkg.license_file_percent_covered)
+    @test isempty(bad_pkg.licenses_in_project)
 end
 
-@testset "`parse_name_uuid`" begin
-    bad_project = (; name = "Invalid Project.toml", uuid = UUID(UInt128(0)))
+@testset "`parse_project`" begin
+    bad_project = (; name="Invalid Project.toml", uuid=UUID(UInt128(0)), licenses_in_project=String[])
     # malformatted TOML file
-    @test parse_name_uuid("missingquote.toml") == bad_project
+    @test parse_project("missingquote") == bad_project
 
     # bad UUID
-    @test parse_name_uuid("baduuid.toml") == bad_project
+    @test parse_project("baduuid") == bad_project
 
-    # non-existent file
-    @test parse_name_uuid("rstratarstra") == bad_project
+    # non-existent folder
+    @test parse_project("rstratarstra") == bad_project
 
     # proper Project.toml
-    this_project = (; name = "AnalyzeRegistry", uuid = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c"))
-    @test parse_name_uuid(joinpath(@__DIR__, "..", "Project.toml")) == this_project
+    this_project = (; name = "AnalyzeRegistry", uuid = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c"), licenses_in_project = String[])
+    @test parse_project(joinpath(@__DIR__, "..")) == this_project
+
+    # has `license = "MIT"`
+    project_1 = (; name = "AnalyzeRegistry", uuid = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c"), licenses_in_project=["MIT"])
+    @test parse_project("license_in_project") == project_1
+
+    # has `license = ["MIT", "GPL"]`
+    project_2 = (; name = "AnalyzeRegistry", uuid = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c"), licenses_in_project=["MIT", "GPL"])
+    @test parse_project("licenses_in_project") == project_2
 end
