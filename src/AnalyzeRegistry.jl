@@ -76,6 +76,19 @@ function Base.show(io::IO, p::Package)
           * is reachable: $(p.reachable)
         """
     if p.reachable
+        if isempty(p.licenses_found)
+            body *= "  * no license found\n"
+        else
+            lic = join(p.licenses_found, ", ")
+            body *= "  * has license(s) in file: $lic\n"
+            body *= "    * filename: $(p.license_filename)\n"
+            body *= "    * OSI approved: $(all(is_osi_approved, p.licenses_found))\n"
+        end
+        if !isempty(p.licenses_in_project)
+            lic_project = join(p.licenses_in_project, ", ")
+            body *= "  * has license(s) in Project.toml: $(lic_project)\n"
+            body *= "    * OSI approved: $(all(is_osi_approved, p.licenses_in_project))\n"
+        end
         body *= """
               * has documentation: $(p.docs)
               * has tests: $(p.runtests)
@@ -99,19 +112,6 @@ function Base.show(io::IO, p::Package)
             end
         else
             body *= "  * has continuous integration: false\n"
-        end
-        if isempty(p.licenses_found)
-            body *= "  * no license found\n"
-        else
-            lic = join(p.licenses_found, ", ")
-            body *= "  * has license(s) in file: $lic\n"
-            body *= "    * filename: $(p.license_filename)\n"
-            body *= "    * OSI approved: $(all(is_osi_approved, p.licenses_found))\n"
-        end
-        if !isempty(p.licenses_in_project)
-            lic_project = join(p.licenses_in_project, ", ")
-            body *= "  * has license(s) in Project.toml: $(lic_project)\n"
-            body *= "    * OSI approved: $(all(is_osi_approved, p.licenses_in_project))\n"
         end
     end
     print(io, strip(body))
@@ -207,14 +207,14 @@ Package BinaryBuilder:
   * repo: https://github.com/JuliaPackaging/BinaryBuilder.jl.git
   * uuid: 12aac903-9f7c-5d81-afc2-d9565ea332ae
   * is reachable: true
+  * has license(s) in file: MIT
+    * filename: LICENSE.md
+    * OSI approved: true
   * has documentation: true
   * has tests: true
   * has continuous integration: true
     * GitHub Actions
     * Azure Pipelines
-  * has license(s) in file: MIT
-    * filename: LICENSE.md
-    * OSI approved: true
 ```
 """
 function analyze_from_registry(p)
@@ -257,13 +257,13 @@ Package AnalyzeRegistry:
   * repo: 
   * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
   * is reachable: true
+  * has license(s) in file: MIT
+    * filename: LICENSE
+    * OSI approved: true
   * has documentation: false
   * has tests: true
   * has continuous integration: true
     * GitHub Actions
-  * has license(s) in file: MIT
-    * filename: LICENSE
-    * OSI approved: true
 ```
 """
 function analyze(dir::AbstractString; repo = "", reachable=true)
