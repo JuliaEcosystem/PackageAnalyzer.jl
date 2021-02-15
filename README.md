@@ -76,6 +76,7 @@ struct Package
     licenses_found::Vector{String} # all the licenses found in `license_filename`
     license_file_percent_covered::Union{Missing, Float64} # how much of the license file is covered by the licenses found
     licenses_in_project::Union{Missing,Vector{String}} # any licenses in the `license` key of the Project.toml
+    lines_of_code::Vector{@NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int}} # table of lines of code
 end
 ```
 
@@ -124,6 +125,43 @@ Package AnalyzeRegistry:
     * GitHub Actions
   * lines of Julia code in `src`: 328
   * lines of Julia code in `test`: 58
+```
+
+## Lines of code
+
+The `lines_of_code` field of the `Package` object is a Tables.jl row table
+containing much more detailed information about the lines of code count
+(thanks to `tokei`) and can e.g. be passed to a `DataFrame` for further analysis.
+
+```julia
+julia> using AnalyzeRegistry, DataFrames
+
+julia> result = analyze(pkgdir(AnalyzeRegistry))
+Package AnalyzeRegistry:
+  * repo: 
+  * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
+  * is reachable: true
+  * has license(s) in file: MIT
+    * filename: LICENSE
+    * OSI approved: true
+  * has documentation: false
+  * has tests: true
+  * has continuous integration: true
+    * GitHub Actions
+  * lines of Julia code in `src`: 325
+  * lines of Julia code in `test`: 58
+
+julia> DataFrame(result.lines_of_code)
+6×7 DataFrame
+ Row │ directory     language  sublanguage  files  code   comments  blanks 
+     │ String        Symbol    Union…       Int64  Int64  Int64     Int64  
+─────┼─────────────────────────────────────────────────────────────────────
+   1 │ test          Julia                      1     58        13      11
+   2 │ src           Julia                      2    325        26      25
+   3 │ README.md     Markdown  Julia            1     65         1       2
+   4 │ README.md     Markdown                   1      0        47      20
+   5 │ test          Toml                       4     10         0       0
+   6 │ Project.toml  Toml                       1     25         0       4
 ```
 
 ## License

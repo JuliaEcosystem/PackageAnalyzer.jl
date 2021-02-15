@@ -121,8 +121,8 @@ function Base.show(io::IO, p::Package)
             body *= "  * has continuous integration: false\n"
         end
         if !isempty(p.lines_of_code)
-          body *= "  * lines of Julia code in `src`: $(count_julia_loc(p.lines_of_code, :src))\n"
-          body *= "  * lines of Julia code in `test`: $(count_julia_loc(p.lines_of_code, :test))\n"
+          body *= "  * lines of Julia code in `src`: $(count_julia_loc(p.lines_of_code, "src"))\n"
+          body *= "  * lines of Julia code in `test`: $(count_julia_loc(p.lines_of_code, "test"))\n"
         end
     end
     print(io, strip(body))

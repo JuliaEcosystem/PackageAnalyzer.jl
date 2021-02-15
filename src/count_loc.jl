@@ -1,57 +1,49 @@
 function count_loc(dir)
-    all_counted_dirs = String[]
-    counts  = cd(dir) do
-        docs = count_loc_subdirs!(all_counted_dirs, ["docs", "doc"])
-        src = count_loc_subdirs!(all_counted_dirs, ["src"])
-        test = count_loc_subdirs!(all_counted_dirs, ["test"])
-    
-        all_others = try
-            tokei() do exe
-                JSON3.read(read(`$exe --output json . -e$(all_counted_dirs)`))
-            end
+    # we `cd` so that we get relative paths in the `tokei` output.
+    # This makes it easy to process later, since we have uniform filepaths
+    json = cd(dir) do
+        try
+            # local tokei for now:
+            # tokei() do exe
+            JSON3.read(read(`tokei --output json .`))
+            # end
         catch e
             @error e
             missing
         end
-        (; docs, src, test, all_others)
     end
-    return make_loc_table(counts)
+    return make_loc_table(json)
 end
 
-# counts the lines of code in each existing subdirectory in `subdirs`
-# and updates `all_counted_dirs` with the subdirs that were counted.
-function count_loc_subdirs!(all_counted_dirs, subdirs)
-    filter!(isdir, subdirs)
-    isempty(subdirs) && return missing
-    append!(all_counted_dirs, ("/"*s for s in subdirs))
-    return try
-        tokei() do exe
-            JSON3.read(read(`$exe --output json $(subdirs)`))
-        end
-    catch e
-        @error e
-        missing
-    end
-end
 
-const LoCTableEltype = @NamedTuple{directory::Symbol, language::Symbol, files::Int, code::Int, comments::Int, blanks::Int}
+const LoCTableEltype = @NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int}
 
-function make_loc_table(loc)
+function make_loc_table(json)
     table = LoCTableEltype[]
-    for (directory, directory_loc) in pairs(loc)
-        ismissing(directory_loc) && continue
-        for (language, language_loc) in pairs(directory_loc)
-            ismissing(language_loc) && continue
-            language == :Total && continue
-            language_loc.inaccurate && continue
-            files = length(language_loc[:reports])
-            code = language_loc[:code]
-            comments = language_loc[:comments]
-            blanks = language_loc[:blanks]
-            push!(table, (; directory, language, files, code, comments, blanks))
+    ismissing(json) && return table
+    for (language, language_loc) in pairs(json)
+        # we want to count lines of code per toplevel directory, per language, and per sublanguage (e.g. for Julia inside of Markdown)
+        counts = Dict{@NamedTuple{directory::String, sublanguage::Union{Nothing, Symbol}}, @NamedTuple{files::Int, code::Int, comments::Int, blanks::Int}}()
+        language == :Total && continue # skip the fake `Total` language
+        language_loc.inaccurate && continue # skip if it's marked `inaccurate` (not sure when that happens?)
+        for report in language_loc.reports
+            # `splitpath(relative_path)[1] == ".", so `splitpath(relative_path)[2]` gives us the toplevel directory or filename
+            directory = splitpath(report.name)[2]
+            loc_update!(counts, (; directory, sublanguage=nothing), report.stats)
+            for (sublanguage, sublanguage_loc) in report.stats.blobs
+                loc_update!(counts,  (; directory, sublanguage), sublanguage_loc)
+            end
+        end
+        for ((directory, sublanguage), count) in pairs(counts)
+            push!(table, (; directory, language, sublanguage, count.files, count.code, count.comments, count.blanks))
         end
     end
     return table
+end
+
+function loc_update!(d, key, new)
+    prev = get!(d, key, (; files=0, code=0, comments=0, blanks=0))
+    d[key] = (; files = prev.files + 1, code = prev.code + new.code, comments = prev.comments + new.comments, blanks = prev.blanks + new.blanks )
 end
 
 count_julia_loc(table, dir) = sum(row.code for row in table if row.directory == dir && row.language == :Julia; init=0)
