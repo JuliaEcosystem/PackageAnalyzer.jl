@@ -164,7 +164,7 @@ function find_packages(; registry = general_registry())
     # Get the directories of all packages.  Filter out JLL packages: they are
     # automatically generated and we know that they don't have testing nor
     # documentation.
-    return [joinpath(registry, p["path"]) for (_, p) in packages if !endswith(p["name"], "_jll")]
+    return [joinpath(registry, splitpath(p["path"])...) for (_, p) in packages if !endswith(p["name"], "_jll")]
 end
 
 """
