@@ -38,6 +38,7 @@ function make_loc_table(json)
             push!(table, (; directory, language, sublanguage, count.files, count.code, count.comments, count.blanks))
         end
     end
+    sort!(table, by = row->row.code, rev=true)
     return table
 end
 
