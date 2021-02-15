@@ -143,12 +143,12 @@ julia> DataFrame(result.lines_of_code)
  Row │ directory     language  sublanguage  files  code   comments  blanks 
      │ String        Symbol    Union…       Int64  Int64  Int64     Int64  
 ─────┼─────────────────────────────────────────────────────────────────────
-   1 │ src           Julia                      2    327        26      25
-   2 │ README.md     Markdown  Julia            1     76         0       3
-   3 │ test          Julia                      1     65        13      11
-   4 │ Project.toml  Toml                       1     25         0       4
+   1 │ src           Julia                      2    334        26      26
+   2 │ README.md     Markdown                   1      0        54      23
+   3 │ README.md     Markdown  Julia            1     76         0       3
+   4 │ test          Julia                      1     65        13      11
    5 │ test          Toml                       4     10         0       0
-   6 │ README.md     Markdown                   1      0        54      23
+   6 │ Project.toml  Toml                       1     25         0       4
 ```
 
 ## License

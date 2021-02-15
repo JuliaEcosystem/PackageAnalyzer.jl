@@ -38,8 +38,16 @@ function make_loc_table(json)
             push!(table, (; directory, language, sublanguage, count.files, count.code, count.comments, count.blanks))
         end
     end
-    sort!(table, by = row->row.code, rev=true)
+    d_count = counts_by_col(table, :directory)
+    l_count = counts_by_col(table, :language)
+    sl_count = counts_by_col(table, :sublanguage)
+    sort!(table, by = row->(d_count[row.directory], l_count[row.language], sl_count[row.sublanguage]), rev=true)
     return table
+end
+
+function counts_by_col(table, col)
+    vals = unique(getproperty(row, col) for row in table)
+    return Dict(val => sum(row.code for row in table if getproperty(row, col)==val) for val in vals)
 end
 
 function loc_update!(d, key, new)
