@@ -83,6 +83,12 @@ function Base.show(io::IO, p::Package)
           * is reachable: $(p.reachable)
         """
     if p.reachable
+        if !isempty(p.lines_of_code)
+            body *= """
+                  * lines of Julia code in `src`: $(count_julia_loc(p.lines_of_code, "src"))
+                  * lines of Julia code in `test`: $(count_julia_loc(p.lines_of_code, "test"))
+                """
+        end
         if isempty(p.licenses_found)
             body *= "  * no license found\n"
         else
@@ -119,10 +125,6 @@ function Base.show(io::IO, p::Package)
             end
         else
             body *= "  * has continuous integration: false\n"
-        end
-        if !isempty(p.lines_of_code)
-          body *= "  * lines of Julia code in `src`: $(count_julia_loc(p.lines_of_code, "src"))\n"
-          body *= "  * lines of Julia code in `test`: $(count_julia_loc(p.lines_of_code, "test"))\n"
         end
     end
     print(io, strip(body))
@@ -224,6 +226,8 @@ Package BinaryBuilder:
   * repo: https://github.com/JuliaPackaging/BinaryBuilder.jl.git
   * uuid: 12aac903-9f7c-5d81-afc2-d9565ea332ae
   * is reachable: true
+  * lines of Julia code in `src`: 4733
+  * lines of Julia code in `test`: 1520
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
@@ -232,8 +236,6 @@ Package BinaryBuilder:
   * has continuous integration: true
     * GitHub Actions
     * Azure Pipelines
-  * lines of Julia code in `src`: 4733
-  * lines of Julia code in `test`: 1520
 
 ```
 """
@@ -277,6 +279,8 @@ Package AnalyzeRegistry:
   * repo: 
   * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
   * is reachable: true
+  * lines of Julia code in `src`: 327
+  * lines of Julia code in `test`: 58
   * has license(s) in file: MIT
     * filename: LICENSE
     * OSI approved: true
@@ -284,9 +288,6 @@ Package AnalyzeRegistry:
   * has tests: true
   * has continuous integration: true
     * GitHub Actions
-
-  * lines of Julia code in `src`: 322
-  * lines of Julia code in `test`: 58
 
 ```
 """
