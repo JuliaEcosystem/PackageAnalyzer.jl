@@ -53,7 +53,7 @@ function Package(name, uuid, repo;
                  licenses_found=String[],
                  license_file_percent_covered=missing,
                  licenses_in_project=String[],
-                 lines_of_code=Vector{LoCTableEltype}()
+                 lines_of_code=Vector{LoCTableEltype}(),
                  )
     return Package(name, uuid, repo, reachable, docs, runtests, github_actions, travis,
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
