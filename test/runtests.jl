@@ -65,7 +65,7 @@ end
 end
 
 @testset "`subdir` support" begin
-    snoop_path = first(find_packages(; names = ["SnoopCompileCore"]))
+    snoop_path = only(find_packages("SnoopCompileCore"))
     snoop = analyze_from_registry(snoop_path)
     @test !isempty(snoop.subdir)
     @test snoop.name == "SnoopCompileCore" # this test would fail if we were parsing the wrong Project.toml (that of SnoopCompile)
