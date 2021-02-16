@@ -13,6 +13,7 @@ using Tokei_jll # count lines of code
 export general_registry, find_packages, analyze, analyze_from_registry, analyze_from_registry!
 
 include("count_loc.jl")
+const LicenseTableEltype=@NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}
 
 struct Package
     name::String # name of the package
@@ -30,9 +31,7 @@ struct Package
     buildkite::Bool # does it use Buildkite?
     azure_pipelines::Bool # does it use Azure Pipelines?
     gitlab_pipeline::Bool # does it use Gitlab Pipeline?
-    license_filename::Union{Missing, String} # e.g. `LICENSE` or `COPYING`
-    licenses_found::Vector{String} # all the licenses found in `license_filename`
-    license_file_percent_covered::Union{Missing, Float64} # how much of the license file is covered by the licenses found
+    license_files::Vector{LicenseTableEltype} # a table of all possible license files
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
     lines_of_code::Vector{LoCTableEltype}
 end
@@ -49,16 +48,13 @@ function Package(name, uuid, repo;
                  buildkite=false,
                  azure_pipelines=false,
                  gitlab_pipeline=false,
-                 license_filename=missing,
-                 licenses_found=String[],
-                 license_file_percent_covered=missing,
+                 license_files=LicenseTableEltype[],
                  licenses_in_project=String[],
                  lines_of_code=Vector{LoCTableEltype}(),
                  )
     return Package(name, uuid, repo, reachable, docs, runtests, github_actions, travis,
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
-                   license_filename, licenses_found, license_file_percent_covered, licenses_in_project,
-                   lines_of_code)
+                   license_files, licenses_in_project, lines_of_code)
 end
 
 # define `isequal`, `==`, and `hash` just in terms of the fields
@@ -89,13 +85,14 @@ function Base.show(io::IO, p::Package)
                   * lines of Julia code in `test`: $(count_julia_loc(p.lines_of_code, "test"))
                 """
         end
-        if isempty(p.licenses_found)
+        if isempty(p.license_files)
             body *= "  * no license found\n"
         else
-            lic = join(p.licenses_found, ", ")
-            body *= "  * has license(s) in file: $lic\n"
-            body *= "    * filename: $(p.license_filename)\n"
-            body *= "    * OSI approved: $(all(is_osi_approved, p.licenses_found))\n"
+            lic = p.license_files[1]
+            license_string = join(lic.licenses_found, ", ")
+            body *= "  * has license(s) in file: $(license_string)\n"
+            body *= "    * filename: $(lic.license_filename)\n"
+            body *= "    * OSI approved: $(all(is_osi_approved, lic.licenses_found))\n"
         end
         if !isempty(p.licenses_in_project)
             lic_project = join(p.licenses_in_project, ", ")
@@ -309,14 +306,11 @@ function analyze(dir::AbstractString; repo = "", reachable=true)
     else
         github_actions = false
     end
-    lic = find_license(dir)
-    if lic === nothing
-        lic = (; license_filename=missing, licenses_found=String[], license_file_percent_covered=missing)
-    end
+    license_files = find_licenses(dir)
     lines_of_code = count_loc(dir)
     Package(name, uuid, repo; reachable, docs, runtests, travis, appveyor, cirrus,
             circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
-            lic..., licenses_in_project, lines_of_code)
+            license_files, licenses_in_project, lines_of_code)
 end
 
 end # module
