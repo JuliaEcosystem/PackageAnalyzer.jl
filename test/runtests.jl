@@ -15,6 +15,7 @@ using AnalyzeRegistry: parse_project
     @test measurements.docs
     @test measurements.runtests
     @test !measurements.buildkite
+    @test !isempty(measurements.lines_of_code)
     # Test results of a couple of packages.  Same caveat as above
     packages = [joinpath(general, p...) for p in (("C", "Cuba"), ("P", "PolynomialRoots"))]
     @test Set(packages) == Set(find_packages("Cuba", "PolynomialRoots")) == Set(find_packages(["Cuba", "PolynomialRoots"]))
@@ -46,6 +47,12 @@ end
     @test pkg.github_actions == true
     @test pkg.licenses_found == ["MIT"]
     @test isempty(pkg.licenses_in_project)
+    @test !isempty(pkg.lines_of_code)
+    @test pkg.lines_of_code isa Vector{<:NamedTuple}
+    @test keys(pkg.lines_of_code[1]) == (:directory, :language, :sublanguage, :files, :code, :comments, :blanks)
+    idx = findfirst(row -> row.directory=="src" && row.language==:Julia && row.sublanguage===nothing, pkg.lines_of_code)
+    @test idx !== nothing
+    @test pkg.lines_of_code[idx].code > 200
 
     # the tests folder isn't a package!
     # But this helps catch issues in error paths for when things go wrong
