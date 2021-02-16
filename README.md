@@ -33,16 +33,16 @@ Package Flux:
   * repo: https://github.com/FluxML/Flux.jl.git
   * uuid: 587475ba-b771-5e3f-ad9e-33799f191a9c
   * is reachable: true
+  * lines of Julia code in `src`: 4863
+  * lines of Julia code in `test`: 2034
+  * has license(s) in file: MIT
+    * filename: LICENSE.md
+    * OSI approved: true
   * has documentation: true
   * has tests: true
   * has continuous integration: true
     * GitHub Actions
     * Buildkite
-  * has license(s) in file: MIT
-    * filename: LICENSE.md
-    * OSI approved: true
-  * lines of Julia code in `src`: 4863
-  * lines of Julia code in `test`: 2034
 
 ```
 
@@ -77,6 +77,7 @@ struct Package
     licenses_found::Vector{String} # all the licenses found in `license_filename`
     license_file_percent_covered::Union{Missing, Float64} # how much of the license file is covered by the licenses found
     licenses_in_project::Union{Missing,Vector{String}} # any licenses in the `license` key of the Project.toml
+    lines_of_code::Vector{@NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int}} # table of lines of code
 end
 ```
 
@@ -116,15 +117,39 @@ Package AnalyzeRegistry:
   * repo: 
   * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
   * is reachable: true
+  * lines of Julia code in `src`: 326
+  * lines of Julia code in `test`: 58
+  * has license(s) in file: MIT
+    * filename: LICENSE
+    * OSI approved: true
   * has documentation: false
   * has tests: true
   * has continuous integration: true
     * GitHub Actions
-  * has license(s) in file: MIT
-    * filename: LICENSE
-    * OSI approved: true
-  * lines of Julia code in `src`: 328
-  * lines of Julia code in `test`: 58
+```
+
+## Lines of code
+
+The `lines_of_code` field of the `Package` object is a Tables.jl row table
+containing much more detailed information about the lines of code count
+(thanks to `tokei`) and can e.g. be passed to a `DataFrame` for further analysis.
+
+```julia
+julia> using AnalyzeRegistry, DataFrames
+
+julia> result = analyze(pkgdir(AnalyzeRegistry));
+
+julia> DataFrame(result.lines_of_code)
+6×7 DataFrame
+ Row │ directory     language  sublanguage  files  code   comments  blanks 
+     │ String        Symbol    Union…       Int64  Int64  Int64     Int64  
+─────┼─────────────────────────────────────────────────────────────────────
+   1 │ src           Julia                      2    334        26      26
+   2 │ README.md     Markdown                   1      0        54      23
+   3 │ README.md     Markdown  Julia            1     76         0       3
+   4 │ test          Julia                      1     65        13      11
+   5 │ test          Toml                       4     10         0       0
+   6 │ Project.toml  Toml                       1     25         0       4
 ```
 
 ## License

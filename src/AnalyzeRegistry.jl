@@ -8,6 +8,7 @@ using MicroCollections # for `EmptyVector` and `SingletonVector`
 using BangBang # for `append!!`
 using LicenseCheck # for `find_license` and `is_osi_approved`
 using JSON3 # for interfacing with `tokei` to count lines of code
+using Tokei_jll # count lines of code
 
 export general_registry, find_packages, analyze, analyze_from_registry, analyze_from_registry!
 
@@ -54,7 +55,7 @@ function Package(name, uuid, repo;
                  licenses_found=String[],
                  license_file_percent_covered=missing,
                  licenses_in_project=String[],
-                 lines_of_code=Vector{LoCTableEltype}()
+                 lines_of_code=Vector{LoCTableEltype}(),
                  )
     return Package(name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
@@ -84,6 +85,25 @@ function Base.show(io::IO, p::Package)
           * is reachable: $(p.reachable)
         """
     if p.reachable
+        if !isempty(p.lines_of_code)
+            body *= """
+                  * lines of Julia code in `src`: $(count_julia_loc(p.lines_of_code, "src"))
+                  * lines of Julia code in `test`: $(count_julia_loc(p.lines_of_code, "test"))
+                """
+        end
+        if isempty(p.licenses_found)
+            body *= "  * no license found\n"
+        else
+            lic = join(p.licenses_found, ", ")
+            body *= "  * has license(s) in file: $lic\n"
+            body *= "    * filename: $(p.license_filename)\n"
+            body *= "    * OSI approved: $(all(is_osi_approved, p.licenses_found))\n"
+        end
+        if !isempty(p.licenses_in_project)
+            lic_project = join(p.licenses_in_project, ", ")
+            body *= "  * has license(s) in Project.toml: $(lic_project)\n"
+            body *= "    * OSI approved: $(all(is_osi_approved, p.licenses_in_project))\n"
+        end
         body *= """
               * has documentation: $(p.docs)
               * has tests: $(p.runtests)
@@ -108,23 +128,6 @@ function Base.show(io::IO, p::Package)
         else
             body *= "  * has continuous integration: false\n"
         end
-        if isempty(p.licenses_found)
-            body *= "  * no license found\n"
-        else
-            lic = join(p.licenses_found, ", ")
-            body *= "  * has license(s) in file: $lic\n"
-            body *= "    * filename: $(p.license_filename)\n"
-            body *= "    * OSI approved: $(all(is_osi_approved, p.licenses_found))\n"
-        end
-        if !isempty(p.licenses_in_project)
-            lic_project = join(p.licenses_in_project, ", ")
-            body *= "  * has license(s) in Project.toml: $(lic_project)\n"
-            body *= "    * OSI approved: $(all(is_osi_approved, p.licenses_in_project))\n"
-        end
-        if !isempty(p.lines_of_code)
-          body *= "  * lines of Julia code in `src`: $(count_julia_loc(p.lines_of_code, :src))\n"
-          body *= "  * lines of Julia code in `test`: $(count_julia_loc(p.lines_of_code, :test))\n"
-        end
     end
     print(io, strip(body))
 end
@@ -138,24 +141,20 @@ general_registry() =
     first([joinpath(d, "registries", "General") for d in Pkg.depots() if isfile(joinpath(d, "registries", "General", "Registry.toml"))])
 
 """
-    find_packages(dir = general_registry(); names = nothing) -> Vector{String}
+    find_packages(dir = general_registry()) -> Vector{String}
 
 Find all packages in the given registry, the General registry by default.
 Return a vector with the paths to the directories of each package in the
 registry.
-
-Pass a list of package `names` to filter the results to only the paths
-corresponding to those packages.
 """
-function find_packages(dir = general_registry(); names = nothing)
-    name_filter = names === nothing ? name -> true : ∈(names)
+function find_packages(dir = general_registry())
     # Get the list of packages in the registry by parsing the `Registry.toml`
     # file in the given directory.
     packages = TOML.parsefile(joinpath(dir, "Registry.toml"))["packages"]
     # Get the directories of all packages.  Filter out JLL packages: they are
     # automatically generated and we know that they don't have testing nor
     # documentation.
-    return [joinpath(dir, p["path"]) for (_, p) in packages if !endswith(p["name"], "_jll") && name_filter(p["name"])]
+    packages_dirs = [joinpath(dir, p["path"]) for (_, p) in packages if !endswith(p["name"], "_jll")]
 end
 
 """
@@ -224,16 +223,16 @@ Package BinaryBuilder:
   * repo: https://github.com/JuliaPackaging/BinaryBuilder.jl.git
   * uuid: 12aac903-9f7c-5d81-afc2-d9565ea332ae
   * is reachable: true
+  * lines of Julia code in `src`: 4733
+  * lines of Julia code in `test`: 1520
+  * has license(s) in file: MIT
+    * filename: LICENSE.md
+    * OSI approved: true
   * has documentation: true
   * has tests: true
   * has continuous integration: true
     * GitHub Actions
     * Azure Pipelines
-  * has license(s) in file: MIT
-    * filename: LICENSE.md
-    * OSI approved: true
-  * lines of Julia code in `src`: 4733
-  * lines of Julia code in `test`: 1520
 
 ```
 """
@@ -277,15 +276,15 @@ Package AnalyzeRegistry:
   * repo: 
   * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
   * is reachable: true
+  * lines of Julia code in `src`: 327
+  * lines of Julia code in `test`: 58
+  * has license(s) in file: MIT
+    * filename: LICENSE
+    * OSI approved: true
   * has documentation: false
   * has tests: true
   * has continuous integration: true
     * GitHub Actions
-  * has license(s) in file: MIT
-    * filename: LICENSE
-    * OSI approved: true
-  * lines of Julia code in `src`: 322
-  * lines of Julia code in `test`: 58
 
 ```
 """
