@@ -239,7 +239,7 @@ in a registry by creating a temporary directory and calling `analyze_from_regist
 cleaning up the temporary directory afterwards.
 
 ## Example
-```julia
+```jldoctest
 julia> analyze_from_registry(joinpath(general_registry(), "B", "BinaryBuilder"))
 Package BinaryBuilder:
   * repo: https://github.com/JuliaPackaging/BinaryBuilder.jl.git
@@ -292,7 +292,8 @@ these can't be inferred from the source code. If `name` or `uuid` are `nothing`,
 directories `Project.toml` is parsed to infer the package's name and UUID.
 
 ## Example
-```julia
+
+```jldoctest
 julia> analyze(pkgdir(AnalyzeRegistry))
 Package AnalyzeRegistry:
   * repo: 

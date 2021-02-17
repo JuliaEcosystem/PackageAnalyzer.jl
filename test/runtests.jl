@@ -1,4 +1,4 @@
-using Test, UUIDs
+using Test, UUIDs, Documenter
 
 using AnalyzeRegistry
 using AnalyzeRegistry: parse_project
@@ -105,4 +105,8 @@ end
     str = sprint(show, analyze(pkgdir(AnalyzeRegistry)))
     @test occursin("* uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c", str)
     @test occursin("* OSI approved: true", str)
+end
+
+@testset "Doctests" begin
+    doctest(AnalyzeRegistry)
 end
