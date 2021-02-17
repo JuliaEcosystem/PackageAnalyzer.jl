@@ -87,7 +87,7 @@ function Base.show(io::IO, p::Package)
                   * lines of Julia code in `test`: $(count_julia_loc(p.lines_of_code, "test"))
                 """
         end
-        if isempty(p.licenses_found)
+        if isempty(p.license_files)
             body *= "  * no license found\n"
         else
             lic = p.license_files[1]

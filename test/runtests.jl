@@ -99,3 +99,10 @@ end
     project_2 = (; name = "AnalyzeRegistry", uuid = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c"), licenses_in_project=["MIT", "GPL"])
     @test parse_project("licenses_in_project") == project_2
 end
+
+@testset "`show`" begin
+    # this is mostly to test that `show` doesn't error
+    str = sprint(show, analyze(pkgdir(AnalyzeRegistry)))
+    @test occursin("* uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c", str)
+    @test occursin("* OSI approved: true", str)
+end
