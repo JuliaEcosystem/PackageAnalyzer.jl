@@ -80,8 +80,6 @@ julia> AnalyzeRegistry.save("bb_flux.arrow", results)
 
 julia> roundtripped_results = AnalyzeRegistry.load("bb_flux.arrow");
 
-julia> roundtripped_results = AnalyzeRegistry.load("bb_flux.arrow");
-
 julia> roundtripped_results[1]
 Package BinaryBuilder:
   * repo: https://github.com/JuliaPackaging/BinaryBuilder.jl.git
@@ -106,16 +104,12 @@ function save(path, pkgs::AbstractVector{Package})
 end
 
 """
-    load(path; materialize=false)
+    load(path)
 
-Given a `path` to a table saved by [`save`](@ref), returns an `AbstractVector{Package}`
-of those results. Set `materialize=true` to obtain a `Vector{Package}` instead of a lazy
-Arrow.jl view into a byte-buffer or Mmap'd file. See [`save`](@ref) for an example.
+Given a `path` to a table saved by [`save`](@ref), returns an `Vector{Package}`
+of those results. See [`save`](@ref) for an example.
 """
-function load(path; materialize=false)
-    pkgs = Arrow.Table(path).packages
-    return materialize ? copy(pkgs) : pkgs
-end
+load(path) = copy(Arrow.Table(path).packages)
 
 
 # define `isequal`, `==`, and `hash` just in terms of the fields

@@ -114,12 +114,9 @@ end
 
         AnalyzeRegistry.save(path, results)
 
-        roundtripped_results_1 = AnalyzeRegistry.load(path)
-        @test roundtripped_results_1 isa AbstractVector{AnalyzeRegistry.Package}
-        
-        roundtripped_results_2 = AnalyzeRegistry.load(path; materialize=true)
-        @test roundtripped_results_2 isa Vector{AnalyzeRegistry.Package}
+        roundtripped_results = AnalyzeRegistry.load(path)
+        @test roundtripped_results isa Vector{AnalyzeRegistry.Package}
 
-        @test results == roundtripped_results_1 == roundtripped_results_2
+        @test results == roundtripped_results
     end
 end
