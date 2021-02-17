@@ -3,7 +3,9 @@
 
 The main functionality of the package is the `analyze` and `analyze_from_registry` functions:
 
-```julia
+```jldoctest
+julia> using AnalyzeRegistry
+
 julia> analyze_from_registry(joinpath(general_registry(), "F", "Flux"))
 Package Flux:
   * repo: https://github.com/FluxML/Flux.jl.git
@@ -85,20 +87,20 @@ can pass a vector of paths to use a threaded loop over them.
 
 You can also directly analyze the source code of a package via `analyze`, for example
 
-```julia
-julia> using AnalyzeRegistry
+```jldoctest
+julia> using AnalyzeRegistry, DataFrames
 
-julia> analyze(pkgdir(AnalyzeRegistry))
-Package AnalyzeRegistry:
-  * repo: 
-  * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
+julia> analyze(pkgdir(DataFrames))
+Package DataFrames:
+  * repo:
+  * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
   * is reachable: true
-  * lines of Julia code in `src`: 326
-  * lines of Julia code in `test`: 58
+  * lines of Julia code in `src`: 15347
+  * lines of Julia code in `test`: 15654
   * has license(s) in file: MIT
-    * filename: LICENSE
+    * filename: LICENSE.md
     * OSI approved: true
-  * has documentation: false
+  * has documentation: true
   * has tests: true
   * has continuous integration: true
     * GitHub Actions
@@ -113,17 +115,25 @@ containing much more detailed information about the lines of code count
 ```jldoctest
 julia> using AnalyzeRegistry, DataFrames
 
-julia> result = analyze(pkgdir(AnalyzeRegistry));
+julia> result = analyze(pkgdir(DataFrames));
+
 
 julia> DataFrame(result.lines_of_code)
-6×7 DataFrame
- Row │ directory     language  sublanguage  files  code   comments  blanks 
-     │ String        Symbol    Union…       Int64  Int64  Int64     Int64  
-─────┼─────────────────────────────────────────────────────────────────────
-   1 │ src           Julia                      2    334        26      26
-   2 │ README.md     Markdown                   1      0        54      23
-   3 │ README.md     Markdown  Julia            1     76         0       3
-   4 │ test          Julia                      1     65        13      11
-   5 │ test          Toml                       4     10         0       0
-   6 │ Project.toml  Toml                       1     25         0       4
+13×7 DataFrame
+ Row │ directory        language  sublanguage  files  code   comments  blanks
+     │ String           Symbol    Union…       Int64  Int64  Int64     Int64
+─────┼────────────────────────────────────────────────────────────────────────
+   1 │ test             Julia                     27  15654       320    2109
+   2 │ src              Julia                     28  15347       794    1009
+   3 │ docs             Julia                      1     41         7       5
+   4 │ docs             TOML                       1      4         0       2
+   5 │ docs             Markdown                  14      0      3292     620
+   6 │ docs             Markdown  Julia            3     29         3       4
+   7 │ docs             Markdown  Python           1     13         0       1
+   8 │ docs             Markdown  R                1      2         0       0
+   9 │ Project.toml     TOML                       1     48         0       4
+  10 │ CONTRIBUTING.md  Markdown                   1      0        56       8
+  11 │ NEWS.md          Markdown                   1      0       112      10
+  12 │ LICENSE.md       Markdown                   1      0        22       1
+  13 │ README.md        Markdown                   1      0        21      10
 ```

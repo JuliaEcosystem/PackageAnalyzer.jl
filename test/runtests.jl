@@ -1,7 +1,19 @@
-using Test, UUIDs, Documenter
-
+using Test, UUIDs
 using AnalyzeRegistry
 using AnalyzeRegistry: parse_project
+
+### Doctests
+using Documenter, DataFrames
+DocMeta.setdocmeta!(AnalyzeRegistry, :DocTestSetup, :(using AnalyzeRegistry); recursive=true)
+
+@testset "Doctests" begin
+    # doctests failing?
+    # DataFrames or Flux updated their number of lines of code?
+    # Not to fear, just run `doctest(AnalyzeRegistry, fix=true)` to update them.
+    # (Just have a look at the diff before committing!)
+    doctest(AnalyzeRegistry)
+end
+###
 
 @testset "AnalyzeRegistry" begin
     general = general_registry()
@@ -42,7 +54,7 @@ end
     @test pkg.repo == "" # can't find repo from source code
     @test pkg.uuid == UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c")
     @test pkg.reachable == true # default
-    @test pkg.docs == false
+    @test pkg.docs == true
     @test pkg.runtests == true # here we are!
     @test pkg.github_actions == true
     @test length(pkg.license_files) == 1
@@ -105,8 +117,4 @@ end
     str = sprint(show, analyze(pkgdir(AnalyzeRegistry)))
     @test occursin("* uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c", str)
     @test occursin("* OSI approved: true", str)
-end
-
-@testset "Doctests" begin
-    doctest(AnalyzeRegistry)
 end

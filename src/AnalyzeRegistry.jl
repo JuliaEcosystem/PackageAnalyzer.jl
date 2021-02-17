@@ -294,17 +294,19 @@ directories `Project.toml` is parsed to infer the package's name and UUID.
 ## Example
 
 ```jldoctest
-julia> analyze(pkgdir(AnalyzeRegistry))
-Package AnalyzeRegistry:
-  * repo: 
-  * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
+julia> using DataFrames
+
+julia> analyze(pkgdir(DataFrames))
+Package DataFrames:
+  * repo:
+  * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
   * is reachable: true
-  * lines of Julia code in `src`: 327
-  * lines of Julia code in `test`: 58
+  * lines of Julia code in `src`: 15347
+  * lines of Julia code in `test`: 15654
   * has license(s) in file: MIT
-    * filename: LICENSE
+    * filename: LICENSE.md
     * OSI approved: true
-  * has documentation: false
+  * has documentation: true
   * has tests: true
   * has continuous integration: true
     * GitHub Actions
