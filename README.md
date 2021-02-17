@@ -83,11 +83,18 @@ end
 
 To run the analysis for multiple packages you can either use broadcasting
 ```julia
-analyze_from_registry.(package_paths_in_registry)
+results = analyze_from_registry.(package_paths_in_registry)
 ```
 or use the method `analyze_from_registry(package_paths_in_registry::AbstractVector{<:AbstractString})` which
 leaverages [`FLoops.jl`](https://github.com/JuliaFolds/FLoops.jl) to run the
-analysis with multiple threads.
+analysis with multiple threads. These results can be saved to disk via
+```julia
+AnalyzeRegistry.save("results.arrow", results)
+```
+and loaded back by
+```julia
+results_2 = AnalyzeRegistry.load("results.arrow")
+```
 
 You can use the function `find_packages` to find all packages in a given
 registry:

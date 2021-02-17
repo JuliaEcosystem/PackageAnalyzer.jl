@@ -9,8 +9,13 @@ using BangBang # for `append!!`
 using LicenseCheck # for `find_license` and `is_osi_approved`
 using JSON3 # for interfacing with `tokei` to count lines of code
 using Tokei_jll # count lines of code
+using Arrow # serialize results
 
 export general_registry, find_packages, analyze, analyze_from_registry, analyze_from_registry!
+
+function __init__()
+    Arrow.ArrowTypes.registertype!(Package, Package)
+end
 
 include("count_loc.jl")
 const LicenseTableEltype=@NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}
@@ -58,6 +63,60 @@ function Package(name, uuid, repo;
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
                    license_files, licenses_in_project, lines_of_code)
 end
+
+"""
+    save(path, pkgs::AbstractVector{Package})
+
+Saves the results to `path` as a single-column Arrow table.
+This can be loaded back by [`load`](@ref).
+
+## Example
+
+```julia
+julia> results = analyze_from_registry(find_packages("BinaryBuilder", "Flux"));
+
+julia> AnalyzeRegistry.save("bb_flux.arrow", results)
+"bb_flux.arrow"
+
+julia> roundtripped_results = AnalyzeRegistry.load("bb_flux.arrow");
+
+julia> roundtripped_results = AnalyzeRegistry.load("bb_flux.arrow");
+
+julia> roundtripped_results[1]
+Package BinaryBuilder:
+  * repo: https://github.com/JuliaPackaging/BinaryBuilder.jl.git
+  * uuid: 12aac903-9f7c-5d81-afc2-d9565ea332ae
+  * is reachable: true
+  * lines of Julia code in `src`: 4733
+  * lines of Julia code in `test`: 1520
+  * has license(s) in file: MIT
+    * filename: LICENSE.md
+    * OSI approved: true
+  * has documentation: true
+  * has tests: true
+  * has continuous integration: true
+    * GitHub Actions
+    * Azure Pipelines
+
+```
+"""
+function save(path, pkgs::AbstractVector{Package})
+    table = (; packages = pkgs)
+    Arrow.write(path, table)
+end
+
+"""
+    load(path; materialize=false)
+
+Given a `path` to a table saved by [`save`](@ref), returns an `AbstractVector{Package}`
+of those results. Set `materialize=true` to obtain a `Vector{Package}` instead of a lazy
+Arrow.jl view into a byte-buffer or Mmap'd file. See [`save`](@ref) for an example.
+"""
+function load(path; materialize=false)
+    pkgs = Arrow.Table(path).packages
+    return materialize ? copy(pkgs) : pkgs
+end
+
 
 # define `isequal`, `==`, and `hash` just in terms of the fields
 for f in (:isequal, :(==))

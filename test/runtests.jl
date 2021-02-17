@@ -106,3 +106,20 @@ end
     @test occursin("* uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c", str)
     @test occursin("* OSI approved: true", str)
 end
+
+@testset "`load` and `save`" begin
+    mktempdir() do dir
+        path = joinpath(dir, "test.arrow")
+        results = analyze_from_registry(find_packages("BinaryBuilder", "Flux"))
+
+        AnalyzeRegistry.save(path, results)
+
+        roundtripped_results_1 = AnalyzeRegistry.load(path)
+        @test roundtripped_results_1 isa AbstractVector{AnalyzeRegistry.Package}
+        
+        roundtripped_results_2 = AnalyzeRegistry.load(path; materialize=true)
+        @test roundtripped_results_2 isa Vector{AnalyzeRegistry.Package}
+
+        @test results == roundtripped_results_1 == roundtripped_results_2
+    end
+end

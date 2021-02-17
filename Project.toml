@@ -4,6 +4,7 @@ authors = ["Mosè Giordano <mose@gnu.org>"]
 version = "0.1.0"
 
 [deps]
+Arrow = "69666777-d1a9-59fb-9406-91d4454c9d45"
 BangBang = "198e06fe-97b7-11e9-32a5-e1d131e6ad66"
 FLoops = "cc61a311-1640-44b5-9fba-1b764f453329"
 JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
@@ -15,6 +16,7 @@ Tokei_jll = "3ac119c9-1236-5556-b556-adc8150b0244"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [compat]
+Arrow = "1.2.4"
 BangBang = "0.3.29"
 FLoops = "0.1.6"
 JSON3 = "1.5.1"
