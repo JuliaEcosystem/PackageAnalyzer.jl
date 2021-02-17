@@ -45,7 +45,12 @@ end
     @test pkg.docs == false
     @test pkg.runtests == true # here we are!
     @test pkg.github_actions == true
-    @test pkg.licenses_found == ["MIT"]
+    @test length(pkg.license_files) == 1
+    @test pkg.license_files[1].licenses_found == ["MIT"]
+    @test pkg.license_files[1].license_filename == "LICENSE"
+    @test pkg.license_files[1].license_file_percent_covered > 90
+    @test pkg.license_files isa Vector{<:NamedTuple}
+    @test keys(pkg.license_files[1]) == (:license_filename, :licenses_found, :license_file_percent_covered)
     @test isempty(pkg.licenses_in_project)
     @test !isempty(pkg.lines_of_code)
     @test pkg.lines_of_code isa Vector{<:NamedTuple}
@@ -60,9 +65,7 @@ end
     @test bad_pkg.repo == ""
     @test bad_pkg.uuid == UUID(UInt128(0))
     @test !bad_pkg.cirrus
-    @test ismissing(bad_pkg.license_filename)
-    @test isempty(bad_pkg.licenses_found)
-    @test ismissing(bad_pkg.license_file_percent_covered)
+    @test isempty(bad_pkg.license_files)
     @test isempty(bad_pkg.licenses_in_project)
 end
 
