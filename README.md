@@ -91,7 +91,7 @@ analysis with multiple threads.
 You can use the function `find_packages` to find all packages in a given
 registry:
 ```julia
-julia> find_packages(general_registry())
+julia> find_packages(; registry=general_registry())
 4312-element Vector{String}:
  "/home/user/.julia/registries/General/C/CitableImage"
  "/home/user/.julia/registries/General/T/Trixi2Img"

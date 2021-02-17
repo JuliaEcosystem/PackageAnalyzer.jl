@@ -3,10 +3,9 @@ function count_loc(dir)
     # This makes it easy to process later, since we have uniform filepaths
     json = cd(dir) do
         try
-            # local tokei for now:
-            # tokei() do exe
-            JSON3.read(read(`tokei --output json .`))
-            # end
+            tokei() do exe
+                JSON3.read(read(`$exe --output json .`))
+            end
         catch e
             @error e
             missing
