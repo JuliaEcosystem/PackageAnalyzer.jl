@@ -60,6 +60,7 @@ struct Package
     name::String # name of the package
     uuid::UUID # uuid of the package
     repo::String # URL of the repository
+    subdir::String # subdirectory of the package in the repo
     reachable::Bool # can the repository be cloned?
     docs::Bool # does it have documentation?
     runtests::Bool # does it have the test/runtests.jl file?
