@@ -1,6 +1,6 @@
 # AnalyzeRegistry.jl
 
-The main functionality of the package is the `analyze` and `analyze_from_registry` functions:
+The main functionality of the package are the [`analyze`](@ref) and [`analyze_from_registry`](@ref) functions:
 
 ```jldoctest
 julia> using AnalyzeRegistry
@@ -24,14 +24,42 @@ Package Flux:
 ```
 
 The argument is the path to the directory of the package in the registry, where
-the file `Package.toml` is stored.  The function `general_registry()` gives you
-the path to the local copy of the [General
+the file `Package.toml` is stored.  The function [`find_package`](@ref) gives you
+the path to the package in your local copy of the [General
 registry](https://github.com/JuliaRegistries/General).
 
 *NOTE*: the Git repository of the package will be cloned, in order to inspect
 its content.
 
-The returned value is the struct `Package`, which has the following fields:
+
+You use the inplace version [`analyze_from_registry!`](@ref), e.g. as `analyze_from_registry!(root, find_package("Flux"))` to clone
+the package to a particular directory `root` which is not cleaned up afterwards, and likewise can pass a vector of paths instead of a single path employ use a threaded loop to analyze each package.
+
+You can also directly analyze the source code of a package via [`analyze`](@ref), for example
+
+```jldoctest
+julia> using AnalyzeRegistry, DataFrames
+
+julia> analyze(pkgdir(DataFrames))
+Package DataFrames:
+  * repo:
+  * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
+  * is reachable: true
+  * lines of Julia code in `src`: 15347
+  * lines of Julia code in `test`: 15654
+  * has license(s) in file: MIT
+    * filename: LICENSE.md
+    * OSI approved: true
+  * has documentation: true
+  * has tests: true
+  * has continuous integration: true
+    * GitHub Actions
+```
+
+## The `Package` struct
+
+The returned values from [`analyze`](@ref), [`analyze_from_registry`](@ref) and [`analyze_from_registry!`](@ref) are objects of the type `Package`, which has the following fields:
+
 ```julia
 struct Package
     name::String # name of the package
@@ -58,6 +86,9 @@ struct Package
 end
 ```
 
+
+## Analyzing multiple packages
+
 To run the analysis for multiple packages you can either use broadcasting
 ```julia
 analyze_from_registry.(package_paths_in_registry)
@@ -66,8 +97,9 @@ or use the method `analyze_from_registry(package_paths_in_registry::AbstractVect
 leaverages [`FLoops.jl`](https://github.com/JuliaFolds/FLoops.jl) to run the
 analysis with multiple threads.
 
-You can use the function `find_packages` to find all packages in a given
+You can use the function [`find_packages`](@ref) to find all packages in a given
 registry:
+
 ```julia
 julia> find_packages(; registry=general_registry())
 4312-element Vector{String}:
@@ -78,32 +110,10 @@ julia> find_packages(; registry=general_registry())
  "/home/user/.julia/registries/General/S/Strapping"
  [...]
 ```
-Do not abuse this function!
+Do not abuse this function! Consider using the in-place function `analyze_from_registry!(root, package_paths_in_registry)` to avoid re-cloning packages if you might run the analysis more than once.
 
-You use e.g. `analyze_from_registry!(root, find_package("Flux"))` to clone
-the package to a particular directory `root` which is not cleaned up afterwards, and likewise
-can pass a vector of paths to use a threaded loop over them.
-
-You can also directly analyze the source code of a package via `analyze`, for example
-
-```jldoctest
-julia> using AnalyzeRegistry, DataFrames
-
-julia> analyze(pkgdir(DataFrames))
-Package DataFrames:
-  * repo:
-  * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
-  * is reachable: true
-  * lines of Julia code in `src`: 15347
-  * lines of Julia code in `test`: 15654
-  * has license(s) in file: MIT
-    * filename: LICENSE.md
-    * OSI approved: true
-  * has documentation: true
-  * has tests: true
-  * has continuous integration: true
-    * GitHub Actions
-```
+!!! warning
+    Cloning all the repos in General will take about 24 GB of disk space and likely take several hours to complete.
 
 ## License information
 
