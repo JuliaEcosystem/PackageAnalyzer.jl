@@ -140,21 +140,46 @@ Guess the path of the General registry.
 general_registry() =
     first([joinpath(d, "registries", "General") for d in Pkg.depots() if isfile(joinpath(d, "registries", "General", "Registry.toml"))])
 
-"""
-    find_packages(dir = general_registry()) -> Vector{String}
 
-Find all packages in the given registry, the General registry by default.
-Return a vector with the paths to the directories of each package in the
-registry.
 """
-function find_packages(dir = general_registry())
+    find_packages(; registry = general_registry()) -> Vector{String}
+    find_packages(names::AbstractString...; registry = general_registry()) -> Vector{String}
+    find_packages(names; registry = general_registry()) -> Vector{String}
+
+Find all packages in the given registry (specified by the `registry` keyword argument),
+the General registry by default. Return a vector with the paths to the directories
+of each package in the registry.
+
+Pass a list of package `names` as the first argument to return the paths corresponding to those packages,
+or individual package names as separate arguments.
+"""
+find_packages
+
+find_packages(names::AbstractString...; registry = general_registry()) =  find_packages(names; registry=registry)
+
+function find_packages(names; registry = general_registry())
+    if names !== nothing
+        paths = String[]
+        for name in names
+            path = joinpath(registry, string(uppercase(first(name))), name)
+            if isdir(path)
+               push!(paths, path) 
+            else
+                @error("Could not find package in registry!", name, path)
+            end
+        end
+        return paths
+    end
+end
+
+function find_packages(; registry = general_registry())
     # Get the list of packages in the registry by parsing the `Registry.toml`
     # file in the given directory.
-    packages = TOML.parsefile(joinpath(dir, "Registry.toml"))["packages"]
+    packages = TOML.parsefile(joinpath(registry, "Registry.toml"))["packages"]
     # Get the directories of all packages.  Filter out JLL packages: they are
     # automatically generated and we know that they don't have testing nor
     # documentation.
-    packages_dirs = [joinpath(dir, p["path"]) for (_, p) in packages if !endswith(p["name"], "_jll")]
+    return [joinpath(registry, splitpath(p["path"])...) for (_, p) in packages if !endswith(p["name"], "_jll")]
 end
 
 """

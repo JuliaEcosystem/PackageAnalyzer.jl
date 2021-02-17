@@ -18,6 +18,8 @@ using AnalyzeRegistry: parse_project
     @test !isempty(measurements.lines_of_code)
     # Test results of a couple of packages.  Same caveat as above
     packages = [joinpath(general, p...) for p in (("C", "Cuba"), ("P", "PolynomialRoots"))]
+    @test Set(packages) == Set(find_packages("Cuba", "PolynomialRoots")) == Set(find_packages(["Cuba", "PolynomialRoots"]))
+    @test packages ⊆ find_packages()
     results = analyze_from_registry(packages)
     cuba, polyroots = results
     @test length(filter(p -> p.reachable, results)) == 2
