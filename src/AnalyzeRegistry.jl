@@ -10,7 +10,8 @@ using LicenseCheck # for `find_license` and `is_osi_approved`
 using JSON3 # for interfacing with `tokei` to count lines of code
 using Tokei_jll # count lines of code
 
-export general_registry, find_packages, analyze, analyze_from_registry, analyze_from_registry!
+export general_registry, find_package, find_packages
+export analyze, analyze_from_registry, analyze_from_registry!
 
 include("count_loc.jl")
 const LicenseTableEltype=@NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}
@@ -137,6 +138,14 @@ Guess the path of the General registry.
 general_registry() =
     first([joinpath(d, "registries", "General") for d in Pkg.depots() if isfile(joinpath(d, "registries", "General", "Registry.toml"))])
 
+
+"""
+    find_package(pkg; registry = general_registry()) -> String
+
+Returns the path to the entry in `registry` for the package `pkg`.
+The singular version of [`find_packages`](@ref).
+"""
+find_package(pkg::AbstractString; registry=general_registry()) = only(find_packages([pkg]; registry))
 
 """
     find_packages(; registry = general_registry()) -> Vector{String}

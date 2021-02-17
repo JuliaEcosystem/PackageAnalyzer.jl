@@ -8,7 +8,9 @@ makedocs(
     ),
     modules = [AnalyzeRegistry],
     sitename = "AnalyzeRegistry.jl",
-    pages = ["Home" => "index.md", "API Reference" => "api.md"]
+    pages = ["Home" => "index.md",
+             "API Reference" => "api.md",
+             "Saving results" => "serialization.md"]
 )
 
 deploydocs(

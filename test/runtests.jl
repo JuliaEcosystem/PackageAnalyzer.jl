@@ -19,6 +19,8 @@ end
     general = general_registry()
     @test isdir(general)
     @test all(isdir, find_packages())
+    @test all(isdir, find_packages("Flux"))
+    @test isdir(find_package("Flux"))
     # Test some properties of the `Measurements` package.  NOTE: they may change
     # in the future!
     measurements = analyze_from_registry(joinpath(general, "M", "Measurements"))
