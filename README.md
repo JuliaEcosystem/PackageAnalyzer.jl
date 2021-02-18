@@ -1,5 +1,5 @@
-[![Build Status](https://giordano.github.io/AnalyzeRegistry.jl/workflows/CI/badge.svg)](https://giordano.github.io/AnalyzeRegistry.jl/actions?query=workflow%3ACI)
-[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://github.com/giordano/AnalyzeRegistry.jl/dev)
+[![Build Status](https://github.com/giordano/AnalyzeRegistry.jl/workflows/CI/badge.svg)](https://github.com/giordano/AnalyzeRegistry.jl/actions?query=workflow%3ACI)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://giordano.github.io/AnalyzeRegistry.jl/dev)
 
 
 # AnalyzeRegistry
