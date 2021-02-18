@@ -16,4 +16,5 @@ makedocs(
 deploydocs(
     repo = "https://github.com/giordano/AnalyzeRegistry.jl",
     push_preview=true,
+    devbranch = "main",
 )
