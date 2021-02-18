@@ -2,7 +2,7 @@
 
 The main functionality of the package are the [`analyze`](@ref) and [`analyze_from_registry`](@ref) functions:
 
-```jldoctest
+```julia
 julia> using AnalyzeRegistry
 
 julia> analyze_from_registry(find_package("Flux"))
@@ -37,7 +37,7 @@ the package to a particular directory `root` which is not cleaned up afterwards,
 
 You can also directly analyze the source code of a package via [`analyze`](@ref), for example
 
-```jldoctest
+```julia
 julia> using AnalyzeRegistry, DataFrames
 
 julia> analyze(pkgdir(DataFrames))
@@ -121,7 +121,7 @@ The `license_files` field of the `Package` object is a Tables.jl row table
 containing much more detailed information about any or all files containing
 licenses, identified by [`licensecheck`](https://github.com/google/licensecheck) via [LicenseCheck.jl](https://github.com/ericphanson/LicenseCheck.jl). For example, [RandomProjectionTree.jl](https://github.com/jean-pierreBoth/RandomProjectionTree.jl) is dual licensed under both Apache-2.0 and the MIT license, and provides two separate license files. Interestingly, the README is also identified as containing an Apache-2.0 license; I've filed an [issue](https://github.com/google/licensecheck/issues/40) to see if this is intentional.
 
-```jldoctest
+```julia
 julia> using AnalyzeRegistry, DataFrames
 
 julia> result = analyze_from_registry(find_packages("RandomProjectionTree")[1]);
@@ -144,7 +144,7 @@ The `lines_of_code` field of the `Package` object is a Tables.jl row table
 containing much more detailed information about the lines of code count
 (thanks to `tokei`) and can e.g. be passed to a `DataFrame` for further analysis.
 
-```jldoctest
+```julia
 julia> using AnalyzeRegistry, DataFrames
 
 julia> result = analyze(pkgdir(DataFrames));

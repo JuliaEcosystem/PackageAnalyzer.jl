@@ -2,19 +2,6 @@ using Test, UUIDs
 using AnalyzeRegistry
 using AnalyzeRegistry: parse_project
 
-### Doctests
-using Documenter, DataFrames
-DocMeta.setdocmeta!(AnalyzeRegistry, :DocTestSetup, :(using AnalyzeRegistry); recursive=true)
-
-@testset "Doctests" begin
-    # doctests failing?
-    # DataFrames or Flux updated their number of lines of code?
-    # Not to fear, just run `doctest(AnalyzeRegistry, fix=true)` to update them.
-    # (Just have a look at the diff before committing!)
-    doctest(AnalyzeRegistry)
-end
-###
-
 @testset "AnalyzeRegistry" begin
     general = general_registry()
     @test isdir(general)
