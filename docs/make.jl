@@ -14,7 +14,7 @@ makedocs(
 )
 
 deploydocs(
-    repo = "https://github.com/giordano/AnalyzeRegistry.jl",
+    repo = "github.com/giordano/AnalyzeRegistry.jl.git",
     push_preview=true,
     devbranch = "main",
 )
