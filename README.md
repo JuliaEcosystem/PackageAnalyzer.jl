@@ -49,7 +49,7 @@ Package Flux:
 
 ```
 
-See the [docs](https://github.com/giordano/AnalyzeRegistry.jl/dev/) for more!
+See the [docs](https://giordano.github.io/AnalyzeRegistry.jl/dev/) for more!
 
 ## License
 
