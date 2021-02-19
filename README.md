@@ -1,6 +1,5 @@
 [![Build Status](https://github.com/giordano/AnalyzeRegistry.jl/workflows/CI/badge.svg)](https://github.com/giordano/AnalyzeRegistry.jl/actions?query=workflow%3ACI)
-[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://giordano.github.io/AnalyzeRegistry.jl/dev)
-
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://giordano.github.io/AnalyzeRegistry.jl/dev/)
 
 # AnalyzeRegistry
 
@@ -50,7 +49,7 @@ Package Flux:
 
 ```
 
-See the [docs](https://github.com/giordano/AnalyzeRegistry.jl/dev) for more!
+See the [docs](https://github.com/giordano/AnalyzeRegistry.jl/dev/) for more!
 
 ## License
 
