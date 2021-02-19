@@ -29,7 +29,7 @@ Pkg.add("https://github.com/giordano/AnalyzeRegistry.jl")
 
 ## Quick example
 
-```jldoctest
+```julia
 julia> using AnalyzeRegistry
 
 julia> analyze_from_registry(find_package("Flux"))
