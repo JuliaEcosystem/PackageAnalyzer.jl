@@ -1,7 +1,9 @@
 [deps]
+AnalyzeRegistry = "e713c705-17e4-4cec-abe0-95bf5bf3e10c"
 Arrow = "69666777-d1a9-59fb-9406-91d4454c9d45"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+TableOperations = "ab02a1b2-a7df-11e8-156e-fb1833f50b87"
 
 [compat]
 Documenter = "~0.26"
