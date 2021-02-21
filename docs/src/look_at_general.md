@@ -11,7 +11,7 @@ Arrow.ArrowTypes.ARROW_TO_JULIA_TYPE_MAPPING["JuliaLang.Nothing"] = (Nothing, No
 
 load(path) = copy(Arrow.Table(path).packages)
 
-results = load("../all_pkgs_results.arrow")
+results = load("assets/all_pkgs_results.arrow")
 
 # https://discourse.julialang.org/t/slowness-of-fieldnames-and-properynames/55364/2
 @generated function named_tuple(obj::T) where {T}
@@ -73,10 +73,10 @@ We can also generate a wordcloud with the names of the 500 largest packages:
 ```julia
 using WordCloud
 src_wc = generate!(wordcloud(src_code.name[1:500], src_code.code[1:500]))
-paint(src_wc, "src_wc.svg")
+paint(src_wc, "assets/src_wc.svg")
 ```
 
-![Word cloud](../src_wc.svg)
+![Word cloud](assets/src_wc.svg)
 
 
 In the package folder, where does Julia code live?
