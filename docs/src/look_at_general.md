@@ -60,7 +60,10 @@ using GRUtils
 Figure((600,400)) # hide
 histogram(src_code.code, xlog=true, xlabel="Lines of Julia source code",
           ylabel="Number of packages")
+savefig("loc_hist.svg") # hide
 ```
+
+![](loc_hist.svg)
 
 With a logarithmic x-axis, we see a nice unimodal distribution, centered around ~500 lines of code:
 
@@ -93,7 +96,10 @@ Figure((600,400)) # hide
 barplot(labels, heights; ylabel="Total lines of Julia code", xlabel="Top-level directory")
 annotations(1:length(heights), heights .+ 0.03 * maximum(heights) , string.(heights), halign="center")
 xticks(1)
+savefig("dir_bar.svg") # hide
 ```
+
+![](dir_bar.svg)
 
 Mostly in `src`, as expected! What's the most common non-Julia code in `src`?
 
