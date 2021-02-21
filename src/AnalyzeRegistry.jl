@@ -169,7 +169,7 @@ function find_packages(names; registry = general_registry())
         for name in names
             path = joinpath(registry, string(uppercase(first(name))), name)
             if isdir(path)
-               push!(paths, path) 
+               push!(paths, path)
             else
                 @error("Could not find package in registry!", name, path)
             end
@@ -178,14 +178,19 @@ function find_packages(names; registry = general_registry())
     end
 end
 
-function find_packages(; registry = general_registry())
+# The UUID of the "julia" pseudo-package in the General registry
+const JULIA_UUID = "1222c4b2-2114-5bfd-aeef-88e4692bbb3e"
+
+function find_packages(; registry = general_registry(),
+                       filter = (uuid, p) -> !endswith(p["name"], "_jll") && uuid != JULIA_UUID)
     # Get the list of packages in the registry by parsing the `Registry.toml`
     # file in the given directory.
     packages = TOML.parsefile(joinpath(registry, "Registry.toml"))["packages"]
     # Get the directories of all packages.  Filter out JLL packages: they are
     # automatically generated and we know that they don't have testing nor
-    # documentation.
-    return [joinpath(registry, splitpath(p["path"])...) for (_, p) in packages if !endswith(p["name"], "_jll")]
+    # documentation. We also filter out the "julia" package which is not a real
+    # package and just points at the Julia source code.
+    return [joinpath(registry, splitpath(p["path"])...) for (uuid, p) in packages if filter(uuid, p)]
 end
 
 """
