@@ -350,7 +350,12 @@ function analyze(dir::AbstractString; repo = "", reachable=true, subdir="")
         github_actions = false
     end
     license_files = find_licenses(dir)
-    lines_of_code = count_loc(dir)
+    if !isempty(subdir)
+        # Look for licenses at top-level and in the subdirectory
+        subdir_licenses_files = [(; license_filename = joinpath(subdir, row.license_filename), row.licenses_found, row.license_file_percent_covered) for row in find_licenses(joinpath(dir, subdir))]
+        license_files = [subdir_licenses_files; license_files]
+    end
+    lines_of_code = count_loc(pkgdir)
     Package(name, uuid, repo; subdir, reachable, docs, runtests, travis, appveyor, cirrus,
             circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
             license_files, licenses_in_project, lines_of_code)
