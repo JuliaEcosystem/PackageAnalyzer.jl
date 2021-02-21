@@ -71,10 +71,23 @@ end
 end
 
 @testset "`subdir` support" begin
-    snoop_path = only(find_packages("SnoopCompileCore"))
-    snoop = analyze_from_registry(snoop_path)
-    @test !isempty(snoop.subdir)
-    @test snoop.name == "SnoopCompileCore" # this test would fail if we were parsing the wrong Project.toml (that of SnoopCompile)
+    snoop_core_path = only(find_packages("SnoopCompileCore"))
+    snoop_core = analyze_from_registry(snoop_core_path)
+    @test !isempty(snoop_core.subdir)
+    @test snoop_core.name == "SnoopCompileCore" # this test would fail if we were parsing the wrong Project.toml (that of SnoopCompile)
+    # This tests that we find licenses in the subdir and put them first,
+    # and find licenses in the repo dir and put them last.
+    @test startswith(snoop_core.license_files[1].license_filename, "SnoopCompileCore")
+    @test !startswith(snoop_core.license_files[end].license_filename, "SnoopCompileCore")
+
+    # Let's check we're counting LoC right for subdirectories. We have two ways of counting
+    # the Julia code in SnoopCompileCore. One, we can ask SnoopCompile for the lines of Julia code in its
+    # top-level directory `SnoopCompileCore`. Two, we can ask SnoopCompileCore for all of it's
+    # Julia code.
+    snoop_compile = analyze_from_registry(find_package("SnoopCompile"))
+    snoop_compile_count_for_core = sum(row.code for row in snoop_compile.lines_of_code if row.language == :Julia && row.sublanguage===nothing && row.directory == "SnoopCompileCore")
+    snoop_core_count = sum(row.code for row in snoop_core.lines_of_code if row.language == :Julia && row.sublanguage===nothing)
+    @test snoop_core_count == snoop_compile_count_for_core
 end
 
 @testset "`parse_project`" begin
