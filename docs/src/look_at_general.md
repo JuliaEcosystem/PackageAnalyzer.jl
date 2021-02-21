@@ -57,7 +57,7 @@ We see there are almost 7 million lines of Julia source code in General!
 
 ```@example 1
 using GRUtils
-Figure(); # hide
+Figure((600,400)) # hide
 histogram(src_code.code, xlog=true, xlabel="Lines of Julia source code",
           ylabel="Number of packages")
 ```
@@ -89,7 +89,7 @@ dir_df = sort!(combine(dir_grps, :code => sum => :loc), :loc; rev=true)
 n_bars=6
 heights = [dir_df.loc[1:(n_bars-1)]; sum(dir_df.loc[n_bars+1:end])]
 labels = [dir_df.directory[1:(n_bars-1)]; "other"]
-Figure(); # hide
+Figure((600,400)) # hide
 barplot(labels, heights; ylabel="Total lines of Julia code", xlabel="Top-level directory")
 annotations(1:length(heights), heights .+ 0.03 * maximum(heights) , string.(heights), halign="center")
 xticks(1)
