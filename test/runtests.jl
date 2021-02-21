@@ -4,7 +4,7 @@ using AnalyzeRegistry: parse_project
 
 @testset "AnalyzeRegistry" begin
     general = general_registry()
-    @test isdir(general)
+    @test isdir(general.path)
     @test all(isdir, find_packages())
     @test find_package("julia") ∉ find_packages()
     @test all(isdir, find_packages("Flux"))

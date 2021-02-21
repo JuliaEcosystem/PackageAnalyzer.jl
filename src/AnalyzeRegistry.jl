@@ -16,6 +16,12 @@ export analyze, analyze_from_registry, analyze_from_registry!
 include("count_loc.jl")
 const LicenseTableEltype=@NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}
 
+struct Registry
+    path::String
+end
+Base.joinpath(registry::Registry, paths::AbstractString...) =
+    joinpath(registry.path, paths...)
+
 struct Package
     name::String # name of the package
     uuid::UUID # uuid of the package
@@ -131,26 +137,26 @@ function Base.show(io::IO, p::Package)
 end
 
 """
-    general_registry() -> String
+    general_registry() -> Registry
 
 Guess the path of the General registry.
 """
 general_registry() =
-    first([joinpath(d, "registries", "General") for d in Pkg.depots() if isfile(joinpath(d, "registries", "General", "Registry.toml"))])
+    Registry(first([joinpath(d, "registries", "General") for d in Pkg.depots() if isfile(joinpath(d, "registries", "General", "Registry.toml"))]))
 
 
 """
-    find_package(pkg; registry = general_registry()) -> String
+    find_package(pkg; registry::Registry=general_registry()) -> String
 
 Returns the path to the entry in `registry` for the package `pkg`.
 The singular version of [`find_packages`](@ref).
 """
-find_package(pkg::AbstractString; registry=general_registry()) = only(find_packages([pkg]; registry))
+find_package(pkg::AbstractString; registry::Registry=general_registry()) = only(find_packages([pkg]; registry))
 
 """
-    find_packages(; registry = general_registry()) -> Vector{String}
-    find_packages(names::AbstractString...; registry = general_registry()) -> Vector{String}
-    find_packages(names; registry = general_registry()) -> Vector{String}
+    find_packages(; registry::Registry=general_registry()) -> Vector{String}
+    find_packages(names::AbstractString...; registry::Registry=general_registry()) -> Vector{String}
+    find_packages(names; registry::Registry=general_registry()) -> Vector{String}
 
 Find all packages in the given registry (specified by the `registry` keyword argument),
 the General registry by default. Return a vector with the paths to the directories
@@ -161,9 +167,9 @@ or individual package names as separate arguments.
 """
 find_packages
 
-find_packages(names::AbstractString...; registry = general_registry()) =  find_packages(names; registry=registry)
+find_packages(names::AbstractString...; registry::Registry=general_registry()) =  find_packages(names; registry)
 
-function find_packages(names; registry = general_registry())
+function find_packages(names; registry::Registry=general_registry())
     if names !== nothing
         paths = String[]
         for name in names
@@ -181,7 +187,7 @@ end
 # The UUID of the "julia" pseudo-package in the General registry
 const JULIA_UUID = "1222c4b2-2114-5bfd-aeef-88e4692bbb3e"
 
-function find_packages(; registry = general_registry(),
+function find_packages(; registry::Registry=general_registry(),
                        filter = (uuid, p) -> !endswith(p["name"], "_jll") && uuid != JULIA_UUID)
     # Get the list of packages in the registry by parsing the `Registry.toml`
     # file in the given directory.
