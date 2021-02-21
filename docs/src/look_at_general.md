@@ -31,14 +31,27 @@ Here, we see some information about presence of docs, tests, and CI, for the fir
 Let us assemble all of the `lines_of_code` tables into their own DataFrame.
 
 ```@example 1
+function shorten_repo(repo)
+    strip_str = "https://github.com/"
+    if startswith(repo, strip_str)
+        repo = repo[(length(strip_str)+1):end]
+    end
+    if endswith(repo, ".git")
+        repo = repo[1: (end-length(".git"))]
+    end
+    return repo
+end
 loc_df = DataFrame()
 for pkg in results
     pkg_df = DataFrame(pkg.lines_of_code)
-    insertcols!(pkg_df, 1, :name => fill(pkg.name, nrow(pkg_df)))
+    insertcols!(pkg_df, 1, :name => fill(pkg.name, nrow(pkg_df)),
+                           :repo => fill(shorten_repo(pkg.repo), nrow(pkg_df)),
+                           :subdir => fill(pkg.subdir, nrow(pkg_df))
+                )
     append!(loc_df, pkg_df)
 end
 sort!(loc_df, :code; rev=true)
-loc_df[1:10, :]
+loc_df[1:10, Not([:name])]
 ```
 We can see the largest entries by lines of code seem to be mostly generated code, like plots or HTML. Let's look at just at Julia language code in the `src` directory (with no `sublanguage`, i.e. it's not another language embedded inside Julia):
 
@@ -46,7 +59,7 @@ We can see the largest entries by lines of code seem to be mostly generated code
 grps = groupby(loc_df, [:directory, :language, :sublanguage])
 src_code = DataFrame(grps[(; directory="src", language=:Julia, sublanguage=nothing)])
 sort!(src_code, :code; rev=true)
-src_code[1:20, Not([:sublanguage])]
+src_code[1:20, Not([:name, :sublanguage])]
 ```
 
 ```@example 1
@@ -103,11 +116,14 @@ Mostly in `src`, as expected! What's the most common non-Julia code in `src`?
 
 ```@example 1
 grps = groupby(filter([:directory, :language] => ((d, l) -> d == "src" && l !== :Julia), loc_df), :language)
-
-sort!(combine(grps, :code => sum, [:name, :code] => ((n, c) -> n[argmax(c)]) => :biggest_contributer, :code => maximum => :biggest_contribution), :code_sum; rev=true)[1:10, :]
+function biggest_contributor(repo, subdir, code)
+    idx = argmax(code)
+    return (; biggest_contributer = repo[idx], subdir = subdir[idx], contribution= code[idx])
+end
+sort!(combine(grps, :code => sum, [:repo, :subdir, :code] => biggest_contributor => [:biggest_contributer, :subdir, :contribution]), :code_sum; rev=true)[1:10, :]
 ```
 
-We see code from a variety of different languages can live in `src`, but often most of the lines come from a single package. Note the "Invalid Project.toml"; this likely means the package in question does not have a Project.toml at all (and instead still has the old Requires file).
+We see code from a variety of different languages can live in `src`, but often most of the lines come from a single package.
 
 We could continue exploring this all day, but instead we suggest you download the data and do some digging yourself!
 
