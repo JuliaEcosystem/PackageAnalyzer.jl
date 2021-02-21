@@ -3,7 +3,9 @@ AnalyzeRegistry = "e713c705-17e4-4cec-abe0-95bf5bf3e10c"
 Arrow = "69666777-d1a9-59fb-9406-91d4454c9d45"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-TableOperations = "ab02a1b2-a7df-11e8-156e-fb1833f50b87"
+GRUtils = "0337cf30-a0fd-11e9-31db-a79914c9d7ac"
+StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
 Documenter = "~0.26"
+GRUtils = "0.5.4"
