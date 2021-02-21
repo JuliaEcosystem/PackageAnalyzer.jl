@@ -11,7 +11,7 @@ Arrow.ArrowTypes.ARROW_TO_JULIA_TYPE_MAPPING["JuliaLang.Nothing"] = (Nothing, No
 
 load(path) = copy(Arrow.Table(path).packages)
 
-results = load("/Users/eph/iCloudDrive/all_pkgs_results.arrow")
+results = load("../all_pkgs_results.arrow")
 
 # https://discourse.julialang.org/t/slowness-of-fieldnames-and-properynames/55364/2
 @generated function named_tuple(obj::T) where {T}
