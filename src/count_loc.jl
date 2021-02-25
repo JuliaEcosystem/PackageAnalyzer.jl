@@ -1,4 +1,4 @@
-function count_loc(dir)
+function count_loc(dir::AbstractString)
     # we `cd` so that we get relative paths in the `tokei` output.
     # This makes it easy to process later, since we have uniform filepaths
     json = cd(dir) do
@@ -54,4 +54,7 @@ function loc_update!(d, key, new)
     d[key] = (; files = prev.files + 1, code = prev.code + new.code, comments = prev.comments + new.comments, blanks = prev.blanks + new.blanks )
 end
 
-count_julia_loc(table, dir) = sum(row.code for row in table if row.directory == dir && row.language == :Julia; init=0)
+count_julia_loc(table, dir) = count_loc(table, dir, :Julia)
+count_loc(table, dir::AbstractString, language::Symbol) = sum(row.code for row in table if row.directory == dir && row.language == language; init=0)
+count_loc(table, dir::AbstractString) = sum(row.code for row in table if row.directory == dir; init=0)
+count_docs(table) = sum(row.code + row.comments for row in table if row.directory in ("docs", "doc"); init=0)

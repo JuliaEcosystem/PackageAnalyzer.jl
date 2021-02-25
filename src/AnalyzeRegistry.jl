@@ -12,6 +12,7 @@ using Tokei_jll # count lines of code
 
 export general_registry, find_package, find_packages
 export analyze, analyze_from_registry, analyze_from_registry!
+export healthcheck
 
 include("count_loc.jl")
 const LicenseTableEltype=@NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}
@@ -113,19 +114,10 @@ function Base.show(io::IO, p::Package)
               * has documentation: $(p.docs)
               * has tests: $(p.runtests)
             """
-        ci_services = (p.github_actions => "GitHub Actions",
-                       p.travis => "Travis",
-                       p.appveyor => "AppVeyor",
-                       p.cirrus => "Cirrus",
-                       p.circle => "Circle",
-                       p.drone => "Drone CI",
-                       p.buildkite => "Buildkite",
-                       p.azure_pipelines => "Azure Pipelines",
-                       p.gitlab_pipeline => "GitLab Pipeline",
-                       )
-        if any(first.(ci_services))
+        ci = ci_services(p)
+        if any(first.(ci))
             body *= "  * has continuous integration: true\n"
-            for (k, v) in ci_services
+            for (k, v) in ci
                 if k
                     body *= "    * $(v)\n"
                 end
@@ -135,6 +127,59 @@ function Base.show(io::IO, p::Package)
         end
     end
     print(io, strip(body))
+end
+
+function ci_services(p)
+    return (p.github_actions => "GitHub Actions",
+            p.travis => "Travis",
+            p.appveyor => "AppVeyor",
+            p.cirrus => "Cirrus",
+            p.circle => "Circle",
+            p.drone => "Drone CI",
+            p.buildkite => "Buildkite",
+            p.azure_pipelines => "Azure Pipelines",
+            p.gitlab_pipeline => "GitLab Pipeline")
+end
+
+emojify(b::Bool) = b ? "☑" : "◻"
+
+function print_check(io, check, name, parens)
+    print(io, emojify(check), " ", name)
+    if check && !isempty(parens)
+        println(io, " (", parens, ")")
+    else
+        println(io)
+    end
+end
+
+healthcheck(p::Package) = healthcheck(stdout, p)
+
+function healthcheck(io::IO, p::Package)
+    jl_test = count_loc(p.lines_of_code, "test", :Julia)
+    jl_src = count_loc(p.lines_of_code, "src", :Julia)
+    jl_doc = count_docs(p.lines_of_code)
+    println(io, p.name, ".jl")
+    print_check(io, jl_src > 5, "Has code", "$(jl_src) lines")
+    print_check(io, p.docs, "Has docs", "$(jl_doc) lines")
+    print_check(io, p.runtests && jl_test > 5, "Has tests", "$(jl_test) lines")
+    licenses = String[]
+    append!(licenses, p.licenses_in_project)
+    for lic in p.license_files
+        append!(licenses, lic.licenses_found)
+    end
+    print_check(io, !isempty(licenses) && any(is_osi_approved, licenses), "Has license(s)", "")
+    for lic in licenses
+        check = is_osi_approved(lic)
+        print(io, "    $lic (")
+        if check
+            print(io, "✔ OSI-approved)")
+        else
+            print(io, "⨉ not OSI-approved)")
+        end
+        println(io)
+    end
+    services = [v for (k,v) in ci_services(p) if k]
+    print_check(io, !isempty(services), "Has CI", join(services, ", "))
 end
 
 """
