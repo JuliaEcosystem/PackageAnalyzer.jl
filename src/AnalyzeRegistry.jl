@@ -78,6 +78,13 @@ function Base.show(io::IO, p::Package)
     body = """
         Package $(p.name):
           * repo: $(p.repo)
+        """
+    if !isempty(p.subdir)
+        body *= """
+            * in subdirectory: $(p.subdir)
+        """
+    end
+    body *= """
           * uuid: $(p.uuid)
           * is reachable: $(p.reachable)
         """
