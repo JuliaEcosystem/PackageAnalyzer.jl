@@ -145,36 +145,34 @@ function print_check(io, check, name, parens)
     end
 end
 
-function healthcheck(p::Package)
-    body = sprint() do io
-        jl_test = count_loc(p.lines_of_code, "test", :Julia)
-        jl_src = count_loc(p.lines_of_code, "src", :Julia)
-        jl_doc = count_docs(p.lines_of_code)
-        println(io, p.name, ".jl")
-        print_check(io, jl_src > 5, "Has code", "$(jl_src) lines")
-        print_check(io, p.docs, "Has docs", "$(jl_doc) lines")
-        print_check(io, p.runtests && jl_test > 5, "Has tests", "$(jl_test) lines")
-        licenses = String[]
-        append!(licenses, p.licenses_in_project)
-        for lic in p.license_files
-            append!(licenses, lic.licenses_found)
-        end
-        print_check(io, !isempty(licenses) && any(is_osi_approved, licenses), "Has license(s)", "")
-        for lic in licenses
-            check = is_osi_approved(lic)
-            print(io, "    $lic (")
-            if check
-                print(io, "✔ OSI-approved)")
-            else
-                print(io, "⨉ Not OSI-approved)")
-            end
-            println(io)
-            # print_check(io, check, "OSI: $lic", "")
-        end
-        services = [v for (k,v) in ci_services(p) if k]
-        print_check(io, !isempty(services), "Has CI", join(services, ", "))
+healthcheck(p::Package) = healthcheck(stdout, p)
+
+function healthcheck(io::IO, p::Package)
+    jl_test = count_loc(p.lines_of_code, "test", :Julia)
+    jl_src = count_loc(p.lines_of_code, "src", :Julia)
+    jl_doc = count_docs(p.lines_of_code)
+    println(io, p.name, ".jl")
+    print_check(io, jl_src > 5, "Has code", "$(jl_src) lines")
+    print_check(io, p.docs, "Has docs", "$(jl_doc) lines")
+    print_check(io, p.runtests && jl_test > 5, "Has tests", "$(jl_test) lines")
+    licenses = String[]
+    append!(licenses, p.licenses_in_project)
+    for lic in p.license_files
+        append!(licenses, lic.licenses_found)
     end
-    print(body)
+    print_check(io, !isempty(licenses) && any(is_osi_approved, licenses), "Has license(s)", "")
+    for lic in licenses
+        check = is_osi_approved(lic)
+        print(io, "    $lic (")
+        if check
+            print(io, "✔ OSI-approved)")
+        else
+            print(io, "⨉ not OSI-approved)")
+        end
+        println(io)
+    end
+    services = [v for (k,v) in ci_services(p) if k]
+    print_check(io, !isempty(services), "Has CI", join(services, ", "))
 end
 
 """
