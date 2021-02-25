@@ -89,6 +89,10 @@ end
     snoop_compile_count_for_core = sum(row.code for row in snoop_compile.lines_of_code if row.language == :Julia && row.sublanguage===nothing && row.directory == "SnoopCompileCore")
     snoop_core_count = sum(row.code for row in snoop_core.lines_of_code if row.language == :Julia && row.sublanguage===nothing)
     @test snoop_core_count == snoop_compile_count_for_core
+
+    # this package doesn't exist in the repo anymore; let's ensure it doesn't throw
+    snoop_compile_analysis = analyze_from_registry(find_package("SnoopCompileAnalysis"))
+    @test isempty(snoop_compile_analysis.lines_of_code)
 end
 
 @testset "`parse_project`" begin
