@@ -392,7 +392,7 @@ function analyze(dir::AbstractString; repo = "", reachable=true, subdir="", auth
 
     # If the repository is on GitHub and we have a non-anonymous GitHub
     # authentication, get the list of contributors
-    contributors = if auth isa GitHub.AnonymousAuth || occursin("github.com", repo)
+    contributors = if !(auth isa GitHub.AnonymousAuth) && occursin("github.com", repo)
         repo_name = replace(replace(repo, r"^https://github\.com/" => ""), r"\.git$" => "")
         String[c["contributor"].login for c in GitHub.contributors(GitHub.repo(repo_name; auth); auth)[1] if c["contributor"].login ∉ ("JuliaTagBot", "github-actions[bot]")]
     else
