@@ -9,6 +9,7 @@ using BangBang # for `append!!`
 using LicenseCheck # for `find_license` and `is_osi_approved`
 using JSON3 # for interfacing with `tokei` to count lines of code
 using Tokei_jll # count lines of code
+using GitHub
 
 export general_registry, find_package, find_packages
 export analyze, analyze_from_registry, analyze_from_registry!
@@ -36,6 +37,7 @@ struct Package
     license_files::Vector{LicenseTableEltype} # a table of all possible license files
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
     lines_of_code::Vector{LoCTableEltype}
+    contributors::Vector{String}
 end
 function Package(name, uuid, repo;
                  subdir="",
@@ -54,10 +56,11 @@ function Package(name, uuid, repo;
                  license_files=LicenseTableEltype[],
                  licenses_in_project=String[],
                  lines_of_code=Vector{LoCTableEltype}(),
+                 contributors=String[],
                  )
     return Package(name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
-                   license_files, licenses_in_project, lines_of_code)
+                   license_files, licenses_in_project, lines_of_code, contributors)
 end
 
 # define `isequal`, `==`, and `hash` just in terms of the fields
@@ -108,6 +111,9 @@ function Base.show(io::IO, p::Package)
             lic_project = join(p.licenses_in_project, ", ")
             body *= "  * has license(s) in Project.toml: $(lic_project)\n"
             body *= "    * OSI approved: $(all(is_osi_approved, p.licenses_in_project))\n"
+        end
+        if !isempty(p.contributors)
+            body *= "  * number of contributors: $(length(p.contributors))\n"
         end
         body *= """
               * has documentation: $(p.docs)
@@ -304,6 +310,16 @@ function parse_project(dir)
     return (; name = project["name"]::String, uuid, licenses_in_project)
 end
 
+function github_auth()
+    auth = if haskey(ENV, "GITHUB_TOKEN") && length(ENV["GITHUB_TOKEN"]) == 40
+        GitHub.authenticate(ENV["GITHUB_TOKEN"])
+    elseif haskey(ENV, "GITHUB_AUTH") && length(ENV["GITHUB_AUTH"]) == 40
+        GitHub.authenticate(ENV["GITHUB_AUTH"])
+    else
+        GitHub.AnonymousAuth()
+    end
+end
+
 """
     analyze(dir::AbstractString; repo = "", reachable=true, name=nothing, uuid=nothing)
 
@@ -334,7 +350,7 @@ Package DataFrames:
 
 ```
 """
-function analyze(dir::AbstractString; repo = "", reachable=true, subdir="")
+function analyze(dir::AbstractString; repo = "", reachable=true, subdir="", auth::GitHub.Authorization=github_auth())
     # we will look for docs, tests, license, and count lines of code
     # in the `pkgdir`; we will look for CI in the `dir`.
     pkgdir = joinpath(dir, subdir)
@@ -373,9 +389,19 @@ function analyze(dir::AbstractString; repo = "", reachable=true, subdir="")
         license_files = LicenseTableEltype[]
         lines_of_code = LoCTableEltype[]
     end
+
+    # If the repository is on GitHub and we have a non-anonymous GitHub
+    # authentication, get the list of contributors
+    contributors = if auth isa GitHub.AnonymousAuth || occursin("github.com", repo)
+        repo_name = replace(replace(repo, r"^https://github\.com/" => ""), r"\.git$" => "")
+        String[c["contributor"].login for c in GitHub.contributors(GitHub.repo(repo_name; auth); auth)[1] if c["contributor"].login ∉ ("JuliaTagBot", "github-actions[bot]")]
+    else
+        String[]
+    end
+
     Package(name, uuid, repo; subdir, reachable, docs, runtests, travis, appveyor, cirrus,
             circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
-            license_files, licenses_in_project, lines_of_code)
+            license_files, licenses_in_project, lines_of_code, contributors)
 end
 
 end # module
