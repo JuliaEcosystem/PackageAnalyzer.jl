@@ -10,11 +10,12 @@ Package Flux:
   * repo: https://github.com/FluxML/Flux.jl.git
   * uuid: 587475ba-b771-5e3f-ad9e-33799f191a9c
   * is reachable: true
-  * lines of Julia code in `src`: 4863
-  * lines of Julia code in `test`: 2034
+  * lines of Julia code in `src`: 5074
+  * lines of Julia code in `test`: 2167
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
+  * number of contributors: 151
   * has documentation: true
   * has tests: true
   * has continuous integration: true
@@ -83,6 +84,7 @@ struct Package
     license_file_percent_covered::Union{Missing, Float64} # how much of the license file is covered by the licenses found
     licenses_in_project::Union{Missing,Vector{String}} # any licenses in the `license` key of the Project.toml
     lines_of_code::Vector{@NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int}} # table of lines of code
+    contributors::Dict{String,Int} # Dictionary contributors => contributions
 end
 ```
 
@@ -168,3 +170,55 @@ julia> DataFrame(result.lines_of_code)
   12 │ LICENSE.md       Markdown                   1      0        22       1
   13 │ README.md        Markdown                   1      0        21      10
 ```
+
+## Contributors to the repository
+
+If the package repository is hosted on GitHub and you can use [GitHub
+authentication](@ref), the list of contributors is added to the `contributors`
+field of the `Package` object.  This is a dictionary whose keys are the GitHub
+usernames of the contributors, and the values are the corresponding numbers of
+contributions in that repository.
+
+```julia
+julia> using AnalyzeRegistry, DataFrames
+
+julia> result = analyze_from_registry(find_package("DataFrames"));
+
+julia> users = collect(keys(result.contributors));
+
+julia> df = DataFrame(:User => users, :Contributions => map(x -> result.contributors[x], users));
+
+julia> sort!(df, [:Contributions, :User], rev=true)
+165×2 DataFrame
+ Row │ User               Contributions
+     │ String             Int64
+─────┼──────────────────────────────────
+   1 │ johnmyleswhite               431
+   2 │ bkamins                      364
+   3 │ powerdistribution            232
+   4 │ nalimilan                    220
+   5 │ garborg                      173
+   6 │ quinnj                       101
+   7 │ simonster                     87
+   8 │ cjprybol                      50
+   9 │ alyst                         48
+  10 │ dmbates                       47
+  11 │ tshort                        39
+  12 │ doobwa                        32
+  13 │ HarlanH                       32
+  14 │ kmsquire                      30
+  15 │ pdeffebach                    19
+  16 │ ararslan                      19
+  ⋮  │         ⋮                ⋮
+```
+
+## GitHub authentication
+
+If you have a [GitHub Personal Access
+Token](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token),
+you can obtain some extra information about packages whose repository is hosted
+on GitHub (e.g. the list of contributors).  If you store the token as an
+environment variable called `GITHUB_TOKEN` or `GITHUB_AUTH`, this will be
+automatically used whenever possible, otherwise you can generate a GitHub
+authentication with the [`AnalyzeRegistry.github_auth`](@ref) function and pass
+it to the functions accepting the `auth::GitHub.Authorization` keyword argument.
