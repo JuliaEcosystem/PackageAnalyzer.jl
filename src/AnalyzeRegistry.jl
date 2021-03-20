@@ -9,7 +9,7 @@ using BangBang # for `append!!`
 using LicenseCheck # for `find_license` and `is_osi_approved`
 using JSON3 # for interfacing with `tokei` to count lines of code
 using Tokei_jll # count lines of code
-using GitHub
+using GitHub # Use GitHub API to get extra information about the repo
 
 export general_registry, find_package, find_packages
 export analyze, analyze_from_registry, analyze_from_registry!
@@ -36,8 +36,8 @@ struct Package
     gitlab_pipeline::Bool # does it use Gitlab Pipeline?
     license_files::Vector{LicenseTableEltype} # a table of all possible license files
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
-    lines_of_code::Vector{LoCTableEltype}
-    contributors::Vector{String}
+    lines_of_code::Vector{LoCTableEltype} # table of lines of code
+    contributors::Dict{String,Int} # Dictionary contributors => contributions
 end
 function Package(name, uuid, repo;
                  subdir="",
@@ -56,7 +56,7 @@ function Package(name, uuid, repo;
                  license_files=LicenseTableEltype[],
                  licenses_in_project=String[],
                  lines_of_code=Vector{LoCTableEltype}(),
-                 contributors=String[],
+                 contributors=Dict{String,Int}(),
                  )
     return Package(name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
@@ -206,15 +206,40 @@ function find_packages(; registry = general_registry(),
     return [joinpath(registry, splitpath(p["path"])...) for (uuid, p) in packages if filter(uuid, p)]
 end
 
+
 """
-    analyze_from_registry!(root, dir::AbstractString) -> Package
+    AnalyzeRegistry.github_auth(token::String="")
+
+Obtain a GitHub authetication.  Use the `token` argument if it is non-empty,
+otherwise use the `GITHUB_TOKEN` and `GITHUB_AUTH` environment variables, if set
+and of length 40.  If all these methods fail, return an anonymous
+authentication.
+"""
+function github_auth(token::String="")
+    auth = if !isempty(token)
+        GitHub.authenticate(token)
+    elseif haskey(ENV, "GITHUB_TOKEN") && length(ENV["GITHUB_TOKEN"]) == 40
+        GitHub.authenticate(ENV["GITHUB_TOKEN"])
+    elseif haskey(ENV, "GITHUB_AUTH") && length(ENV["GITHUB_AUTH"]) == 40
+        GitHub.authenticate(ENV["GITHUB_AUTH"])
+    else
+        GitHub.AnonymousAuth()
+    end
+end
+
+"""
+    analyze_from_registry!(root, dir::AbstractString; auth::GitHub.Authorization=github_auth()) -> Package
 
 Analyze the package whose entry in the registry is in the `dir` directory,
 cloning the package code to `joinpath(root, uuid)` where `uuid` is the UUID
 of the package, if such a directory does not already exist.
 
+If the GitHub authentication is non-anonymous and the repository is on GitHub,
+the list of contributors to the repository is also collected.  Only the number
+of contributors will be shown in the summary.  See
+[`AnalyzeRegistry.github_auth`](@ref) to obtain a GitHub authentication.
 """
-function analyze_from_registry!(root, dir::AbstractString)
+function analyze_from_registry!(root, dir::AbstractString; auth::GitHub.Authorization=github_auth())
     # Parse the `Package.toml` file in the given directory.
     toml = TOML.parsefile(joinpath(dir, "Package.toml"))
     name = toml["name"]::String
@@ -239,31 +264,41 @@ function analyze_from_registry!(root, dir::AbstractString)
         # The repository may be unreachable
         false
     end
-    return reachable ? analyze(dest; repo, reachable, subdir) : Package(name, uuid, repo; subdir)
+    return reachable ? analyze(dest; repo, reachable, subdir, auth) : Package(name, uuid, repo; subdir)
 end
 
 """
-    analyze_from_registry!(root, packages::AbstractVector{<:AbstractString}) -> Vector{Package}
+    analyze_from_registry!(root, packages::AbstractVector{<:AbstractString}; auth::GitHub.Authorization=github_auth()) -> Vector{Package}
 
 Analyze all packages in the iterable `packages`, using threads, cloning them to `root`
 if a directory with their `uuid` does not already exist.  Returns a
 `Vector{Package}`.
+
+If the GitHub authentication is non-anonymous and the repository is on GitHub,
+the list of contributors to the repositories is also collected.  See
+[`AnalyzeRegistry.github_auth`](@ref) to obtain a GitHub authentication.
+
 """
-function analyze_from_registry!(root, packages::AbstractVector{<:AbstractString})
+function analyze_from_registry!(root, packages::AbstractVector{<:AbstractString}; auth::GitHub.Authorization=github_auth())
     @floop for p in packages
-        ps = SingletonVector((analyze_from_registry!(root, p),))
+        ps = SingletonVector((analyze_from_registry!(root, p; auth),))
         @reduce(result = append!!(EmptyVector(), ps))
     end
     result
 end
 
 """
-    analyze_from_registry(dir::AbstractString) -> Package
-    analyze_from_registry(packages::AbstractVector{<:AbstractString}) -> Vector{Package}
+    analyze_from_registry(dir::AbstractString; auth::GitHub.Authorization=github_auth()) -> Package
+    analyze_from_registry(packages::AbstractVector{<:AbstractString}; auth::GitHub.Authorization=github_auth()) -> Vector{Package}
 
 Analyzes a package or list of packages using the information in their directory
 in a registry by creating a temporary directory and calling `analyze_from_registry!`,
 cleaning up the temporary directory afterwards.
+
+If the GitHub authentication is non-anonymous and the repository is on GitHub,
+the list of contributors to the repository is also collected.  Only the number
+of contributors will be shown in the summary.  See
+[`AnalyzeRegistry.github_auth`](@ref) to obtain a GitHub authentication.
 
 ## Example
 ```julia
@@ -272,11 +307,12 @@ Package BinaryBuilder:
   * repo: https://github.com/JuliaPackaging/BinaryBuilder.jl.git
   * uuid: 12aac903-9f7c-5d81-afc2-d9565ea332ae
   * is reachable: true
-  * lines of Julia code in `src`: 4733
-  * lines of Julia code in `test`: 1520
+  * lines of Julia code in `src`: 4724
+  * lines of Julia code in `test`: 1542
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
+  * number of contributors: 50
   * has documentation: true
   * has tests: true
   * has continuous integration: true
@@ -285,9 +321,9 @@ Package BinaryBuilder:
 
 ```
 """
-function analyze_from_registry(p)
+function analyze_from_registry(p; auth::GitHub.Authorization=github_auth())
     mktempdir() do root
-        analyze_from_registry!(root, p)
+        analyze_from_registry!(root, p; auth)
     end
 end
 
@@ -310,23 +346,18 @@ function parse_project(dir)
     return (; name = project["name"]::String, uuid, licenses_in_project)
 end
 
-function github_auth()
-    auth = if haskey(ENV, "GITHUB_TOKEN") && length(ENV["GITHUB_TOKEN"]) == 40
-        GitHub.authenticate(ENV["GITHUB_TOKEN"])
-    elseif haskey(ENV, "GITHUB_AUTH") && length(ENV["GITHUB_AUTH"]) == 40
-        GitHub.authenticate(ENV["GITHUB_AUTH"])
-    else
-        GitHub.AnonymousAuth()
-    end
-end
-
 """
-    analyze(dir::AbstractString; repo = "", reachable=true, name=nothing, uuid=nothing)
+    analyze(dir::AbstractString; repo = "", reachable=true, name=nothing, uuid=nothing, auth::GitHub.Authorization=github_auth())
 
 Analyze the package whose source code is located at `dir`. Optionally `repo`
 and `reachable` a boolean indicating whether or not the package is reachable online, since
 these can't be inferred from the source code. If `name` or `uuid` are `nothing`, the
 directories `Project.toml` is parsed to infer the package's name and UUID.
+
+If the GitHub authentication is non-anonymous and the repository is on GitHub,
+the list of contributors to the repository is also collected.  Only the number
+of contributors will be shown in the summary.  See
+[`AnalyzeRegistry.github_auth`](@ref) to obtain a GitHub authentication.
 
 ## Example
 
@@ -394,9 +425,15 @@ function analyze(dir::AbstractString; repo = "", reachable=true, subdir="", auth
     # authentication, get the list of contributors
     contributors = if !(auth isa GitHub.AnonymousAuth) && occursin("github.com", repo)
         repo_name = replace(replace(repo, r"^https://github\.com/" => ""), r"\.git$" => "")
-        String[c["contributor"].login for c in GitHub.contributors(GitHub.repo(repo_name; auth); auth)[1] if c["contributor"].login ∉ ("JuliaTagBot", "github-actions[bot]")]
+        # Exclude commits made by known bots, including `@staticfloat`
+        #   130920   => staticfloat (when he has one commit, it's most likely an automated one)
+        #   50554310 => TagBot
+        #   41898282 => github-actions[bot]
+        Dict{String,Int}(
+            c["contributor"].login => c["contributions"] for c in GitHub.contributors(GitHub.repo(repo_name; auth); auth)[1] if c["contributor"].id ∉ (50554310, 41898282) && !(c["contributor"].id == 130920 && c["contributions"] == 1)
+        )
     else
-        String[]
+        Dict{String,Int}()
     end
 
     Package(name, uuid, repo; subdir, reachable, docs, runtests, travis, appveyor, cirrus,
