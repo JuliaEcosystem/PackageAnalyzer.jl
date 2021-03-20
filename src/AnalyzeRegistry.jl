@@ -427,10 +427,11 @@ function analyze(dir::AbstractString; repo = "", reachable=true, subdir="", auth
         repo_name = replace(replace(repo, r"^https://github\.com/" => ""), r"\.git$" => "")
         # Exclude commits made by known bots, including `@staticfloat`
         #   130920   => staticfloat (when he has one commit, it's most likely an automated one)
-        #   50554310 => TagBot
+        #   30578772 => femtocleaner[bot]
         #   41898282 => github-actions[bot]
+        #   50554310 => TagBot
         Dict{String,Int}(
-            c["contributor"].login => c["contributions"] for c in GitHub.contributors(GitHub.repo(repo_name; auth); auth)[1] if c["contributor"].id ∉ (50554310, 41898282) && !(c["contributor"].id == 130920 && c["contributions"] == 1)
+            c["contributor"].login => c["contributions"] for c in GitHub.contributors(GitHub.repo(repo_name; auth); auth)[1] if c["contributor"].id ∉ (30578772, 41898282, 50554310) && !(c["contributor"].id == 130920 && c["contributions"] == 1)
         )
     else
         Dict{String,Int}()
