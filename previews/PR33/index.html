@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Home · AnalyzeRegistry.jl</title><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.0/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit">AnalyzeRegistry.jl</span></div><form class="docs-search" action="search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li class="is-active"><a class="tocitem" href>Home</a><ul class="internal"><li><a class="tocitem" href="#The-Package-struct"><span>The <code>Package</code> struct</span></a></li><li><a class="tocitem" href="#Analyzing-multiple-packages"><span>Analyzing multiple packages</span></a></li><li><a class="tocitem" href="#License-information"><span>License information</span></a></li><li><a class="tocitem" href="#Lines-of-code"><span>Lines of code</span></a></li><li><a class="tocitem" href="#Contributors-to-the-repository"><span>Contributors to the repository</span></a></li><li><a class="tocitem" href="#GitHub-authentication"><span>GitHub authentication</span></a></li></ul></li><li><a class="tocitem" href="api/">API Reference</a></li><li><a class="tocitem" href="serialization/">Saving results</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Home</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Home</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/giordano/AnalyzeRegistry.jl/blob/master/docs/src/index.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="AnalyzeRegistry.jl"><a class="docs-heading-anchor" href="#AnalyzeRegistry.jl">AnalyzeRegistry.jl</a><a id="AnalyzeRegistry.jl-1"></a><a class="docs-heading-anchor-permalink" href="#AnalyzeRegistry.jl" title="Permalink"></a></h1><p>The main functionality of the package are the <a href="api/#AnalyzeRegistry.analyze-Tuple{AbstractString}"><code>analyze</code></a> and <a href="api/#AnalyzeRegistry.analyze_from_registry-Tuple{Any}"><code>analyze_from_registry</code></a> functions:</p><pre><code class="language-julia">julia&gt; using AnalyzeRegistry
+
+julia&gt; analyze_from_registry(find_package(&quot;Flux&quot;))
+Package Flux:
+  * repo: https://github.com/FluxML/Flux.jl.git
+  * uuid: 587475ba-b771-5e3f-ad9e-33799f191a9c
+  * is reachable: true
+  * lines of Julia code in `src`: 5074
+  * lines of Julia code in `test`: 2167
+  * has license(s) in file: MIT
+    * filename: LICENSE.md
+    * OSI approved: true
+  * number of contributors: 151
+  * has documentation: true
+  * has tests: true
+  * has continuous integration: true
+    * GitHub Actions
+    * Buildkite
+</code></pre><p>The argument is the path to the directory of the package in the registry, where the file <code>Package.toml</code> is stored.  The function <a href="api/#AnalyzeRegistry.find_package-Tuple{AbstractString}"><code>find_package</code></a> gives you the path to the package in your local copy of the <a href="https://github.com/JuliaRegistries/General">General registry</a>.</p><p><em>NOTE</em>: the Git repository of the package will be cloned, in order to inspect its content.</p><p>You use the inplace version <a href="api/#AnalyzeRegistry.analyze_from_registry!-Tuple{Any, AbstractString}"><code>analyze_from_registry!</code></a>, e.g. as <code>analyze_from_registry!(root, find_package(&quot;Flux&quot;))</code> to clone the package to a particular directory <code>root</code> which is not cleaned up afterwards, and likewise can pass a vector of paths instead of a single path employ use a threaded loop to analyze each package.</p><p>You can also directly analyze the source code of a package via <a href="api/#AnalyzeRegistry.analyze-Tuple{AbstractString}"><code>analyze</code></a>, for example</p><pre><code class="language-julia">julia&gt; using AnalyzeRegistry, DataFrames
+
+julia&gt; analyze(pkgdir(DataFrames))
+Package DataFrames:
+  * repo:
+  * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
+  * is reachable: true
+  * lines of Julia code in `src`: 15347
+  * lines of Julia code in `test`: 15654
+  * has license(s) in file: MIT
+    * filename: LICENSE.md
+    * OSI approved: true
+  * has documentation: true
+  * has tests: true
+  * has continuous integration: true
+    * GitHub Actions</code></pre><h2 id="The-Package-struct"><a class="docs-heading-anchor" href="#The-Package-struct">The <code>Package</code> struct</a><a id="The-Package-struct-1"></a><a class="docs-heading-anchor-permalink" href="#The-Package-struct" title="Permalink"></a></h2><p>The returned values from <a href="api/#AnalyzeRegistry.analyze-Tuple{AbstractString}"><code>analyze</code></a>, <a href="api/#AnalyzeRegistry.analyze_from_registry-Tuple{Any}"><code>analyze_from_registry</code></a> and <a href="api/#AnalyzeRegistry.analyze_from_registry!-Tuple{Any, AbstractString}"><code>analyze_from_registry!</code></a> are objects of the type <code>Package</code>, which has the following fields:</p><pre><code class="language-julia">struct Package
+    name::String # name of the package
+    uuid::UUID # uuid of the package
+    repo::String # URL of the repository
+    subdir::String # subdirectory of the package in the repo
+    reachable::Bool # can the repository be cloned?
+    docs::Bool # does it have documentation?
+    runtests::Bool # does it have the test/runtests.jl file?
+    github_actions::Bool # does it use GitHub Actions?
+    travis::Bool # does it use Travis CI?
+    appveyor::Bool # does it use AppVeyor?
+    cirrus::Bool # does it use Cirrus CI?
+    circle::Bool # does it use Circle CI?
+    drone::Bool # does it use Drone CI?
+    buildkite::Bool # does it use Buildkite?
+    azure_pipelines::Bool # does it use Azure Pipelines?
+    gitlab_pipeline::Bool # does it use Gitlab Pipeline?
+    license_filename::Union{Missing, String} # e.g. `LICENSE` or `COPYING`
+    licenses_found::Vector{String} # all the licenses found in `license_filename`
+    license_file_percent_covered::Union{Missing, Float64} # how much of the license file is covered by the licenses found
+    licenses_in_project::Union{Missing,Vector{String}} # any licenses in the `license` key of the Project.toml
+    lines_of_code::Vector{@NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int}} # table of lines of code
+    contributors::Dict{String,Int} # Dictionary contributors =&gt; contributions
+end</code></pre><h2 id="Analyzing-multiple-packages"><a class="docs-heading-anchor" href="#Analyzing-multiple-packages">Analyzing multiple packages</a><a id="Analyzing-multiple-packages-1"></a><a class="docs-heading-anchor-permalink" href="#Analyzing-multiple-packages" title="Permalink"></a></h2><p>To run the analysis for multiple packages you can either use broadcasting</p><pre><code class="language-julia">analyze_from_registry.(package_paths_in_registry)</code></pre><p>or use the method <code>analyze_from_registry(package_paths_in_registry::AbstractVector{&lt;:AbstractString})</code> which leaverages <a href="https://github.com/JuliaFolds/FLoops.jl"><code>FLoops.jl</code></a> to run the analysis with multiple threads.</p><p>You can use the function <a href="api/#AnalyzeRegistry.find_packages"><code>find_packages</code></a> to find all packages in a given registry:</p><pre><code class="language-julia">julia&gt; find_packages(; registry=general_registry())
+4312-element Vector{String}:
+ &quot;/home/user/.julia/registries/General/C/CitableImage&quot;
+ &quot;/home/user/.julia/registries/General/T/Trixi2Img&quot;
+ &quot;/home/user/.julia/registries/General/I/ImPlot&quot;
+ &quot;/home/user/.julia/registries/General/S/StableDQMC&quot;
+ &quot;/home/user/.julia/registries/General/S/Strapping&quot;
+ [...]</code></pre><p>Do not abuse this function! Consider using the in-place function <code>analyze_from_registry!(root, package_paths_in_registry)</code> to avoid re-cloning packages if you might run the analysis more than once.</p><div class="admonition is-warning"><header class="admonition-header">Warning</header><div class="admonition-body"><p>Cloning all the repos in General will take about 24 GB of disk space and likely take several hours to complete.</p></div></div><h2 id="License-information"><a class="docs-heading-anchor" href="#License-information">License information</a><a id="License-information-1"></a><a class="docs-heading-anchor-permalink" href="#License-information" title="Permalink"></a></h2><p>The <code>license_files</code> field of the <code>Package</code> object is a Tables.jl row table containing much more detailed information about any or all files containing licenses, identified by <a href="https://github.com/google/licensecheck"><code>licensecheck</code></a> via <a href="https://github.com/ericphanson/LicenseCheck.jl">LicenseCheck.jl</a>. For example, <a href="https://github.com/jean-pierreBoth/RandomProjectionTree.jl">RandomProjectionTree.jl</a> is dual licensed under both Apache-2.0 and the MIT license, and provides two separate license files. Interestingly, the README is also identified as containing an Apache-2.0 license; I&#39;ve filed an <a href="https://github.com/google/licensecheck/issues/40">issue</a> to see if this is intentional.</p><pre><code class="language-julia">julia&gt; using AnalyzeRegistry, DataFrames
+
+julia&gt; result = analyze_from_registry(find_packages(&quot;RandomProjectionTree&quot;)[1]);
+
+julia&gt; DataFrame(result.license_files)
+3×3 DataFrame
+ Row │ license_filename  licenses_found  license_file_percent_covered
+     │ String            Vector{String}  Float64
+─────┼────────────────────────────────────────────────────────────────
+   1 │ LICENSE-APACHE    [&quot;Apache-2.0&quot;]                     100.0
+   2 │ LICENSE-MIT       [&quot;MIT&quot;]                            100.0
+   3 │ README.md         [&quot;Apache-2.0&quot;]                       6.34921</code></pre><p>Most packages contain a single file containing a license, and so have a single entry in the table.</p><h2 id="Lines-of-code"><a class="docs-heading-anchor" href="#Lines-of-code">Lines of code</a><a id="Lines-of-code-1"></a><a class="docs-heading-anchor-permalink" href="#Lines-of-code" title="Permalink"></a></h2><p>The <code>lines_of_code</code> field of the <code>Package</code> object is a Tables.jl row table containing much more detailed information about the lines of code count (thanks to <code>tokei</code>) and can e.g. be passed to a <code>DataFrame</code> for further analysis.</p><pre><code class="language-julia">julia&gt; using AnalyzeRegistry, DataFrames
+
+julia&gt; result = analyze(pkgdir(DataFrames));
+
+julia&gt; DataFrame(result.lines_of_code)
+13×7 DataFrame
+ Row │ directory        language  sublanguage  files  code   comments  blanks
+     │ String           Symbol    Union…       Int64  Int64  Int64     Int64
+─────┼────────────────────────────────────────────────────────────────────────
+   1 │ test             Julia                     27  15654       320    2109
+   2 │ src              Julia                     28  15347       794    1009
+   3 │ docs             Julia                      1     41         7       5
+   4 │ docs             TOML                       1      4         0       2
+   5 │ docs             Markdown                  14      0      3292     620
+   6 │ docs             Markdown  Julia            3     29         3       4
+   7 │ docs             Markdown  Python           1     13         0       1
+   8 │ docs             Markdown  R                1      2         0       0
+   9 │ Project.toml     TOML                       1     48         0       4
+  10 │ CONTRIBUTING.md  Markdown                   1      0        56       8
+  11 │ NEWS.md          Markdown                   1      0       112      10
+  12 │ LICENSE.md       Markdown                   1      0        22       1
+  13 │ README.md        Markdown                   1      0        21      10</code></pre><h2 id="Contributors-to-the-repository"><a class="docs-heading-anchor" href="#Contributors-to-the-repository">Contributors to the repository</a><a id="Contributors-to-the-repository-1"></a><a class="docs-heading-anchor-permalink" href="#Contributors-to-the-repository" title="Permalink"></a></h2><p>If the package repository is hosted on GitHub and you can use <a href="#GitHub-authentication">GitHub authentication</a>, the list of contributors is added to the <code>contributors</code> field of the <code>Package</code> object.  This is a dictionary whose keys are the GitHub usernames of the contributors, and the values are the corresponding numbers of contributions in that repository.</p><pre><code class="language-julia">julia&gt; using AnalyzeRegistry, DataFrames
+
+julia&gt; result = analyze_from_registry(find_package(&quot;DataFrames&quot;));
+
+julia&gt; users = collect(keys(result.contributors));
+
+julia&gt; df = DataFrame(:User =&gt; users, :Contributions =&gt; map(x -&gt; result.contributors[x], users));
+
+julia&gt; sort!(df, [:Contributions, :User], rev=true)
+165×2 DataFrame
+ Row │ User               Contributions
+     │ String             Int64
+─────┼──────────────────────────────────
+   1 │ johnmyleswhite               431
+   2 │ bkamins                      364
+   3 │ powerdistribution            232
+   4 │ nalimilan                    220
+   5 │ garborg                      173
+   6 │ quinnj                       101
+   7 │ simonster                     87
+   8 │ cjprybol                      50
+   9 │ alyst                         48
+  10 │ dmbates                       47
+  11 │ tshort                        39
+  12 │ doobwa                        32
+  13 │ HarlanH                       32
+  14 │ kmsquire                      30
+  15 │ pdeffebach                    19
+  16 │ ararslan                      19
+  ⋮  │         ⋮                ⋮</code></pre><h2 id="GitHub-authentication"><a class="docs-heading-anchor" href="#GitHub-authentication">GitHub authentication</a><a id="GitHub-authentication-1"></a><a class="docs-heading-anchor-permalink" href="#GitHub-authentication" title="Permalink"></a></h2><p>If you have a <a href="https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token">GitHub Personal Access Token</a>, you can obtain some extra information about packages whose repository is hosted on GitHub (e.g. the list of contributors).  If you store the token as an environment variable called <code>GITHUB_TOKEN</code> or <code>GITHUB_AUTH</code>, this will be automatically used whenever possible, otherwise you can generate a GitHub authentication with the <a href="api/#AnalyzeRegistry.github_auth"><code>AnalyzeRegistry.github_auth</code></a> function and pass it to the functions accepting the <code>auth::GitHub.Authorization</code> keyword argument.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="api/">API Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Saturday 20 March 2021 02:46">Saturday 20 March 2021</span>. Using Julia version 1.6.0-rc3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
