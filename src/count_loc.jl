@@ -1,13 +1,11 @@
 function count_loc(dir)
     # we `cd` so that we get relative paths in the `tokei` output.
     # This makes it easy to process later, since we have uniform filepaths
-    json = cd(dir) do
-        try
-            JSON3.read(read(`$(tokei()) --output json .`))
-        catch e
-            @error e
-            missing
-        end
+    json = try
+        JSON3.read(read(Cmd(`$(tokei()) --output json .`; dir)))
+    catch e
+        @error "`tokei` error: " e
+        missing
     end
     return make_loc_table(json)
 end
