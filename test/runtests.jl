@@ -97,6 +97,13 @@ end
     @test result.name == "DataFrames"
 end
 
+@testset "`analyze_path!`" begin
+    # we check the error path here; the success path is covered by other tests
+    result = AnalyzeRegistry.analyze_path!(mktempdir(), "https://github.com/giordano/DOES_NOT_EXIST!!!.jl")
+    @test result isa AnalyzeRegistry.Package
+    @test isempty(result.name)
+end
+
 @testset "`subdir` support" begin
     snoop_core_path = only(find_packages("SnoopCompileCore"))
     snoop_core = analyze(snoop_core_path)

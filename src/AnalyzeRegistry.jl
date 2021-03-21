@@ -263,16 +263,21 @@ function analyze!(root, pkg::RegistryEntry; auth::GitHub.Authorization=github_au
 
     isdir(dest) && return analyze_path(dest; repo, subdir, auth)
 
-    return analyze_path!(dest, repo; subdir, auth)
+    return analyze_path!(dest, repo; subdir, auth, name, uuid)
 end
 
 """
-    analyze_path!(dest::AbstractString, repo::AbstractString; subdir, auth) -> Package
+    analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid=UUID(UInt128(0)), subdir="", auth=github_auth()) -> Package
 
 Analyze the Julia package located at the URL given by `repo` by cloning it to `dest`
 and calling `analyze_path(dest)`.
+
+If the clone fails, it returns a `Package` with `reachable=false`. If a `name` and `uuid` are provided,
+these are used to populate the corresponding fields of the `Package`. If the clone succeeds, the `name`
+and `uuid` are taken instead from the Project.toml in the package itself, and the values passed here
+are ignored.
 """
-function analyze_path!(dest::AbstractString, repo::AbstractString; subdir, auth)
+function analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid=UUID(UInt128(0)), subdir="", auth=github_auth())
     reachable = try
         # Clone only latest commit on the default branch.  Note: some
         # repositories aren't reachable because the author made them private
