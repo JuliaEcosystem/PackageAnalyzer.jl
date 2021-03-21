@@ -1,5 +1,5 @@
 function count_loc(dir)
-    # we `cd` so that we get relative paths in the `tokei` output.
+    # we pass `dir` to the command object so that we get relative paths in the `tokei` output.
     # This makes it easy to process later, since we have uniform filepaths
     json = try
         JSON3.read(read(Cmd(`$(tokei()) --output json .`; dir)))
