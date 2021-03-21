@@ -123,10 +123,8 @@ struct Package
     buildkite::Bool # does it use Buildkite?
     azure_pipelines::Bool # does it use Azure Pipelines?
     gitlab_pipeline::Bool # does it use Gitlab Pipeline?
-    license_filename::Union{Missing, String} # e.g. `LICENSE` or `COPYING`
-    licenses_found::Vector{String} # all the licenses found in `license_filename`
-    license_file_percent_covered::Union{Missing, Float64} # how much of the license file is covered by the licenses found
-    licenses_in_project::Union{Missing,Vector{String}} # any licenses in the `license` key of the Project.toml
+    license_files::Vector{@NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}} # a table of all possible license files
+    licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
     lines_of_code::Vector{@NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int}} # table of lines of code
     contributors::Dict{String,Int} # Dictionary contributors => contributions
 end
