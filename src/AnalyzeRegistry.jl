@@ -294,9 +294,9 @@ function analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid
 end
 
 """
-    analyze!(root, packages::AbstractVector{<:AbstractString}; auth::GitHub.Authorization=github_auth()) -> Vector{Package}
+    analyze!(root, registry_entries::AbstractVector{<:RegistryEntry}; auth::GitHub.Authorization=github_auth()) -> Vector{Package}
 
-Analyze all packages in the iterable `packages`, using threads, cloning them to `root`
+Analyze all packages in the iterable `registry_entries`, using threads, cloning them to `root`
 if a directory with their `uuid` does not already exist.  Returns a
 `Vector{Package}`.
 
@@ -305,8 +305,8 @@ the list of contributors to the repositories is also collected.  See
 [`AnalyzeRegistry.github_auth`](@ref) to obtain a GitHub authentication.
 
 """
-function analyze!(root, packages::AbstractVector{RegistryEntry}; auth::GitHub.Authorization=github_auth())
-    @floop for p in packages
+function analyze!(root, registry_entries::AbstractVector{RegistryEntry}; auth::GitHub.Authorization=github_auth())
+    @floop for p in registry_entries
         ps = SingletonVector((analyze!(root, p; auth),))
         @reduce(result = append!!(EmptyVector(), ps))
     end
@@ -328,7 +328,7 @@ of contributors will be shown in the summary.  See
 
 ## Example
 ```julia
-julia> analyze(joinpath(general_registry(), "B", "BinaryBuilder"))
+julia> analyze(find_package("BinaryBuilder"))
 Package BinaryBuilder:
   * repo: https://github.com/JuliaPackaging/BinaryBuilder.jl.git
   * uuid: 12aac903-9f7c-5d81-afc2-d9565ea332ae

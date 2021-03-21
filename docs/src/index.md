@@ -135,9 +135,9 @@ end
 
 To run the analysis for multiple packages you can either use broadcasting
 ```julia
-analyze.(package_paths_in_registry)
+analyze.(registry_entries)
 ```
-or use the method `analyze(package_paths_in_registry::AbstractVector{<:AbstractString})` which
+or use the method `analyze(registry_entries::AbstractVector{<:RegistryEntry})` which
 leaverages [`FLoops.jl`](https://github.com/JuliaFolds/FLoops.jl) to run the
 analysis with multiple threads.
 
@@ -146,15 +146,15 @@ registry:
 
 ```julia
 julia> find_packages(; registry=general_registry())
-4312-element Vector{String}:
- "/home/user/.julia/registries/General/C/CitableImage"
- "/home/user/.julia/registries/General/T/Trixi2Img"
- "/home/user/.julia/registries/General/I/ImPlot"
- "/home/user/.julia/registries/General/S/StableDQMC"
- "/home/user/.julia/registries/General/S/Strapping"
- [...]
+4632-element Vector{AnalyzeRegistry.RegistryEntry}:
+ AnalyzeRegistry.RegistryEntry("/Users/eph/.julia/registries/General/C/CitableImage")
+ AnalyzeRegistry.RegistryEntry("/Users/eph/.julia/registries/General/T/Trixi2Img")
+ AnalyzeRegistry.RegistryEntry("/Users/eph/.julia/registries/General/I/ImPlot")
+ AnalyzeRegistry.RegistryEntry("/Users/eph/.julia/registries/General/S/StableDQMC")
+ AnalyzeRegistry.RegistryEntry("/Users/eph/.julia/registries/General/S/Strapping")
+[...]
 ```
-Do not abuse this function! Consider using the in-place function `analyze!(root, package_paths_in_registry)` to avoid re-cloning packages if you might run the analysis more than once.
+Do not abuse this function! Consider using the in-place function `analyze!(root, registry_entries)` to avoid re-cloning packages if you might run the analysis more than once.
 
 !!! warning
     Cloning all the repos in General will take more than 20 GB of disk space and can take up to a few hours to complete.

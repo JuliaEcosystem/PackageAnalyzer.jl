@@ -81,11 +81,16 @@ end
 end
 
 @testset "`find_packages` with `analyze`" begin
-    results = analyze(find_packages("DataFrames", "Flux"))
+    results = analyze(find_packages("DataFrames", "Flux")) # this method is threaded
     @test results isa Vector{AnalyzeRegistry.Package}
     @test length(results) == 2
+    # DataFrames currently has 16k LoC; Flux has 5k. Let's check that they aren't mixed up
+    # due to some kind of race condition.
     @test results[1].name == "DataFrames"
+    @test AnalyzeRegistry.count_julia_loc(results[1].lines_of_code, "src") > 14000
     @test results[2].name == "Flux"
+    @test AnalyzeRegistry.count_julia_loc(results[2].lines_of_code, "src") < 14000
+
 
     results = analyze(find_packages("DataFrames"))
     @test results isa Vector{AnalyzeRegistry.Package}
