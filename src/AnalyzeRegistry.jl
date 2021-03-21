@@ -261,8 +261,18 @@ function analyze!(root, pkg::RegistryEntry; auth::GitHub.Authorization=github_au
 
     dest = joinpath(root, uuid_string)
 
-    isdir(dest) && return analyze(dest; repo, subdir)
+    isdir(dest) && return analyze_path(dest; repo, subdir, auth)
 
+    return analyze_path!(dest, repo; subdir, auth)
+end
+
+"""
+    analyze_path!(dest::AbstractString, repo::AbstractString; subdir, auth) -> Package
+
+Analyze the Julia package located at the URL given by `repo` by cloning it to `dest`
+and calling `analyze_path(dest)`.
+"""
+function analyze_path!(dest::AbstractString, repo::AbstractString; subdir, auth)
     reachable = try
         # Clone only latest commit on the default branch.  Note: some
         # repositories aren't reachable because the author made them private
@@ -275,7 +285,7 @@ function analyze!(root, pkg::RegistryEntry; auth::GitHub.Authorization=github_au
         # The repository may be unreachable
         false
     end
-    return reachable ? analyze(dest; repo, reachable, subdir, auth) : Package(name, uuid, repo; subdir)
+    return reachable ? analyze_path(dest; repo, reachable, subdir, auth) : Package(name, uuid, repo; subdir)
 end
 
 """
@@ -358,20 +368,23 @@ function parse_project(dir)
 end
 
 """
-    analyze(name_or_dir::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth())
+    analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth())
 
 Analyze the package pointed to by the mandatory argument and return a summary of
 its properties.
 
-If `name_or_dir` is a filesystem path, analyze the package whose source code is
-located at `name_or_dir`. Optionally `repo` and `reachable` a boolean indicating
+If `name_or_dir_or_url` is a valid Julia identifier, it is assumed to be the name of a
+package available in `registry`.  The function then uses [`find_package`](@ref)
+to find its entry in the registry and analyze its content.
+
+If `name_or_dir_or_url` is a filesystem path, analyze the package whose source code is
+located at `name_or_dir_or_url`. Optionally `repo` and `reachable` a boolean indicating
 whether or not the package is reachable online, since these can't be inferred
 from the source code.  The `subdir` keyword arguments indicates the subdirectory
 of `dir` under which the Julia package can be found.
 
-If `name_or_dir` is a valid Julia identifier, it is assumed to be the name of a
-package available in `registry`.  The function then uses [`find_package`](@ref)
-to find its entry in the registry and analyze its content.
+Otherwise, `name_or_dir_or_url` is assumed to be a URL. The repository is cloned to a temporary directory
+and analyzed.
 
 If the GitHub authentication is non-anonymous and the repository is on GitHub,
 the list of contributors to the repository is also collected.  Only the number
@@ -380,29 +393,7 @@ of contributors will be shown in the summary.  See
 
 ## Example
 
-If you want to analyze a package which is already loaded in the current session,
-you can use `pkgdir` to obtain the path to its source directory:
-
-```julia
-julia> using DataFrames
-
-julia> analyze(pkgdir(DataFrames))
-Package DataFrames:
-  * repo:
-  * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
-  * is reachable: true
-  * lines of Julia code in `src`: 15347
-  * lines of Julia code in `test`: 15654
-  * has license(s) in file: MIT
-    * filename: LICENSE.md
-    * OSI approved: true
-  * has documentation: true
-  * has tests: true
-  * has continuous integration: true
-    * GitHub Actions
-```
-
-You can also analyze a package just by its name, whether you have it installed
+You can analyze a package just by its name, whether you have it installed
 locally or not:
 
 ```julia
@@ -425,14 +416,54 @@ Package Pluto:
     * GitHub Actions
 ```
 """
-function analyze(name_or_dir::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth())
-    if Base.isidentifier(name_or_dir)
+function analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth())
+    if Base.isidentifier(name_or_dir_or_url)
         # The argument looks like a package name rather than a directory: find
         # the package in `registry` and analyze it
-        return analyze(find_package(name_or_dir; registry); auth)
+        return analyze(find_package(name_or_dir_or_url; registry); auth)
+    elseif isdir(name_or_dir_or_url)
+        return analyze_path(name_or_dir_or_url; repo, reachable, subdir, auth) 
+    else
+        repo = name_or_dir_or_url
+        dest = mktempdir()
+        return analyze_path!(dest, repo; subdir, auth)
     end
+end
 
-    dir = name_or_dir
+"""
+    analyze(m::Module) -> Package
+
+If you want to analyze a package which is already loaded in the current session,
+you can simply call `analyze`, which uses `pkgdir` to determine its source code:
+
+```julia
+julia> using DataFrames
+
+julia> analyze(DataFrames)
+Package DataFrames:
+  * repo:
+  * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
+  * is reachable: true
+  * lines of Julia code in `src`: 15347
+  * lines of Julia code in `test`: 15654
+  * has license(s) in file: MIT
+    * filename: LICENSE.md
+    * OSI approved: true
+  * has documentation: true
+  * has tests: true
+  * has continuous integration: true
+    * GitHub Actions
+```
+"""
+analyze(m::Module) = analyze_path(pkgdir(m))
+
+
+"""
+    analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="", auth::GitHub.Authorization=github_auth()) -> Package
+
+Analyze the package whose source code is located at the local path `dir`.
+"""
+function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="", auth::GitHub.Authorization=github_auth())
     # we will look for docs, tests, license, and count lines of code
     # in the `pkgdir`; we will look for CI in the `dir`.
     pkgdir = joinpath(dir, subdir)
@@ -492,7 +523,5 @@ function analyze(name_or_dir::AbstractString; repo = "", reachable=true, subdir=
             circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
             license_files, licenses_in_project, lines_of_code, contributors)
 end
-
-analyze(m::Module) = analyze(pkgdir(m))
 
 end # module

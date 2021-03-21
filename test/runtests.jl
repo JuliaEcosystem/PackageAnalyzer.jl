@@ -40,26 +40,26 @@ using AnalyzeRegistry: parse_project, RegistryEntry
 end
 
 @testset "`analyze`" begin
-    pkg = analyze(AnalyzeRegistry)
-    @test pkg.repo == "" # can't find repo from source code
-    @test pkg.uuid == UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c")
-    @test pkg.reachable == true # default
-    @test pkg.docs == true
-    @test pkg.runtests == true # here we are!
-    @test pkg.github_actions == true
-    @test length(pkg.license_files) == 1
-    @test pkg.license_files[1].licenses_found == ["MIT"]
-    @test pkg.license_files[1].license_filename == "LICENSE"
-    @test pkg.license_files[1].license_file_percent_covered > 90
-    @test pkg.license_files isa Vector{<:NamedTuple}
-    @test keys(pkg.license_files[1]) == (:license_filename, :licenses_found, :license_file_percent_covered)
-    @test isempty(pkg.licenses_in_project)
-    @test !isempty(pkg.lines_of_code)
-    @test pkg.lines_of_code isa Vector{<:NamedTuple}
-    @test keys(pkg.lines_of_code[1]) == (:directory, :language, :sublanguage, :files, :code, :comments, :blanks)
-    idx = findfirst(row -> row.directory=="src" && row.language==:Julia && row.sublanguage===nothing, pkg.lines_of_code)
-    @test idx !== nothing
-    @test pkg.lines_of_code[idx].code > 200
+    for pkg in (analyze(AnalyzeRegistry), analyze("https://github.com/giordano/AnalyzeRegistry.jl"), analyze(joinpath(@__DIR__, "..")))
+        @test pkg.uuid == UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c")
+        @test pkg.reachable == true # default
+        @test pkg.docs == true
+        @test pkg.runtests == true # here we are!
+        @test pkg.github_actions == true
+        @test length(pkg.license_files) == 1
+        @test pkg.license_files[1].licenses_found == ["MIT"]
+        @test pkg.license_files[1].license_filename == "LICENSE"
+        @test pkg.license_files[1].license_file_percent_covered > 90
+        @test pkg.license_files isa Vector{<:NamedTuple}
+        @test keys(pkg.license_files[1]) == (:license_filename, :licenses_found, :license_file_percent_covered)
+        @test isempty(pkg.licenses_in_project)
+        @test !isempty(pkg.lines_of_code)
+        @test pkg.lines_of_code isa Vector{<:NamedTuple}
+        @test keys(pkg.lines_of_code[1]) == (:directory, :language, :sublanguage, :files, :code, :comments, :blanks)
+        idx = findfirst(row -> row.directory=="src" && row.language==:Julia && row.sublanguage===nothing, pkg.lines_of_code)
+        @test idx !== nothing
+        @test pkg.lines_of_code[idx].code > 200
+    end
 
     # the tests folder isn't a package!
     # But this helps catch issues in error paths for when things go wrong
