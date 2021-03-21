@@ -5,7 +5,7 @@ The main functionality of the package is the [`analyze`](@ref) function:
 ```julia
 julia> using AnalyzeRegistry
 
-julia> analyze(find_package("Flux"))
+julia> analyze("Flux")
 Package Flux:
   * repo: https://github.com/FluxML/Flux.jl.git
   * uuid: 587475ba-b771-5e3f-ad9e-33799f191a9c
@@ -24,21 +24,21 @@ Package Flux:
 
 ```
 
-The argument is a [`RegistryEntry`](@ref), a simple datastructure which points
-to the directory of the package in the registry, where the file `Package.toml`
-is stored.  The function [`find_package`](@ref) gives you the
-[`RegistryEntry`](@ref) of a package in your local copy of any registry, by
-default the [General registry](https://github.com/JuliaRegistries/General).
+The argument is a string pointing towards a local path or the name of
+a package in a locally-installed registry (the General registry is checked by default).
 
 *NOTE*: the Git repository of the package will be cloned, in order to inspect
 its content.
 
-You can also pass the name of a package as argument to `analyze` instead of its
-path: in that case [`find_package`](@ref) will be automatically used to find its
-entry in the registry.
+You can also pass a [`RegistryEntry`](@ref), a simple datastructure which points
+to the directory of the package in the registry, where the file `Package.toml`
+is stored.  The function [`find_package`](@ref) gives you the
+[`RegistryEntry`](@ref) of a package in your local copy of any registry, by
+default the [General registry](https://github.com/JuliaRegistries/General).
+`find_package` is invoked automatically when you pass the name of a package.
 
 ```julia
-julia> analyze("JuMP")
+julia> analyze(find_package("JuMP"))
 Package JuMP:
   * repo: https://github.com/jump-dev/JuMP.jl.git
   * uuid: 4076af6c-e467-56ae-b986-b466b2749572
