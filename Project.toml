@@ -4,6 +4,7 @@ authors = ["Mosè Giordano <mose@gnu.org>"]
 version = "0.1.0"
 
 [deps]
+GitCommand = "49b5b516-ca3f-4003-a081-42bdcf55082d"
 GitHub = "bc5e4493-9b4d-5f90-b8aa-2b2bcaad7a26"
 JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
 LicenseCheck = "726dbf0d-6eb6-41af-b36c-cd770e0f00cc"
@@ -13,6 +14,7 @@ Tokei_jll = "3ac119c9-1236-5556-b556-adc8150b0244"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [compat]
+GitCommand = "3"
 GitHub = "5.4"
 JSON3 = "1.5.1"
 LicenseCheck = "0.2"
