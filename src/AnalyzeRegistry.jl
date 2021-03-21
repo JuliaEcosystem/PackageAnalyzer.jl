@@ -16,6 +16,7 @@ export analyze, analyze_from_registry, analyze_from_registry!
 
 include("count_loc.jl")
 const LicenseTableEltype=@NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}
+const ContributionTableElType=@NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, email::Union{String,Missing}, type::String, contributions::Int}
 
 struct Package
     name::String # name of the package
@@ -37,7 +38,7 @@ struct Package
     license_files::Vector{LicenseTableEltype} # a table of all possible license files
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
     lines_of_code::Vector{LoCTableEltype} # table of lines of code
-    contributors::Dict{String,Int} # Dictionary contributors => contributions
+    contributors::Vector{ContributionTableElType} # Dictionary contributors => contributions
 end
 function Package(name, uuid, repo;
                  subdir="",
@@ -55,8 +56,8 @@ function Package(name, uuid, repo;
                  gitlab_pipeline=false,
                  license_files=LicenseTableEltype[],
                  licenses_in_project=String[],
-                 lines_of_code=Vector{LoCTableEltype}(),
-                 contributors=Dict{String,Int}(),
+                 lines_of_code=LoCTableEltype[],
+                 contributors=ContributionTableElType[],
                  )
     return Package(name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
@@ -430,16 +431,27 @@ function analyze(dir::AbstractString; repo = "", reachable=true, subdir="", auth
         #   30578772 => femtocleaner[bot]
         #   41898282 => github-actions[bot]
         #   50554310 => TagBot
-        Dict{String,Int}(
-            c["contributor"].login => c["contributions"] for c in GitHub.contributors(GitHub.repo(repo_name; auth); auth)[1] if c["contributor"].id ∉ (30578772, 41898282, 50554310) && !(c["contributor"].id == 130920 && c["contributions"] == 1)
-        )
+        return contribution_table(repo_name; auth)
     else
-        Dict{String,Int}()
+        ContributionTableElType[]
     end
 
     Package(name, uuid, repo; subdir, reachable, docs, runtests, travis, appveyor, cirrus,
             circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
             license_files, licenses_in_project, lines_of_code, contributors)
+end
+
+function contribution_table(repo_name; auth)
+    return parse_contributions.(GitHub.contributors(GitHub.repo(repo_name; auth); auth, params=Dict("anon"=>"true"))[1])
+end
+
+function parse_contributions(c)
+    contrib = c["contributor"]
+    if contrib.typ == "Anonymous"
+        return (; login = missing, id = missing, contrib.name, contrib.email, type=contrib.typ, contributions = c["contributions"])
+    else
+        return (; contrib.login, contrib.id, name = missing, email = missing, type=contrib.typ, contributions = c["contributions"])
+    end
 end
 
 end # module
