@@ -1,6 +1,10 @@
 using Test, UUIDs
 using AnalyzeRegistry
 using AnalyzeRegistry: parse_project, RegistryEntry
+using JLLWrappers
+
+get_libpath() = get(ENV, JLLWrappers.LIBPATH_env, nothing)
+const orig_libpath = get_libpath()
 
 @testset "AnalyzeRegistry" begin
     general = general_registry()
@@ -162,4 +166,10 @@ end
     str = sprint(show, analyze(pkgdir(AnalyzeRegistry)))
     @test occursin("* uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c", str)
     @test occursin("* OSI approved: true", str)
+end
+
+@testset "Thread-safety" begin
+    # Make sure none of the above commands leaks LD_LIBRARY_PATH.  This test
+    # should be executed at the very end of the test suite.
+    @test orig_libpath == get_libpath()
 end

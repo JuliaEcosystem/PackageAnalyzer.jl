@@ -25,7 +25,8 @@ MicroCollections = "0.1.0"
 julia = "1.6"
 
 [extras]
+JLLWrappers = "692b3bcd-3c85-4b1f-b108-f13ce0eb3210"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test"]
+test = ["JLLWrappers", "Test"]
