@@ -80,6 +80,23 @@ end
     @test_logs (:error, r"Could not find package in registry") match_mode=:any @test_throws ArgumentError analyze("license_in_project")
 end
 
+@testset "`find_packages` with `analyze`" begin
+    results = analyze(find_packages("DataFrames", "Flux"))
+    @test results isa Vector{AnalyzeRegistry.Package}
+    @test length(results) == 2
+    @test results[1].name == "DataFrames"
+    @test results[2].name == "Flux"
+
+    results = analyze(find_packages("DataFrames"))
+    @test results isa Vector{AnalyzeRegistry.Package}
+    @test length(results) == 1
+    @test results[1].name == "DataFrames"
+
+    result = analyze(find_package("DataFrames"))
+    @test result isa AnalyzeRegistry.Package
+    @test result.name == "DataFrames"
+end
+
 @testset "`subdir` support" begin
     snoop_core_path = only(find_packages("SnoopCompileCore"))
     snoop_core = analyze(snoop_core_path)
