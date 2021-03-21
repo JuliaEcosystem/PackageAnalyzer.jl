@@ -31,16 +31,17 @@ Pkg.add("https://github.com/giordano/AnalyzeRegistry.jl")
 ```julia
 julia> using AnalyzeRegistry
 
-julia> analyze_from_registry(find_package("Flux"))
+julia> analyze("Flux")
 Package Flux:
   * repo: https://github.com/FluxML/Flux.jl.git
   * uuid: 587475ba-b771-5e3f-ad9e-33799f191a9c
   * is reachable: true
-  * lines of Julia code in `src`: 4863
-  * lines of Julia code in `test`: 2034
+  * lines of Julia code in `src`: 5074
+  * lines of Julia code in `test`: 2167
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
+  * number of contributors: 151
   * has documentation: true
   * has tests: true
   * has continuous integration: true

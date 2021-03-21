@@ -1,17 +1,17 @@
 using Test, UUIDs
 using AnalyzeRegistry
-using AnalyzeRegistry: parse_project
+using AnalyzeRegistry: parse_project, RegistryEntry
 
 @testset "AnalyzeRegistry" begin
     general = general_registry()
     @test isdir(general)
-    @test all(isdir, find_packages())
+    @test all(p -> isdir(p.path), find_packages())
     @test find_package("julia") ∉ find_packages()
-    @test all(isdir, find_packages("Flux"))
-    @test isdir(find_package("Flux"))
+    @test all(p -> isdir(p.path), find_packages("Flux"))
+    @test isdir(find_package("Flux").path)
     # Test some properties of the `Measurements` package.  NOTE: they may change
     # in the future!
-    measurements = analyze_from_registry(joinpath(general, "M", "Measurements"))
+    measurements = analyze(RegistryEntry(joinpath(general, "M", "Measurements")))
     @test measurements.uuid == UUID("eff96d63-e80a-5855-80a2-b1b0885c5ab7")
     @test measurements.reachable
     @test measurements.docs
@@ -19,28 +19,28 @@ using AnalyzeRegistry: parse_project
     @test !measurements.buildkite
     @test !isempty(measurements.lines_of_code)
     # Test results of a couple of packages.  Same caveat as above
-    packages = [joinpath(general, p...) for p in (("C", "Cuba"), ("P", "PolynomialRoots"))]
+    packages = [RegistryEntry(joinpath(general, p...)) for p in (("C", "Cuba"), ("P", "PolynomialRoots"))]
     @test Set(packages) == Set(find_packages("Cuba", "PolynomialRoots")) == Set(find_packages(["Cuba", "PolynomialRoots"]))
     @test packages ⊆ find_packages()
-    results = analyze_from_registry(packages)
+    results = analyze(packages)
     cuba, polyroots = results
     @test length(filter(p -> p.reachable, results)) == 2
     @test length(filter(p -> p.runtests, results)) == 2
     @test cuba.drone
     @test !polyroots.docs # Documentation is in the README!
     # We can also use broadcasting!
-    @test Set(results) == Set(analyze_from_registry.(packages))
+    @test Set(results) == Set(analyze.(packages))
 
-    # check `analyze_from_registry!` directly
+    # Test `analyze!` directly
     mktempdir() do root
-        measurements2 = analyze_from_registry!(root, joinpath(general, "M", "Measurements"))
+        measurements2 = analyze!(root, RegistryEntry(joinpath(general, "M", "Measurements")))
         @test measurements == measurements2
         @test isdir(joinpath(root, "eff96d63-e80a-5855-80a2-b1b0885c5ab7")) # not cleaned up yet
     end
 end
 
 @testset "`analyze`" begin
-    pkg = analyze(pkgdir(AnalyzeRegistry))
+    pkg = analyze(AnalyzeRegistry)
     @test pkg.repo == "" # can't find repo from source code
     @test pkg.uuid == UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c")
     @test pkg.reachable == true # default
@@ -69,11 +69,20 @@ end
     @test !bad_pkg.cirrus
     @test isempty(bad_pkg.license_files)
     @test isempty(bad_pkg.licenses_in_project)
+
+    # The argument is a package name
+    pkg = analyze("Pluto")
+    # Just make sure we got the UUID correctly and some statistics are collected.
+    @test pkg.uuid == UUID("c3e4b0f8-55cb-11ea-2926-15256bba5781")
+    @test !isempty(pkg.license_files)
+    @test !isempty(pkg.lines_of_code)
+    # The argument looks like a package name but it isn't a registered package
+    @test_logs (:error, r"Could not find package in registry") match_mode=:any @test_throws ArgumentError analyze("license_in_project")
 end
 
 @testset "`subdir` support" begin
     snoop_core_path = only(find_packages("SnoopCompileCore"))
-    snoop_core = analyze_from_registry(snoop_core_path)
+    snoop_core = analyze(snoop_core_path)
     @test !isempty(snoop_core.subdir)
     @test snoop_core.name == "SnoopCompileCore" # this test would fail if we were parsing the wrong Project.toml (that of SnoopCompile)
     # This tests that we find licenses in the subdir and put them first,
@@ -85,13 +94,13 @@ end
     # the Julia code in SnoopCompileCore. One, we can ask SnoopCompile for the lines of Julia code in its
     # top-level directory `SnoopCompileCore`. Two, we can ask SnoopCompileCore for all of it's
     # Julia code.
-    snoop_compile = analyze_from_registry(find_package("SnoopCompile"))
+    snoop_compile = analyze(find_package("SnoopCompile"))
     snoop_compile_count_for_core = sum(row.code for row in snoop_compile.lines_of_code if row.language == :Julia && row.sublanguage===nothing && row.directory == "SnoopCompileCore")
     snoop_core_count = sum(row.code for row in snoop_core.lines_of_code if row.language == :Julia && row.sublanguage===nothing)
     @test snoop_core_count == snoop_compile_count_for_core
 
     # this package doesn't exist in the repo anymore; let's ensure it doesn't throw
-    snoop_compile_analysis = analyze_from_registry(find_package("SnoopCompileAnalysis"))
+    snoop_compile_analysis = analyze(find_package("SnoopCompileAnalysis"))
     @test isempty(snoop_compile_analysis.lines_of_code)
 end
 

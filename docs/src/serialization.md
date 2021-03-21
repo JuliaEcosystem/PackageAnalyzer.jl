@@ -12,7 +12,7 @@ load(path) = copy(Arrow.Table(path).packages)
 Then we can do e.g.
 
 ```@repl 1
-results = analyze_from_registry(find_packages("DataFrames", "Flux"));
+results = analyze(find_packages("DataFrames", "Flux"));
 save("packages.arrow", results)
 roundtripped_results = load("packages.arrow")
 rm("packages.arrow") # hide
