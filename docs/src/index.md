@@ -1,11 +1,11 @@
 # AnalyzeRegistry.jl
 
-The main functionality of the package are the [`analyze`](@ref) and [`analyze_from_registry`](@ref) functions:
+The main functionality of the package is the [`analyze`](@ref) function:
 
 ```julia
 julia> using AnalyzeRegistry
 
-julia> analyze_from_registry(find_package("Flux"))
+julia> analyze(find_package("Flux"))
 Package Flux:
   * repo: https://github.com/FluxML/Flux.jl.git
   * uuid: 587475ba-b771-5e3f-ad9e-33799f191a9c
@@ -24,19 +24,63 @@ Package Flux:
 
 ```
 
-The argument is the path to the directory of the package in the registry, where
-the file `Package.toml` is stored.  The function [`find_package`](@ref) gives you
-the path to the package in your local copy of the [General
-registry](https://github.com/JuliaRegistries/General).
+The argument is a [`RegistryEntry`](@ref), a simple datastructure which points
+to the directory of the package in the registry, where the file `Package.toml`
+is stored.  The function [`find_package`](@ref) gives you the
+[`RegistryEntry`](@ref) of a package in your local copy of any registry, by
+default the [General registry](https://github.com/JuliaRegistries/General).
 
 *NOTE*: the Git repository of the package will be cloned, in order to inspect
 its content.
 
+You can also pass the name of a package as argument to `analyze` instead of its
+path: in that case [`find_package`](@ref) will be automatically used to find its
+entry in the registry.
 
-You use the inplace version [`analyze_from_registry!`](@ref), e.g. as `analyze_from_registry!(root, find_package("Flux"))` to clone
+```julia
+julia> analyze("JuMP")
+Package JuMP:
+  * repo: https://github.com/jump-dev/JuMP.jl.git
+  * uuid: 4076af6c-e467-56ae-b986-b466b2749572
+  * is reachable: true
+  * lines of Julia code in `src`: 15551
+  * lines of Julia code in `test`: 10523
+  * has license(s) in file: MPL-2.0
+    * filename: LICENSE.md
+    * OSI approved: true
+  * number of contributors: 96
+  * has documentation: true
+  * has tests: true
+  * has continuous integration: true
+    * GitHub Actions
+```
+
+Additionally, you can pass in the module itself:
+
+```julia
+julia> using AnalyzeRegistry
+
+julia> analyze(AnalyzeRegistry)
+Package AnalyzeRegistry:
+  * repo:
+  * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
+  * is reachable: true
+  * lines of Julia code in `src`: 481
+  * lines of Julia code in `test`: 97
+  * has license(s) in file: MIT
+    * filename: LICENSE
+    * OSI approved: true
+  * has documentation: true
+  * has tests: true
+  * has continuous integration: true
+    * GitHub Actions
+```
+
+You use the inplace version [`analyze!`](@ref), e.g. as `analyze!(root, find_package("Flux"))` to clone
 the package to a particular directory `root` which is not cleaned up afterwards, and likewise can pass a vector of paths instead of a single path employ use a threaded loop to analyze each package.
 
-You can also directly analyze the source code of a package via [`analyze`](@ref), for example
+You can also directly analyze the source code of a package via [`analyze`](@ref)
+by passing in the path to it, for example with the `pkgdir` function:
 
 ```julia
 julia> using AnalyzeRegistry, DataFrames
@@ -59,7 +103,7 @@ Package DataFrames:
 
 ## The `Package` struct
 
-The returned values from [`analyze`](@ref), [`analyze_from_registry`](@ref) and [`analyze_from_registry!`](@ref) are objects of the type `Package`, which has the following fields:
+The returned values from [`analyze`](@ref), and [`analyze!`](@ref) are objects of the type `Package`, which has the following fields:
 
 ```julia
 struct Package
@@ -93,9 +137,9 @@ end
 
 To run the analysis for multiple packages you can either use broadcasting
 ```julia
-analyze_from_registry.(package_paths_in_registry)
+analyze.(package_paths_in_registry)
 ```
-or use the method `analyze_from_registry(package_paths_in_registry::AbstractVector{<:AbstractString})` which
+or use the method `analyze(package_paths_in_registry::AbstractVector{<:AbstractString})` which
 leaverages [`FLoops.jl`](https://github.com/JuliaFolds/FLoops.jl) to run the
 analysis with multiple threads.
 
@@ -112,21 +156,21 @@ julia> find_packages(; registry=general_registry())
  "/home/user/.julia/registries/General/S/Strapping"
  [...]
 ```
-Do not abuse this function! Consider using the in-place function `analyze_from_registry!(root, package_paths_in_registry)` to avoid re-cloning packages if you might run the analysis more than once.
+Do not abuse this function! Consider using the in-place function `analyze!(root, package_paths_in_registry)` to avoid re-cloning packages if you might run the analysis more than once.
 
 !!! warning
-    Cloning all the repos in General will take about 24 GB of disk space and likely take several hours to complete.
+    Cloning all the repos in General will take more than 20 GB of disk space and can take up to a few hours to complete.
 
 ## License information
 
-The `license_files` field of the `Package` object is a Tables.jl row table
+The `license_files` field of the `Package` object is a [`Tables.jl`](https://github.com/JuliaData/Tables.jl) row table
 containing much more detailed information about any or all files containing
 licenses, identified by [`licensecheck`](https://github.com/google/licensecheck) via [LicenseCheck.jl](https://github.com/ericphanson/LicenseCheck.jl). For example, [RandomProjectionTree.jl](https://github.com/jean-pierreBoth/RandomProjectionTree.jl) is dual licensed under both Apache-2.0 and the MIT license, and provides two separate license files. Interestingly, the README is also identified as containing an Apache-2.0 license; I've filed an [issue](https://github.com/google/licensecheck/issues/40) to see if this is intentional.
 
 ```julia
 julia> using AnalyzeRegistry, DataFrames
 
-julia> result = analyze_from_registry(find_packages("RandomProjectionTree")[1]);
+julia> result = analyze("RandomProjectionTree");
 
 julia> DataFrame(result.license_files)
 3×3 DataFrame
@@ -182,7 +226,7 @@ contributions in that repository.
 ```julia
 julia> using AnalyzeRegistry, DataFrames
 
-julia> result = analyze_from_registry(find_package("DataFrames"));
+julia> result = analyze("DataFrames");
 
 julia> users = collect(keys(result.contributors));
 
