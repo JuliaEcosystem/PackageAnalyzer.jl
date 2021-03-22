@@ -280,11 +280,12 @@ are ignored.
 function analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid=UUID(UInt128(0)), subdir="", auth=github_auth())
     reachable = try
         # Clone only latest commit on the default branch.  Note: some
-        # repositories aren't reachable because the author made them private
-        # or deleted them.  In these cases git would ask for username and
-        # password, provide it with fake values just to move on:
-        # https://stackoverflow.com/a/65705346/2442087
-        run(pipeline(`git clone -q --depth 1 --config credential.helper='!f() { echo -e "username=git\npassword="; }; f' $(repo) $(dest)`; stderr=devnull))
+        # repositories aren't reachable because the author made them private or
+        # deleted them.  In these cases git would ask for username and password,
+        # so we close STDIN to prevent git from prompting for username/password.
+        # We need to use `detach` to make closing STDIN effective, suggested by
+        # @staticfloat.
+        run(pipeline(detach(`git clone -q --depth 1 $(repo) $(dest)`); stdin=devnull, stderr=devnull))
         true
     catch
         # The repository may be unreachable

@@ -107,9 +107,12 @@ end
 end
 
 @testset "`analyze_path!`" begin
-    # we check the error path here; the success path is covered by other tests
-    result = AnalyzeRegistry.analyze_path!(mktempdir(), "https://github.com/giordano/DOES_NOT_EXIST!!!.jl")
+    # we check the error path here; the success path is covered by other tests.
+    # This also makes sure trying to clone the repo doesn't prompt for
+    # username/password
+    result = AnalyzeRegistry.analyze_path!(mktempdir(), "https://github.com/giordano/DOES_NOT_EXIST.jl")
     @test result isa AnalyzeRegistry.Package
+    @test !result.reachable
     @test isempty(result.name)
 end
 
