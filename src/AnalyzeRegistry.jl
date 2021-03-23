@@ -3,9 +3,6 @@ module AnalyzeRegistry
 # Standard libraries
 using Pkg, TOML, UUIDs
 # Third-party packages
-using FLoops # for the `@floops` macro
-using MicroCollections # for `EmptyVector` and `SingletonVector`
-using BangBang # for `append!!`
 using LicenseCheck # for `find_license` and `is_osi_approved`
 using JSON3 # for interfacing with `tokei` to count lines of code
 using Tokei_jll # count lines of code
@@ -307,11 +304,17 @@ the list of contributors to the repositories is also collected.  See
 
 """
 function analyze!(root, registry_entries::AbstractVector{RegistryEntry}; auth::GitHub.Authorization=github_auth())
-    @floop for p in registry_entries
-        ps = SingletonVector((analyze!(root, p; auth),))
-        @reduce(result = append!!(EmptyVector(), ps))
+    inputs = Channel{RegistryEntry}(length(registry_entries))
+    for r in registry_entries
+        put!(inputs, r)
     end
-    result
+    close(inputs)
+    outputs = Channel{Package}(length(registry_entries))
+    Threads.foreach(inputs) do p
+        put!(outputs, analyze!(root, p; auth))
+    end
+    close(outputs)
+    return collect(outputs)
 end
 
 """
