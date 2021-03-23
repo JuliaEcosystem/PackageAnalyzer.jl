@@ -1,9 +1,9 @@
-# AnalyzeRegistry.jl
+# PackageAnalyzer.jl
 
 The main functionality of the package is the [`analyze`](@ref) function:
 
 ```julia
-julia> using AnalyzeRegistry
+julia> using PackageAnalyzer
 
 julia> analyze("Flux")
 Package Flux:
@@ -58,10 +58,10 @@ Package JuMP:
 Additionally, you can pass in the module itself:
 
 ```julia
-julia> using AnalyzeRegistry
+julia> using PackageAnalyzer
 
-julia> analyze(AnalyzeRegistry)
-Package AnalyzeRegistry:
+julia> analyze(PackageAnalyzer)
+Package PackageAnalyzer:
   * repo:
   * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
   * is reachable: true
@@ -83,7 +83,7 @@ You can also directly analyze the source code of a package via [`analyze`](@ref)
 by passing in the path to it, for example with the `pkgdir` function:
 
 ```julia
-julia> using AnalyzeRegistry, DataFrames
+julia> using PackageAnalyzer, DataFrames
 
 julia> analyze(pkgdir(DataFrames))
 Package DataFrames:
@@ -145,12 +145,12 @@ registry:
 
 ```julia
 julia> find_packages(; registry=general_registry())
-4632-element Vector{AnalyzeRegistry.RegistryEntry}:
- AnalyzeRegistry.RegistryEntry("/Users/eph/.julia/registries/General/C/CitableImage")
- AnalyzeRegistry.RegistryEntry("/Users/eph/.julia/registries/General/T/Trixi2Img")
- AnalyzeRegistry.RegistryEntry("/Users/eph/.julia/registries/General/I/ImPlot")
- AnalyzeRegistry.RegistryEntry("/Users/eph/.julia/registries/General/S/StableDQMC")
- AnalyzeRegistry.RegistryEntry("/Users/eph/.julia/registries/General/S/Strapping")
+4632-element Vector{PackageAnalyzer.RegistryEntry}:
+ PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/C/CitableImage")
+ PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/T/Trixi2Img")
+ PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/I/ImPlot")
+ PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/S/StableDQMC")
+ PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/S/Strapping")
 [...]
 ```
 Do not abuse this function! Consider using the in-place function `analyze!(root, registry_entries)` to avoid re-cloning packages if you might run the analysis more than once.
@@ -165,7 +165,7 @@ containing much more detailed information about any or all files containing
 licenses, identified by [`licensecheck`](https://github.com/google/licensecheck) via [LicenseCheck.jl](https://github.com/ericphanson/LicenseCheck.jl). For example, [RandomProjectionTree.jl](https://github.com/jean-pierreBoth/RandomProjectionTree.jl) is dual licensed under both Apache-2.0 and the MIT license, and provides two separate license files. Interestingly, the README is also identified as containing an Apache-2.0 license; I've filed an [issue](https://github.com/google/licensecheck/issues/40) to see if this is intentional.
 
 ```julia
-julia> using AnalyzeRegistry, DataFrames
+julia> using PackageAnalyzer, DataFrames
 
 julia> result = analyze("RandomProjectionTree");
 
@@ -188,7 +188,7 @@ containing much more detailed information about the lines of code count
 (thanks to `tokei`) and can e.g. be passed to a `DataFrame` for further analysis.
 
 ```julia
-julia> using AnalyzeRegistry, DataFrames
+julia> using PackageAnalyzer, DataFrames
 
 julia> result = analyze(pkgdir(DataFrames));
 
@@ -221,7 +221,7 @@ usernames of the contributors, and the values are the corresponding numbers of
 contributions in that repository.
 
 ```julia
-julia> using AnalyzeRegistry, DataFrames
+julia> using PackageAnalyzer, DataFrames
 
 julia> result = analyze("DataFrames");
 
@@ -261,5 +261,5 @@ you can obtain some extra information about packages whose repository is hosted
 on GitHub (e.g. the list of contributors).  If you store the token as an
 environment variable called `GITHUB_TOKEN` or `GITHUB_AUTH`, this will be
 automatically used whenever possible, otherwise you can generate a GitHub
-authentication with the [`AnalyzeRegistry.github_auth`](@ref) function and pass
+authentication with the [`PackageAnalyzer.github_auth`](@ref) function and pass
 it to the functions accepting the `auth::GitHub.Authorization` keyword argument.

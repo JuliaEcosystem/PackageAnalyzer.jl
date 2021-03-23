@@ -1,5 +1,5 @@
 ## API reference
 
 ```@autodocs
-Modules = [AnalyzeRegistry]
+Modules = [PackageAnalyzer]
 ```

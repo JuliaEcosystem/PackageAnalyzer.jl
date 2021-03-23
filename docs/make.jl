@@ -1,20 +1,20 @@
-using Documenter, AnalyzeRegistry
+using Documenter, PackageAnalyzer
 
-DocMeta.setdocmeta!(AnalyzeRegistry, :DocTestSetup, :(using AnalyzeRegistry); recursive=true)
+DocMeta.setdocmeta!(PackageAnalyzer, :DocTestSetup, :(using PackageAnalyzer); recursive=true)
 
 makedocs(
     format = Documenter.HTML(
         prettyurls = true
     ),
-    modules = [AnalyzeRegistry],
-    sitename = "AnalyzeRegistry.jl",
+    modules = [PackageAnalyzer],
+    sitename = "PackageAnalyzer.jl",
     pages = ["Home" => "index.md",
              "API Reference" => "api.md",
              "Saving results" => "serialization.md"]
 )
 
 deploydocs(
-    repo = "github.com/giordano/AnalyzeRegistry.jl.git",
+    repo = "github.com/giordano/PackageAnalyzer.jl.git",
     push_preview=true,
     devbranch = "main",
 )
