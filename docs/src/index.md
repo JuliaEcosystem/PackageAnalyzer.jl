@@ -138,8 +138,7 @@ To run the analysis for multiple packages you can either use broadcasting
 analyze.(registry_entries)
 ```
 or use the method `analyze(registry_entries::AbstractVector{<:RegistryEntry})` which
-leaverages [`FLoops.jl`](https://github.com/JuliaFolds/FLoops.jl) to run the
-analysis with multiple threads.
+runs the analysis with multiple threads.
 
 You can use the function [`find_packages`](@ref) to find all packages in a given
 registry:
