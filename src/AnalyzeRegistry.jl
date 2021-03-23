@@ -304,17 +304,17 @@ the list of contributors to the repositories is also collected.  See
 
 """
 function analyze!(root, registry_entries::AbstractVector{RegistryEntry}; auth::GitHub.Authorization=github_auth())
-    inputs = Channel{RegistryEntry}(length(registry_entries))
-    for r in registry_entries
-        put!(inputs, r)
+    inputs = Channel{Tuple{Int, RegistryEntry}}(length(registry_entries))
+    for (i,r) in enumerate(registry_entries)
+        put!(inputs, (i,r))
     end
     close(inputs)
-    outputs = Channel{Package}(length(registry_entries))
-    Threads.foreach(inputs) do p
-        put!(outputs, analyze!(root, p; auth))
+    outputs = Channel{Tuple{Int, Package}}(length(registry_entries))
+    Threads.foreach(inputs) do (i, r)
+        put!(outputs, (i, analyze!(root, r; auth)))
     end
     close(outputs)
-    return collect(outputs)
+    return last.(sort!(collect(outputs); by = first))
 end
 
 """
