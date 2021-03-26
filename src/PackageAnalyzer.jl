@@ -1,4 +1,4 @@
-module AnalyzeRegistry
+module PackageAnalyzer
 
 # Standard libraries
 using Pkg, TOML, UUIDs
@@ -217,7 +217,7 @@ end
 
 
 """
-    AnalyzeRegistry.github_auth(token::String="")
+    PackageAnalyzer.github_auth(token::String="")
 
 Obtain a GitHub authetication.  Use the `token` argument if it is non-empty,
 otherwise use the `GITHUB_TOKEN` and `GITHUB_AUTH` environment variables, if set
@@ -246,7 +246,7 @@ of the package, if such a directory does not already exist.
 If the GitHub authentication is non-anonymous and the repository is on GitHub,
 the list of contributors to the repository is also collected.  Only the number
 of contributors will be shown in the summary.  See
-[`AnalyzeRegistry.github_auth`](@ref) to obtain a GitHub authentication.
+[`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub authentication.
 """
 function analyze!(root, pkg::RegistryEntry; auth::GitHub.Authorization=github_auth())
     # Parse the `Package.toml` file in the given directory.
@@ -301,7 +301,7 @@ if a directory with their `uuid` does not already exist.  Returns a
 
 If the GitHub authentication is non-anonymous and the repository is on GitHub,
 the list of contributors to the repositories is also collected.  See
-[`AnalyzeRegistry.github_auth`](@ref) to obtain a GitHub authentication.
+[`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub authentication.
 
 """
 function analyze!(root, registry_entries::AbstractVector{RegistryEntry}; auth::GitHub.Authorization=github_auth())
@@ -329,7 +329,7 @@ cleaning up the temporary directory afterwards.
 If the GitHub authentication is non-anonymous and the repository is on GitHub,
 the list of contributors to the repository is also collected.  Only the number
 of contributors will be shown in the summary.  See
-[`AnalyzeRegistry.github_auth`](@ref) to obtain a GitHub authentication.
+[`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub authentication.
 
 ## Example
 ```julia
@@ -399,7 +399,7 @@ and analyzed.
 If the GitHub authentication is non-anonymous and the repository is on GitHub,
 the list of contributors to the repository is also collected.  Only the number
 of contributors will be shown in the summary.  See
-[`AnalyzeRegistry.github_auth`](@ref) to obtain a GitHub authentication.
+[`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub authentication.
 
 ## Example
 

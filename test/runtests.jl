@@ -1,12 +1,12 @@
 using Test, UUIDs
-using AnalyzeRegistry
-using AnalyzeRegistry: parse_project, RegistryEntry
+using PackageAnalyzer
+using PackageAnalyzer: parse_project, RegistryEntry
 using JLLWrappers
 
 get_libpath() = get(ENV, JLLWrappers.LIBPATH_env, nothing)
 const orig_libpath = get_libpath()
 
-@testset "AnalyzeRegistry" begin
+@testset "PackageAnalyzer" begin
     general = general_registry()
     @test isdir(general)
     @test all(p -> isdir(p.path), find_packages())
@@ -44,7 +44,7 @@ const orig_libpath = get_libpath()
 end
 
 @testset "`analyze`" begin
-    for pkg in (analyze(AnalyzeRegistry), analyze("https://github.com/giordano/AnalyzeRegistry.jl"), analyze(joinpath(@__DIR__, "..")))
+    for pkg in (analyze(PackageAnalyzer), analyze("https://github.com/giordano/PackageAnalyzer.jl"), analyze(joinpath(@__DIR__, "..")))
         @test pkg.uuid == UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c")
         @test pkg.reachable == true # default
         @test pkg.docs == true
@@ -86,23 +86,23 @@ end
 
 @testset "`find_packages` with `analyze`" begin
     results = analyze(find_packages("DataFrames", "Flux")) # this method is threaded
-    @test results isa Vector{AnalyzeRegistry.Package}
+    @test results isa Vector{PackageAnalyzer.Package}
     @test length(results) == 2
     # DataFrames currently has 16k LoC; Flux has 5k. Let's check that they aren't mixed up
     # due to some kind of race condition.
     @test results[1].name == "DataFrames"
-    @test AnalyzeRegistry.count_julia_loc(results[1].lines_of_code, "src") > 14000
+    @test PackageAnalyzer.count_julia_loc(results[1].lines_of_code, "src") > 14000
     @test results[2].name == "Flux"
-    @test AnalyzeRegistry.count_julia_loc(results[2].lines_of_code, "src") < 14000
+    @test PackageAnalyzer.count_julia_loc(results[2].lines_of_code, "src") < 14000
 
 
     results = analyze(find_packages("DataFrames"))
-    @test results isa Vector{AnalyzeRegistry.Package}
+    @test results isa Vector{PackageAnalyzer.Package}
     @test length(results) == 1
     @test results[1].name == "DataFrames"
 
     result = analyze(find_package("DataFrames"))
-    @test result isa AnalyzeRegistry.Package
+    @test result isa PackageAnalyzer.Package
     @test result.name == "DataFrames"
 end
 
@@ -110,8 +110,8 @@ end
     # we check the error path here; the success path is covered by other tests.
     # This also makes sure trying to clone the repo doesn't prompt for
     # username/password
-    result = AnalyzeRegistry.analyze_path!(mktempdir(), "https://github.com/giordano/DOES_NOT_EXIST.jl")
-    @test result isa AnalyzeRegistry.Package
+    result = PackageAnalyzer.analyze_path!(mktempdir(), "https://github.com/giordano/DOES_NOT_EXIST.jl")
+    @test result isa PackageAnalyzer.Package
     @test !result.reachable
     @test isempty(result.name)
 end
@@ -152,21 +152,21 @@ end
     @test parse_project("rstratarstra") == bad_project
 
     # proper Project.toml
-    this_project = (; name = "AnalyzeRegistry", uuid = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c"), licenses_in_project = String[])
+    this_project = (; name = "PackageAnalyzer", uuid = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c"), licenses_in_project = String[])
     @test parse_project(joinpath(@__DIR__, "..")) == this_project
 
     # has `license = "MIT"`
-    project_1 = (; name = "AnalyzeRegistry", uuid = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c"), licenses_in_project=["MIT"])
+    project_1 = (; name = "PackageAnalyzer", uuid = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c"), licenses_in_project=["MIT"])
     @test parse_project("license_in_project") == project_1
 
     # has `license = ["MIT", "GPL"]`
-    project_2 = (; name = "AnalyzeRegistry", uuid = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c"), licenses_in_project=["MIT", "GPL"])
+    project_2 = (; name = "PackageAnalyzer", uuid = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c"), licenses_in_project=["MIT", "GPL"])
     @test parse_project("licenses_in_project") == project_2
 end
 
 @testset "`show`" begin
     # this is mostly to test that `show` doesn't error
-    str = sprint(show, analyze(pkgdir(AnalyzeRegistry)))
+    str = sprint(show, analyze(pkgdir(PackageAnalyzer)))
     @test occursin("* uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c", str)
     @test occursin("* OSI approved: true", str)
 end
