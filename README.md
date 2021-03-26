@@ -1,7 +1,7 @@
-[![Build Status](https://github.com/giordano/AnalyzeRegistry.jl/workflows/CI/badge.svg)](https://github.com/giordano/AnalyzeRegistry.jl/actions?query=workflow%3ACI)
-[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://giordano.github.io/AnalyzeRegistry.jl/dev/)
+[![Build Status](https://github.com/giordano/PackageAnalyzer.jl/workflows/CI/badge.svg)](https://github.com/giordano/PackageAnalyzer.jl/actions?query=workflow%3ACI)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://giordano.github.io/PackageAnalyzer.jl/dev/)
 
-# AnalyzeRegistry
+# PackageAnalyzer
 
 Package to analyze the prevalence of documentation, testing and continuous
 integration in Julia packages in a given registry.
@@ -14,20 +14,20 @@ To install the package, in Julia's REPL, press `]` to enter the Pkg mode and run
 the command
 
 ```
-add https://github.com/giordano/AnalyzeRegistry.jl
+add https://github.com/giordano/PackageAnalyzer.jl
 ```
 
 Alternatively, you can run
 
 ```julia
 using Pkg
-Pkg.add("https://github.com/giordano/AnalyzeRegistry.jl")
+Pkg.add("https://github.com/giordano/PackageAnalyzer.jl")
 ```
 
 ## Quick example
 
 ```julia
-julia> using AnalyzeRegistry
+julia> using PackageAnalyzer
 
 julia> analyze("Flux")
 Package Flux:
@@ -48,9 +48,9 @@ Package Flux:
 
 ```
 
-See the [docs](https://giordano.github.io/AnalyzeRegistry.jl/dev/) for more!
+See the [docs](https://giordano.github.io/PackageAnalyzer.jl/dev/) for more!
 
 ## License
 
-The `AnalyzeRegistry.jl` package is licensed under the MIT "Expat" License.  The
+The `PackageAnalyzer.jl` package is licensed under the MIT "Expat" License.  The
 original author is Mosè Giordano.
