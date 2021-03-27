@@ -14,7 +14,7 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/giordano/PackageAnalyzer.jl.git",
+    repo = "github.com/JuliaEcosystem/PackageAnalyzer.jl.git",
     push_preview=true,
     devbranch = "main",
 )

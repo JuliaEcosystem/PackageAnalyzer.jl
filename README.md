@@ -1,5 +1,5 @@
-[![Build Status](https://github.com/giordano/PackageAnalyzer.jl/workflows/CI/badge.svg)](https://github.com/giordano/PackageAnalyzer.jl/actions?query=workflow%3ACI)
-[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://giordano.github.io/PackageAnalyzer.jl/dev/)
+[![Build Status](https://github.com/JuliaEcosystem/PackageAnalyzer.jl/workflows/CI/badge.svg)](https://github.com/JuliaEcosystem/PackageAnalyzer.jl/actions?query=workflow%3ACI)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://juliaecosystem.github.io/PackageAnalyzer.jl/dev/)
 
 # PackageAnalyzer
 
@@ -14,14 +14,14 @@ To install the package, in Julia's REPL, press `]` to enter the Pkg mode and run
 the command
 
 ```
-add https://github.com/giordano/PackageAnalyzer.jl
+add https://github.com/JuliaEcosystem/PackageAnalyzer.jl
 ```
 
 Alternatively, you can run
 
 ```julia
 using Pkg
-Pkg.add("https://github.com/giordano/PackageAnalyzer.jl")
+Pkg.add("https://github.com/JuliaEcosystem/PackageAnalyzer.jl")
 ```
 
 ## Quick example
@@ -48,7 +48,7 @@ Package Flux:
 
 ```
 
-See the [docs](https://giordano.github.io/PackageAnalyzer.jl/dev/) for more!
+See the [docs](https://JuliaEcosystem.github.io/PackageAnalyzer.jl/dev/) for more!
 
 ## License
 
