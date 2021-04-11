@@ -2,6 +2,7 @@ using Test, UUIDs
 using PackageAnalyzer
 using PackageAnalyzer: parse_project, RegistryEntry
 using JLLWrappers
+using GitHub
 
 get_libpath() = get(ENV, JLLWrappers.LIBPATH_env, nothing)
 const orig_libpath = get_libpath()
@@ -38,7 +39,7 @@ const orig_libpath = get_libpath()
     # Test `analyze!` directly
     mktempdir() do root
         measurements2 = analyze!(root, RegistryEntry(joinpath(general, "M", "Measurements")))
-        @test measurements == measurements2
+        @test isequal(measurements, measurements2)
         @test isdir(joinpath(root, "eff96d63-e80a-5855-80a2-b1b0885c5ab7")) # not cleaned up yet
     end
 end
