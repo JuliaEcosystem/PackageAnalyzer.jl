@@ -179,8 +179,8 @@ end
         pkg = analyze("DataFrames")
         @test pkg.contributors isa Vector{<:NamedTuple}
         @test length(pkg.contributors) > 160 # ==183 right now, and it shouldn't go down...
-        @test PackageAnalyzer.count_contributers(pkg) > 150
-        @test PackageAnalyzer.count_contributers(pkg; type="Anonymous") > 10
+        @test PackageAnalyzer.count_contributors(pkg) > 150
+        @test PackageAnalyzer.count_contributors(pkg; type="Anonymous") > 10
     end
 end
 

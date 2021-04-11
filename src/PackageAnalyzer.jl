@@ -122,8 +122,8 @@ function Base.show(io::IO, p::Package)
             body *= "    * OSI approved: $(all(is_osi_approved, p.licenses_in_project))\n"
         end
         if !isempty(p.contributors)
-            n_anon = count_contributers(p; type="Anonymous")
-            body *= "  * number of contributors: $(count_contributers(p)) (and $(n_anon) anonymous contributors)\n"
+            n_anon = count_contributors(p; type="Anonymous")
+            body *= "  * number of contributors: $(count_contributors(p)) (and $(n_anon) anonymous contributors)\n"
         end
         body *= """
               * has documentation: $(p.docs)
@@ -549,8 +549,8 @@ function contribution_table(repo_name; auth)
     return parse_contributions.(GitHub.contributors(GitHub.repo(repo_name; auth); auth, params=Dict("anon"=>"true"))[1])
 end
 
-count_contributers(table; type="User") = count(row.type == type for row in table)
-count_contributers(pkg::Package; kwargs...) = count_contributers(pkg.contributors; kwargs...)
+count_contributors(table; type="User") = count(row.type == type for row in table)
+count_contributors(pkg::Package; kwargs...) = count_contributors(pkg.contributors; kwargs...)
 
 function parse_contributions(c)
     contrib = c["contributor"]

@@ -217,8 +217,8 @@ julia> DataFrame(result.lines_of_code)
 If the package repository is hosted on GitHub and you can use [GitHub
 authentication](@ref), the list of contributors is added to the `contributors`
 field of the `Package` object.  This is a table which includes the GitHub username ("login") and
-the GitHub ID ("id") for contributors identified as GitHub "users", and the "name" for contributers
-identified as "Anonymous" contributers, as well as the number of contributions provided by that user to
+the GitHub ID ("id") for contributors identified as GitHub "users", and the "name" for contributors
+identified as "Anonymous" contributors, as well as the number of contributions provided by that user to
 the repository. This is the data returned from the GitHub API, and there may be people for which
 some of their contributions are marked as from an anonymous user (possibly more than one!) and
 some of their contributions are associated to their GitHub username.
