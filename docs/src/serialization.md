@@ -5,8 +5,8 @@ In just four lines of code, we can setup serialization of collections of Package
 ```@repl 1
 using PackageAnalyzer
 using Arrow # v1.3+
-ArrowTypes.arrowname(::Type{PackageAnalyzer.Package}) = :Package
-ArrowTypes.JuliaType(::Val{:Package}) = PackageAnalyzer.Package
+ArrowTypes.arrowname(::Type{PackageAnalyzer.Package}) = Symbol("JuliaLang.PackageAnalyzer.Package")
+ArrowTypes.JuliaType(::Val{Symbol("JuliaLang.PackageAnalyzer.Package")}) = PackageAnalyzer.Package
 save(path, packages) = Arrow.write(path, (; packages))
 load(path) = copy(Arrow.Table(path).packages)
 ```
