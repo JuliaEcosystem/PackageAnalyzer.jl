@@ -450,7 +450,7 @@ function analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, 
 end
 
 """
-    analyze(m::Module) -> Package
+    analyze(m::Module; kwargs...) -> Package
 
 If you want to analyze a package which is already loaded in the current session,
 you can simply call `analyze`, which uses `pkgdir` to determine its source code:
@@ -474,7 +474,7 @@ Package DataFrames:
     * GitHub Actions
 ```
 """
-analyze(m::Module) = analyze_path(pkgdir(m))
+analyze(m::Module; kwargs...) = analyze_path(pkgdir(m); kwargs...)
 
 
 """
