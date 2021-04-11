@@ -171,6 +171,18 @@ end
     @test occursin("* OSI approved: true", str)
 end
 
+@testset "Contributors" begin
+    if PackageAnalyzer.github_auth() isa GitHub.AnonymousAuth
+        @warn "Skipping contributors tests since `PackageAnalyzer.github_auth()` is anonymous"
+    else
+        pkg = analyze("DataFrames")
+        @test pkg.contributors isa Vector{<:NamedTuple}
+        @test length(pkg.contributors) > 160 # ==183 right now, and it shouldn't go down...
+        @test PackageAnalyzer.count_contributers(pkg) > 150
+        @test PackageAnalyzer.count_contributers(pkg; type="Anonymous") > 10
+    end
+end
+
 @testset "Thread-safety" begin
     # Make sure none of the above commands leaks LD_LIBRARY_PATH.  This test
     # should be executed at the very end of the test suite.
