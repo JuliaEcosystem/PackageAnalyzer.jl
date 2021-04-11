@@ -81,7 +81,7 @@ Package DataFrames:
     license_files::Vector{@NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}} # a table of all possible license files
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
     lines_of_code::Vector{@NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int}} # table of lines of code
-    contributors::Dict{String,Int} # Dictionary contributors =&gt; contributions
+    contributors::Vector{@NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int}} # table of contributor data
 end</code></pre><h2 id="Analyzing-multiple-packages"><a class="docs-heading-anchor" href="#Analyzing-multiple-packages">Analyzing multiple packages</a><a id="Analyzing-multiple-packages-1"></a><a class="docs-heading-anchor-permalink" href="#Analyzing-multiple-packages" title="Permalink"></a></h2><p>To run the analysis for multiple packages you can either use broadcasting</p><pre><code class="language-julia">analyze.(registry_entries)</code></pre><p>or use the method <code>analyze(registry_entries::AbstractVector{&lt;:RegistryEntry})</code> which runs the analysis with multiple threads.</p><p>You can use the function <a href="api/#PackageAnalyzer.find_packages"><code>find_packages</code></a> to find all packages in a given registry:</p><pre><code class="language-julia">julia&gt; find_packages(; registry=general_registry())
 4632-element Vector{PackageAnalyzer.RegistryEntry}:
  PackageAnalyzer.RegistryEntry(&quot;/Users/eph/.julia/registries/General/C/CitableImage&quot;)
@@ -121,33 +121,30 @@ julia&gt; DataFrame(result.lines_of_code)
   10 │ CONTRIBUTING.md  Markdown                   1      0        56       8
   11 │ NEWS.md          Markdown                   1      0       112      10
   12 │ LICENSE.md       Markdown                   1      0        22       1
-  13 │ README.md        Markdown                   1      0        21      10</code></pre><h2 id="Contributors-to-the-repository"><a class="docs-heading-anchor" href="#Contributors-to-the-repository">Contributors to the repository</a><a id="Contributors-to-the-repository-1"></a><a class="docs-heading-anchor-permalink" href="#Contributors-to-the-repository" title="Permalink"></a></h2><p>If the package repository is hosted on GitHub and you can use <a href="#GitHub-authentication">GitHub authentication</a>, the list of contributors is added to the <code>contributors</code> field of the <code>Package</code> object.  This is a dictionary whose keys are the GitHub usernames of the contributors, and the values are the corresponding numbers of contributions in that repository.</p><pre><code class="language-julia">julia&gt; using PackageAnalyzer, DataFrames
+  13 │ README.md        Markdown                   1      0        21      10</code></pre><h2 id="Contributors-to-the-repository"><a class="docs-heading-anchor" href="#Contributors-to-the-repository">Contributors to the repository</a><a id="Contributors-to-the-repository-1"></a><a class="docs-heading-anchor-permalink" href="#Contributors-to-the-repository" title="Permalink"></a></h2><p>If the package repository is hosted on GitHub and you can use <a href="#GitHub-authentication">GitHub authentication</a>, the list of contributors is added to the <code>contributors</code> field of the <code>Package</code> object.  This is a table which includes the GitHub username (&quot;login&quot;) and the GitHub ID (&quot;id&quot;) for contributors identified as GitHub &quot;users&quot;, and the &quot;name&quot; for contributors identified as &quot;Anonymous&quot; contributors, as well as the number of contributions provided by that user to the repository. This is the data returned from the GitHub API, and there may be people for which some of their contributions are marked as from an anonymous user (possibly more than one!) and some of their contributions are associated to their GitHub username.</p><pre><code class="language-julia">julia&gt; using PackageAnalyzer, DataFrames
 
 julia&gt; result = analyze(&quot;DataFrames&quot;);
 
-julia&gt; users = collect(keys(result.contributors));
+julia&gt; df = DataFrame(result.contributors);
 
-julia&gt; df = DataFrame(:User =&gt; users, :Contributions =&gt; map(x -&gt; result.contributors[x], users));
-
-julia&gt; sort!(df, [:Contributions, :User], rev=true)
-165×2 DataFrame
- Row │ User               Contributions
-     │ String             Int64
-─────┼──────────────────────────────────
-   1 │ johnmyleswhite               431
-   2 │ bkamins                      364
-   3 │ powerdistribution            232
-   4 │ nalimilan                    220
-   5 │ garborg                      173
-   6 │ quinnj                       101
-   7 │ simonster                     87
-   8 │ cjprybol                      50
-   9 │ alyst                         48
-  10 │ dmbates                       47
-  11 │ tshort                        39
-  12 │ doobwa                        32
-  13 │ HarlanH                       32
-  14 │ kmsquire                      30
-  15 │ pdeffebach                    19
-  16 │ ararslan                      19
-  ⋮  │         ⋮                ⋮</code></pre><h2 id="GitHub-authentication"><a class="docs-heading-anchor" href="#GitHub-authentication">GitHub authentication</a><a id="GitHub-authentication-1"></a><a class="docs-heading-anchor-permalink" href="#GitHub-authentication" title="Permalink"></a></h2><p>If you have a <a href="https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token">GitHub Personal Access Token</a>, you can obtain some extra information about packages whose repository is hosted on GitHub (e.g. the list of contributors).  If you store the token as an environment variable called <code>GITHUB_TOKEN</code> or <code>GITHUB_AUTH</code>, this will be automatically used whenever possible, otherwise you can generate a GitHub authentication with the <a href="api/#PackageAnalyzer.github_auth"><code>PackageAnalyzer.github_auth</code></a> function and pass it to the functions accepting the <code>auth::GitHub.Authorization</code> keyword argument.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="api/">API Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Sunday 11 April 2021 18:30">Sunday 11 April 2021</span>. Using Julia version 1.6.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+julia&gt; sort!(df, :contributions, rev=true)
+183×5 DataFrame
+ Row │ login              id        name           type       contributions 
+     │ String?            Int64?    String?        String     Int64         
+─────┼──────────────────────────────────────────────────────────────────────
+   1 │ johnmyleswhite        22064  missing        User                 431
+   2 │ bkamins             6187170  missing        User                 381
+   3 │ powerdistribution   5247292  missing        User                 232
+   4 │ nalimilan           1120448  missing        User                 221
+   5 │ garborg             2823840  missing        User                 173
+   6 │ quinnj              2896623  missing        User                 101
+   7 │ simonster            470884  missing        User                  87
+   8 │ missing             missing  Harlan Harris  Anonymous             67
+   9 │ cjprybol            3497642  missing        User                  50
+  10 │ alyst                348591  missing        User                  48
+  11 │ dmbates              371258  missing        User                  47
+  12 │ tshort               636420  missing        User                  39
+  13 │ doobwa                79467  missing        User                  32
+  14 │ HarlanH              130809  missing        User                  32
+  15 │ kmsquire             223250  missing        User                  30
+  ⋮  │         ⋮             ⋮            ⋮            ⋮            ⋮</code></pre><h2 id="GitHub-authentication"><a class="docs-heading-anchor" href="#GitHub-authentication">GitHub authentication</a><a id="GitHub-authentication-1"></a><a class="docs-heading-anchor-permalink" href="#GitHub-authentication" title="Permalink"></a></h2><p>If you have a <a href="https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token">GitHub Personal Access Token</a>, you can obtain some extra information about packages whose repository is hosted on GitHub (e.g. the list of contributors).  If you store the token as an environment variable called <code>GITHUB_TOKEN</code> or <code>GITHUB_AUTH</code>, this will be automatically used whenever possible, otherwise you can generate a GitHub authentication with the <a href="api/#PackageAnalyzer.github_auth"><code>PackageAnalyzer.github_auth</code></a> function and pass it to the functions accepting the <code>auth::GitHub.Authorization</code> keyword argument.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="api/">API Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Sunday 11 April 2021 22:34">Sunday 11 April 2021</span>. Using Julia version 1.6.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
