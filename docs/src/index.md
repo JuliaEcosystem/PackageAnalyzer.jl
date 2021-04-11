@@ -126,7 +126,7 @@ struct Package
     license_files::Vector{@NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}} # a table of all possible license files
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
     lines_of_code::Vector{@NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int}} # table of lines of code
-    contributors::Dict{String,Int} # Dictionary contributors => contributions
+    contributors::Vector{@NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int}} # table of contributor data
 end
 ```
 
@@ -216,41 +216,41 @@ julia> DataFrame(result.lines_of_code)
 
 If the package repository is hosted on GitHub and you can use [GitHub
 authentication](@ref), the list of contributors is added to the `contributors`
-field of the `Package` object.  This is a dictionary whose keys are the GitHub
-usernames of the contributors, and the values are the corresponding numbers of
-contributions in that repository.
+field of the `Package` object.  This is a table which includes the GitHub username ("login") and
+the GitHub ID ("id") for contributors identified as GitHub "users", and the "name" for contributers
+identified as "Anonymous" contributers, as well as the number of contributions provided by that user to
+the repository. This is the data returned from the GitHub API, and there may be people for which
+some of their contributions are marked as from an anonymous user (possibly more than one!) and
+some of their contributions are associated to their GitHub username.
 
 ```julia
 julia> using PackageAnalyzer, DataFrames
 
 julia> result = analyze("DataFrames");
 
-julia> users = collect(keys(result.contributors));
+julia> df = DataFrame(result.contributors);
 
-julia> df = DataFrame(:User => users, :Contributions => map(x -> result.contributors[x], users));
-
-julia> sort!(df, [:Contributions, :User], rev=true)
-165×2 DataFrame
- Row │ User               Contributions
-     │ String             Int64
-─────┼──────────────────────────────────
-   1 │ johnmyleswhite               431
-   2 │ bkamins                      364
-   3 │ powerdistribution            232
-   4 │ nalimilan                    220
-   5 │ garborg                      173
-   6 │ quinnj                       101
-   7 │ simonster                     87
-   8 │ cjprybol                      50
-   9 │ alyst                         48
-  10 │ dmbates                       47
-  11 │ tshort                        39
-  12 │ doobwa                        32
-  13 │ HarlanH                       32
-  14 │ kmsquire                      30
-  15 │ pdeffebach                    19
-  16 │ ararslan                      19
-  ⋮  │         ⋮                ⋮
+julia> sort!(df, :contributions, rev=true)
+183×5 DataFrame
+ Row │ login              id        name           type       contributions 
+     │ String?            Int64?    String?        String     Int64         
+─────┼──────────────────────────────────────────────────────────────────────
+   1 │ johnmyleswhite        22064  missing        User                 431
+   2 │ bkamins             6187170  missing        User                 381
+   3 │ powerdistribution   5247292  missing        User                 232
+   4 │ nalimilan           1120448  missing        User                 221
+   5 │ garborg             2823840  missing        User                 173
+   6 │ quinnj              2896623  missing        User                 101
+   7 │ simonster            470884  missing        User                  87
+   8 │ missing             missing  Harlan Harris  Anonymous             67
+   9 │ cjprybol            3497642  missing        User                  50
+  10 │ alyst                348591  missing        User                  48
+  11 │ dmbates              371258  missing        User                  47
+  12 │ tshort               636420  missing        User                  39
+  13 │ doobwa                79467  missing        User                  32
+  14 │ HarlanH              130809  missing        User                  32
+  15 │ kmsquire             223250  missing        User                  30
+  ⋮  │         ⋮             ⋮            ⋮            ⋮            ⋮
 ```
 
 ## GitHub authentication

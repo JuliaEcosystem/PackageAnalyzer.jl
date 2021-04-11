@@ -14,7 +14,7 @@ export analyze, analyze!
 
 include("count_loc.jl")
 const LicenseTableEltype=@NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}
-const ContributionTableElType=@NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, email::Union{String,Missing}, type::String, contributions::Int}
+const ContributionTableElType=@NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int}
 
 struct Package
     name::String # name of the package
@@ -36,7 +36,7 @@ struct Package
     license_files::Vector{LicenseTableEltype} # a table of all possible license files
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
     lines_of_code::Vector{LoCTableEltype} # table of lines of code
-    contributors::Vector{ContributionTableElType} # Dictionary contributors => contributions
+    contributors::Vector{ContributionTableElType} # table of contributor data
 end
 function Package(name, uuid, repo;
                  subdir="",
@@ -122,7 +122,8 @@ function Base.show(io::IO, p::Package)
             body *= "    * OSI approved: $(all(is_osi_approved, p.licenses_in_project))\n"
         end
         if !isempty(p.contributors)
-            body *= "  * number of contributors: $(length(p.contributors))\n"
+            n_anon = count_contributers(p; type="Anonymous")
+            body *= "  * number of contributors: $(count_contributers(p)) (and $(n_anon) anonymous contributors)\n"
         end
         body *= """
               * has documentation: $(p.docs)
@@ -534,7 +535,7 @@ function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="",
         #   30578772 => femtocleaner[bot]
         #   41898282 => github-actions[bot]
         #   50554310 => TagBot
-        return contribution_table(repo_name; auth)
+        contribution_table(repo_name; auth)
     else
         ContributionTableElType[]
     end
@@ -548,12 +549,15 @@ function contribution_table(repo_name; auth)
     return parse_contributions.(GitHub.contributors(GitHub.repo(repo_name; auth); auth, params=Dict("anon"=>"true"))[1])
 end
 
+count_contributers(table; type="User") = count(row.type == type for row in table)
+count_contributers(pkg::Package; kwargs...) = count_contributers(pkg.contributors; kwargs...)
+
 function parse_contributions(c)
     contrib = c["contributor"]
     if contrib.typ == "Anonymous"
-        return (; login = missing, id = missing, contrib.name, contrib.email, type=contrib.typ, contributions = c["contributions"])
+        return (; login = missing, id = missing, contrib.name, type=contrib.typ, contributions = c["contributions"])
     else
-        return (; contrib.login, contrib.id, name = missing, email = missing, type=contrib.typ, contributions = c["contributions"])
+        return (; contrib.login, contrib.id, name = missing, type=contrib.typ, contributions = c["contributions"])
     end
 end
 
