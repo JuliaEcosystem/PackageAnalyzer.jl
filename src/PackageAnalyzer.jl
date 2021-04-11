@@ -1,18 +1,16 @@
-module AnalyzeRegistry
+module PackageAnalyzer
 
 # Standard libraries
 using Pkg, TOML, UUIDs
 # Third-party packages
-using FLoops # for the `@floops` macro
-using MicroCollections # for `EmptyVector` and `SingletonVector`
-using BangBang # for `append!!`
 using LicenseCheck # for `find_license` and `is_osi_approved`
 using JSON3 # for interfacing with `tokei` to count lines of code
 using Tokei_jll # count lines of code
 using GitHub # Use GitHub API to get extra information about the repo
+using Git
 
 export general_registry, find_package, find_packages
-export analyze, analyze_from_registry, analyze_from_registry!
+export analyze, analyze!
 
 include("count_loc.jl")
 const LicenseTableEltype=@NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}
@@ -62,6 +60,16 @@ function Package(name, uuid, repo;
     return Package(name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
                    license_files, licenses_in_project, lines_of_code, contributors)
+end
+
+"""
+    RegistryEntry(path::String)
+
+Light data structure pointing to the directory where an entry of a registry is
+stored.
+"""
+struct RegistryEntry
+    path::String
 end
 
 # define `isequal`, `==`, and `hash` just in terms of the fields
@@ -150,25 +158,26 @@ end
 Guess the path of the General registry.
 """
 general_registry() =
-    first([joinpath(d, "registries", "General") for d in Pkg.depots() if isfile(joinpath(d, "registries", "General", "Registry.toml"))])
+    first(joinpath(d, "registries", "General") for d in Pkg.depots() if isfile(joinpath(d, "registries", "General", "Registry.toml")))
 
 
 """
-    find_package(pkg; registry = general_registry()) -> String
+    find_package(pkg; registry = general_registry()) -> RegistryEntry
 
-Returns the path to the entry in `registry` for the package `pkg`.
+Returns the [RegistryEntry](@ref) for the package `pkg`.
 The singular version of [`find_packages`](@ref).
 """
 find_package(pkg::AbstractString; registry=general_registry()) = only(find_packages([pkg]; registry))
 
 """
-    find_packages(; registry = general_registry()) -> Vector{String}
-    find_packages(names::AbstractString...; registry = general_registry()) -> Vector{String}
-    find_packages(names; registry = general_registry()) -> Vector{String}
+    find_packages(; registry = general_registry()) -> Vector{RegistryEntry}
+    find_packages(names::AbstractString...; registry = general_registry()) -> Vector{RegistryEntry}
+    find_packages(names; registry = general_registry()) -> Vector{RegistryEntry}
 
-Find all packages in the given registry (specified by the `registry` keyword argument),
-the General registry by default. Return a vector with the paths to the directories
-of each package in the registry.
+Find all packages in the given registry (specified by the `registry` keyword
+argument), the General registry by default. Return a vector of
+[RegistryEntry](@ref) pointing to to the directories of each package in the
+registry.
 
 Pass a list of package `names` as the first argument to return the paths corresponding to those packages,
 or individual package names as separate arguments.
@@ -179,16 +188,16 @@ find_packages(names::AbstractString...; registry = general_registry()) =  find_p
 
 function find_packages(names; registry = general_registry())
     if names !== nothing
-        paths = String[]
+        entries = RegistryEntry[]
         for name in names
             path = joinpath(registry, string(uppercase(first(name))), name)
             if isdir(path)
-               push!(paths, path)
+               push!(entries, RegistryEntry(path))
             else
                 @error("Could not find package in registry!", name, path)
             end
         end
-        return paths
+        return entries
     end
 end
 
@@ -204,12 +213,12 @@ function find_packages(; registry = general_registry(),
     # automatically generated and we know that they don't have testing nor
     # documentation. We also filter out the "julia" package which is not a real
     # package and just points at the Julia source code.
-    return [joinpath(registry, splitpath(p["path"])...) for (uuid, p) in packages if filter(uuid, p)]
+    return [RegistryEntry(joinpath(registry, splitpath(p["path"])...)) for (uuid, p) in packages if filter(uuid, p)]
 end
 
 
 """
-    AnalyzeRegistry.github_auth(token::String="")
+    PackageAnalyzer.github_auth(token::String="")
 
 Obtain a GitHub authetication.  Use the `token` argument if it is non-empty,
 otherwise use the `GITHUB_TOKEN` and `GITHUB_AUTH` environment variables, if set
@@ -229,20 +238,20 @@ function github_auth(token::String="")
 end
 
 """
-    analyze_from_registry!(root, dir::AbstractString; auth::GitHub.Authorization=github_auth()) -> Package
+    analyze!(root, package::RegistryEntry; auth::GitHub.Authorization=github_auth()) -> Package
 
 Analyze the package whose entry in the registry is in the `dir` directory,
 cloning the package code to `joinpath(root, uuid)` where `uuid` is the UUID
 of the package, if such a directory does not already exist.
 
 If the GitHub authentication is non-anonymous and the repository is on GitHub,
-the list of contributors to the repository is also collected.  Only the number
-of contributors will be shown in the summary.  See
-[`AnalyzeRegistry.github_auth`](@ref) to obtain a GitHub authentication.
+the list of contributors to the repository is also collected, after waiting for
+`sleep` seconds.  Only the number of contributors will be shown in the summary.
+See [`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub authentication.
 """
-function analyze_from_registry!(root, dir::AbstractString; auth::GitHub.Authorization=github_auth())
+function analyze!(root, pkg::RegistryEntry; auth::GitHub.Authorization=github_auth(), sleep=0)
     # Parse the `Package.toml` file in the given directory.
-    toml = TOML.parsefile(joinpath(dir, "Package.toml"))
+    toml = TOML.parsefile(joinpath(pkg.path, "Package.toml"))
     name = toml["name"]::String
     uuid_string = toml["uuid"]::String
     uuid = UUID(uuid_string)
@@ -251,59 +260,88 @@ function analyze_from_registry!(root, dir::AbstractString; auth::GitHub.Authoriz
 
     dest = joinpath(root, uuid_string)
 
-    isdir(dest) && return analyze(dest; repo, subdir)
+    isdir(dest) && return analyze_path(dest; repo, subdir, auth, sleep)
 
+    return analyze_path!(dest, repo; subdir, auth, name, uuid)
+end
+
+"""
+    analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid=UUID(UInt128(0)), subdir="", auth=github_auth(), sleep=0) -> Package
+
+Analyze the Julia package located at the URL given by `repo` by cloning it to `dest`
+and calling `analyze_path(dest)`.
+
+If the clone fails, it returns a `Package` with `reachable=false`. If a `name` and `uuid` are provided,
+these are used to populate the corresponding fields of the `Package`. If the clone succeeds, the `name`
+and `uuid` are taken instead from the Project.toml in the package itself, and the values passed here
+are ignored.
+
+If the GitHub authentication `auth` is non-anonymous and the repository is on
+GitHub, the list of contributors to the repository is also collected, after
+waiting for `sleep` seconds for each entry.  See
+[`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub authentication.
+"""
+function analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid=UUID(UInt128(0)), subdir="", auth=github_auth(), sleep=0)
     reachable = try
         # Clone only latest commit on the default branch.  Note: some
-        # repositories aren't reachable because the author made them private
-        # or deleted them.  In these cases git would ask for username and
-        # password, provide it with fake values just to move on:
-        # https://stackoverflow.com/a/65705346/2442087
-        run(pipeline(`git clone -q --depth 1 --config credential.helper='!f() { echo -e "username=git\npassword="; }; f' $(repo) $(dest)`; stderr=devnull))
+        # repositories aren't reachable because the author made them private or
+        # deleted them.  In these cases git would ask for username and password,
+        # so we close STDIN to prevent git from prompting for username/password.
+        # We need to use `detach` to make closing STDIN effective, suggested by
+        # @staticfloat.
+        run(pipeline(detach(`$(git()) clone -q --depth 1 $(repo) $(dest)`); stdin=devnull, stderr=devnull))
         true
     catch
         # The repository may be unreachable
         false
     end
-    return reachable ? analyze(dest; repo, reachable, subdir, auth) : Package(name, uuid, repo; subdir)
+    return reachable ? analyze_path(dest; repo, reachable, subdir, auth, sleep) : Package(name, uuid, repo; subdir)
 end
 
 """
-    analyze_from_registry!(root, packages::AbstractVector{<:AbstractString}; auth::GitHub.Authorization=github_auth()) -> Vector{Package}
+    analyze!(root, registry_entries::AbstractVector{<:RegistryEntry}; auth::GitHub.Authorization=github_auth(), sleep=0) -> Vector{Package}
 
-Analyze all packages in the iterable `packages`, using threads, cloning them to `root`
+Analyze all packages in the iterable `registry_entries`, using threads, cloning them to `root`
 if a directory with their `uuid` does not already exist.  Returns a
 `Vector{Package}`.
 
 If the GitHub authentication is non-anonymous and the repository is on GitHub,
-the list of contributors to the repositories is also collected.  See
-[`AnalyzeRegistry.github_auth`](@ref) to obtain a GitHub authentication.
-
+the list of contributors to the repositories is also collected, after waiting
+for `sleep` seconds for each entry (useful to avoid getting rate-limited by
+GitHub).  See [`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub
+authentication.
 """
-function analyze_from_registry!(root, packages::AbstractVector{<:AbstractString}; auth::GitHub.Authorization=github_auth())
-    @floop for p in packages
-        ps = SingletonVector((analyze_from_registry!(root, p; auth),))
-        @reduce(result = append!!(EmptyVector(), ps))
+function analyze!(root, registry_entries::AbstractVector{RegistryEntry}; auth::GitHub.Authorization=github_auth(), sleep=0)
+    inputs = Channel{Tuple{Int, RegistryEntry}}(length(registry_entries))
+    for (i,r) in enumerate(registry_entries)
+        put!(inputs, (i,r))
     end
-    result
+    close(inputs)
+    outputs = Channel{Tuple{Int, Package}}(length(registry_entries))
+    Threads.foreach(inputs) do (i, r)
+        put!(outputs, (i, analyze!(root, r; auth, sleep)))
+    end
+    close(outputs)
+    return last.(sort!(collect(outputs); by = first))
 end
 
 """
-    analyze_from_registry(dir::AbstractString; auth::GitHub.Authorization=github_auth()) -> Package
-    analyze_from_registry(packages::AbstractVector{<:AbstractString}; auth::GitHub.Authorization=github_auth()) -> Vector{Package}
+    analyze(package::RegistryEntry; auth::GitHub.Authorization=github_auth(), sleep=0) -> Package
+    analyze(packages::AbstractVector{<:RegistryEntry}; auth::GitHub.Authorization=github_auth(), sleep=0) -> Vector{Package}
 
 Analyzes a package or list of packages using the information in their directory
-in a registry by creating a temporary directory and calling `analyze_from_registry!`,
+in a registry by creating a temporary directory and calling `analyze!`,
 cleaning up the temporary directory afterwards.
 
 If the GitHub authentication is non-anonymous and the repository is on GitHub,
-the list of contributors to the repository is also collected.  Only the number
-of contributors will be shown in the summary.  See
-[`AnalyzeRegistry.github_auth`](@ref) to obtain a GitHub authentication.
+the list of contributors to the repository is also collected after waiting for
+`sleep` seconds (useful to avoid getting rate-limited by GitHub).  Only the
+number of contributors will be shown in the summary.  See
+[`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub authentication.
 
 ## Example
 ```julia
-julia> analyze_from_registry(joinpath(general_registry(), "B", "BinaryBuilder"))
+julia> analyze(find_package("BinaryBuilder"))
 Package BinaryBuilder:
   * repo: https://github.com/JuliaPackaging/BinaryBuilder.jl.git
   * uuid: 12aac903-9f7c-5d81-afc2-d9565ea332ae
@@ -322,9 +360,9 @@ Package BinaryBuilder:
 
 ```
 """
-function analyze_from_registry(p; auth::GitHub.Authorization=github_auth())
+function analyze(p; auth::GitHub.Authorization=github_auth(), sleep=0)
     mktempdir() do root
-        analyze_from_registry!(root, p; auth)
+        analyze!(root, p; auth, sleep)
     end
 end
 
@@ -348,24 +386,78 @@ function parse_project(dir)
 end
 
 """
-    analyze(dir::AbstractString; repo = "", reachable=true, name=nothing, uuid=nothing, auth::GitHub.Authorization=github_auth())
+    analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth())
 
-Analyze the package whose source code is located at `dir`. Optionally `repo`
-and `reachable` a boolean indicating whether or not the package is reachable online, since
-these can't be inferred from the source code. If `name` or `uuid` are `nothing`, the
-directories `Project.toml` is parsed to infer the package's name and UUID.
+Analyze the package pointed to by the mandatory argument and return a summary of
+its properties.
+
+If `name_or_dir_or_url` is a valid Julia identifier, it is assumed to be the name of a
+package available in `registry`.  The function then uses [`find_package`](@ref)
+to find its entry in the registry and analyze its content.
+
+If `name_or_dir_or_url` is a filesystem path, analyze the package whose source code is
+located at `name_or_dir_or_url`. Optionally `repo` and `reachable` a boolean indicating
+whether or not the package is reachable online, since these can't be inferred
+from the source code.  The `subdir` keyword arguments indicates the subdirectory
+of `dir` under which the Julia package can be found.
+
+Otherwise, `name_or_dir_or_url` is assumed to be a URL. The repository is cloned to a temporary directory
+and analyzed.
 
 If the GitHub authentication is non-anonymous and the repository is on GitHub,
 the list of contributors to the repository is also collected.  Only the number
 of contributors will be shown in the summary.  See
-[`AnalyzeRegistry.github_auth`](@ref) to obtain a GitHub authentication.
+[`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub authentication.
 
 ## Example
+
+You can analyze a package just by its name, whether you have it installed
+locally or not:
+
+```julia
+julia> analyze("Pluto")
+Package Pluto:
+  * repo: https://github.com/fonsp/Pluto.jl.git
+  * uuid: c3e4b0f8-55cb-11ea-2926-15256bba5781
+  * is reachable: true
+  * lines of Julia code in `src`: 5108
+  * lines of Julia code in `test`: 2342
+  * has license(s) in file: MIT
+    * filename: LICENSE
+    * OSI approved: true
+  * has license(s) in Project.toml: MIT
+    * OSI approved: true
+  * number of contributors: 63
+  * has documentation: false
+  * has tests: true
+  * has continuous integration: true
+    * GitHub Actions
+```
+"""
+function analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth(), sleep=0)
+    if Base.isidentifier(name_or_dir_or_url)
+        # The argument looks like a package name rather than a directory: find
+        # the package in `registry` and analyze it
+        return analyze(find_package(name_or_dir_or_url; registry); auth, sleep)
+    elseif isdir(name_or_dir_or_url)
+        return analyze_path(name_or_dir_or_url; repo, reachable, subdir, auth, sleep)
+    else
+        repo = name_or_dir_or_url
+        dest = mktempdir()
+        return analyze_path!(dest, repo; subdir, auth, sleep)
+    end
+end
+
+"""
+    analyze(m::Module) -> Package
+
+If you want to analyze a package which is already loaded in the current session,
+you can simply call `analyze`, which uses `pkgdir` to determine its source code:
 
 ```julia
 julia> using DataFrames
 
-julia> analyze(pkgdir(DataFrames))
+julia> analyze(DataFrames)
 Package DataFrames:
   * repo:
   * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
@@ -379,10 +471,20 @@ Package DataFrames:
   * has tests: true
   * has continuous integration: true
     * GitHub Actions
-
 ```
 """
-function analyze(dir::AbstractString; repo = "", reachable=true, subdir="", auth::GitHub.Authorization=github_auth())
+analyze(m::Module) = analyze_path(pkgdir(m))
+
+
+"""
+    analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="", auth::GitHub.Authorization=github_auth(), sleep=0) -> Package
+
+Analyze the package whose source code is located at the local path `dir`.  If
+the package's repository is hosted on GitHub and `auth` is a non-anonymous
+GitHub authentication, wait for `sleep` seconds before collecting the list of
+its contributors.
+"""
+function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="", auth::GitHub.Authorization=github_auth(), sleep=0)
     # we will look for docs, tests, license, and count lines of code
     # in the `pkgdir`; we will look for CI in the `dir`.
     pkgdir = joinpath(dir, subdir)
@@ -425,6 +527,7 @@ function analyze(dir::AbstractString; repo = "", reachable=true, subdir="", auth
     # If the repository is on GitHub and we have a non-anonymous GitHub
     # authentication, get the list of contributors
     contributors = if !(auth isa GitHub.AnonymousAuth) && occursin("github.com", repo)
+        Base.sleep(sleep)
         repo_name = replace(replace(repo, r"^https://github\.com/" => ""), r"\.git$" => "")
         # Exclude commits made by known bots, including `@staticfloat`
         #   130920   => staticfloat (when he has one commit, it's most likely an automated one)

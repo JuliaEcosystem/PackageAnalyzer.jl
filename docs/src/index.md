@@ -1,11 +1,11 @@
-# AnalyzeRegistry.jl
+# PackageAnalyzer.jl
 
-The main functionality of the package are the [`analyze`](@ref) and [`analyze_from_registry`](@ref) functions:
+The main functionality of the package is the [`analyze`](@ref) function:
 
 ```julia
-julia> using AnalyzeRegistry
+julia> using PackageAnalyzer
 
-julia> analyze_from_registry(find_package("Flux"))
+julia> analyze("Flux")
 Package Flux:
   * repo: https://github.com/FluxML/Flux.jl.git
   * uuid: 587475ba-b771-5e3f-ad9e-33799f191a9c
@@ -24,22 +24,66 @@ Package Flux:
 
 ```
 
-The argument is the path to the directory of the package in the registry, where
-the file `Package.toml` is stored.  The function [`find_package`](@ref) gives you
-the path to the package in your local copy of the [General
-registry](https://github.com/JuliaRegistries/General).
+The argument is a string pointing towards a local path or the name of
+a package in a locally-installed registry (the General registry is checked by default).
 
 *NOTE*: the Git repository of the package will be cloned, in order to inspect
 its content.
 
-
-You use the inplace version [`analyze_from_registry!`](@ref), e.g. as `analyze_from_registry!(root, find_package("Flux"))` to clone
-the package to a particular directory `root` which is not cleaned up afterwards, and likewise can pass a vector of paths instead of a single path employ use a threaded loop to analyze each package.
-
-You can also directly analyze the source code of a package via [`analyze`](@ref), for example
+You can also pass a [`RegistryEntry`](@ref), a simple datastructure which points
+to the directory of the package in the registry, where the file `Package.toml`
+is stored.  The function [`find_package`](@ref) gives you the
+[`RegistryEntry`](@ref) of a package in your local copy of any registry, by
+default the [General registry](https://github.com/JuliaRegistries/General).
+`find_package` is invoked automatically when you pass the name of a package.
 
 ```julia
-julia> using AnalyzeRegistry, DataFrames
+julia> analyze(find_package("JuMP"))
+Package JuMP:
+  * repo: https://github.com/jump-dev/JuMP.jl.git
+  * uuid: 4076af6c-e467-56ae-b986-b466b2749572
+  * is reachable: true
+  * lines of Julia code in `src`: 15551
+  * lines of Julia code in `test`: 10523
+  * has license(s) in file: MPL-2.0
+    * filename: LICENSE.md
+    * OSI approved: true
+  * number of contributors: 96
+  * has documentation: true
+  * has tests: true
+  * has continuous integration: true
+    * GitHub Actions
+```
+
+Additionally, you can pass in the module itself:
+
+```julia
+julia> using PackageAnalyzer
+
+julia> analyze(PackageAnalyzer)
+Package PackageAnalyzer:
+  * repo:
+  * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
+  * is reachable: true
+  * lines of Julia code in `src`: 481
+  * lines of Julia code in `test`: 97
+  * has license(s) in file: MIT
+    * filename: LICENSE
+    * OSI approved: true
+  * has documentation: true
+  * has tests: true
+  * has continuous integration: true
+    * GitHub Actions
+```
+
+You use the inplace version [`analyze!`](@ref), e.g. as `analyze!(root, find_package("Flux"))` to clone
+the package to a particular directory `root` which is not cleaned up afterwards, and likewise can pass a vector of paths instead of a single path employ use a threaded loop to analyze each package.
+
+You can also directly analyze the source code of a package via [`analyze`](@ref)
+by passing in the path to it, for example with the `pkgdir` function:
+
+```julia
+julia> using PackageAnalyzer, DataFrames
 
 julia> analyze(pkgdir(DataFrames))
 Package DataFrames:
@@ -59,7 +103,7 @@ Package DataFrames:
 
 ## The `Package` struct
 
-The returned values from [`analyze`](@ref), [`analyze_from_registry`](@ref) and [`analyze_from_registry!`](@ref) are objects of the type `Package`, which has the following fields:
+The returned values from [`analyze`](@ref), and [`analyze!`](@ref) are objects of the type `Package`, which has the following fields:
 
 ```julia
 struct Package
@@ -79,10 +123,8 @@ struct Package
     buildkite::Bool # does it use Buildkite?
     azure_pipelines::Bool # does it use Azure Pipelines?
     gitlab_pipeline::Bool # does it use Gitlab Pipeline?
-    license_filename::Union{Missing, String} # e.g. `LICENSE` or `COPYING`
-    licenses_found::Vector{String} # all the licenses found in `license_filename`
-    license_file_percent_covered::Union{Missing, Float64} # how much of the license file is covered by the licenses found
-    licenses_in_project::Union{Missing,Vector{String}} # any licenses in the `license` key of the Project.toml
+    license_files::Vector{@NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}} # a table of all possible license files
+    licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
     lines_of_code::Vector{@NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int}} # table of lines of code
     contributors::Dict{String,Int} # Dictionary contributors => contributions
 end
@@ -93,40 +135,39 @@ end
 
 To run the analysis for multiple packages you can either use broadcasting
 ```julia
-analyze_from_registry.(package_paths_in_registry)
+analyze.(registry_entries)
 ```
-or use the method `analyze_from_registry(package_paths_in_registry::AbstractVector{<:AbstractString})` which
-leaverages [`FLoops.jl`](https://github.com/JuliaFolds/FLoops.jl) to run the
-analysis with multiple threads.
+or use the method `analyze(registry_entries::AbstractVector{<:RegistryEntry})` which
+runs the analysis with multiple threads.
 
 You can use the function [`find_packages`](@ref) to find all packages in a given
 registry:
 
 ```julia
 julia> find_packages(; registry=general_registry())
-4312-element Vector{String}:
- "/home/user/.julia/registries/General/C/CitableImage"
- "/home/user/.julia/registries/General/T/Trixi2Img"
- "/home/user/.julia/registries/General/I/ImPlot"
- "/home/user/.julia/registries/General/S/StableDQMC"
- "/home/user/.julia/registries/General/S/Strapping"
- [...]
+4632-element Vector{PackageAnalyzer.RegistryEntry}:
+ PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/C/CitableImage")
+ PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/T/Trixi2Img")
+ PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/I/ImPlot")
+ PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/S/StableDQMC")
+ PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/S/Strapping")
+[...]
 ```
-Do not abuse this function! Consider using the in-place function `analyze_from_registry!(root, package_paths_in_registry)` to avoid re-cloning packages if you might run the analysis more than once.
+Do not abuse this function! Consider using the in-place function `analyze!(root, registry_entries)` to avoid re-cloning packages if you might run the analysis more than once.
 
 !!! warning
-    Cloning all the repos in General will take about 24 GB of disk space and likely take several hours to complete.
+    Cloning all the repos in General will take more than 20 GB of disk space and can take up to a few hours to complete.
 
 ## License information
 
-The `license_files` field of the `Package` object is a Tables.jl row table
+The `license_files` field of the `Package` object is a [`Tables.jl`](https://github.com/JuliaData/Tables.jl) row table
 containing much more detailed information about any or all files containing
 licenses, identified by [`licensecheck`](https://github.com/google/licensecheck) via [LicenseCheck.jl](https://github.com/ericphanson/LicenseCheck.jl). For example, [RandomProjectionTree.jl](https://github.com/jean-pierreBoth/RandomProjectionTree.jl) is dual licensed under both Apache-2.0 and the MIT license, and provides two separate license files. Interestingly, the README is also identified as containing an Apache-2.0 license; I've filed an [issue](https://github.com/google/licensecheck/issues/40) to see if this is intentional.
 
 ```julia
-julia> using AnalyzeRegistry, DataFrames
+julia> using PackageAnalyzer, DataFrames
 
-julia> result = analyze_from_registry(find_packages("RandomProjectionTree")[1]);
+julia> result = analyze("RandomProjectionTree");
 
 julia> DataFrame(result.license_files)
 3×3 DataFrame
@@ -147,7 +188,7 @@ containing much more detailed information about the lines of code count
 (thanks to `tokei`) and can e.g. be passed to a `DataFrame` for further analysis.
 
 ```julia
-julia> using AnalyzeRegistry, DataFrames
+julia> using PackageAnalyzer, DataFrames
 
 julia> result = analyze(pkgdir(DataFrames));
 
@@ -180,9 +221,9 @@ usernames of the contributors, and the values are the corresponding numbers of
 contributions in that repository.
 
 ```julia
-julia> using AnalyzeRegistry, DataFrames
+julia> using PackageAnalyzer, DataFrames
 
-julia> result = analyze_from_registry(find_package("DataFrames"));
+julia> result = analyze("DataFrames");
 
 julia> users = collect(keys(result.contributors));
 
@@ -220,5 +261,5 @@ you can obtain some extra information about packages whose repository is hosted
 on GitHub (e.g. the list of contributors).  If you store the token as an
 environment variable called `GITHUB_TOKEN` or `GITHUB_AUTH`, this will be
 automatically used whenever possible, otherwise you can generate a GitHub
-authentication with the [`AnalyzeRegistry.github_auth`](@ref) function and pass
+authentication with the [`PackageAnalyzer.github_auth`](@ref) function and pass
 it to the functions accepting the `auth::GitHub.Authorization` keyword argument.
