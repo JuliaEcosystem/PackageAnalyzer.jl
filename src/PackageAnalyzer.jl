@@ -530,11 +530,6 @@ function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="",
     contributors = if !(auth isa GitHub.AnonymousAuth) && occursin("github.com", repo)
         Base.sleep(sleep)
         repo_name = replace(replace(repo, r"^https://github\.com/" => ""), r"\.git$" => "")
-        # Exclude commits made by known bots, including `@staticfloat`
-        #   130920   => staticfloat (when he has one commit, it's most likely an automated one)
-        #   30578772 => femtocleaner[bot]
-        #   41898282 => github-actions[bot]
-        #   50554310 => TagBot
         contribution_table(repo_name; auth)
     else
         ContributionTableElType[]

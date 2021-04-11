@@ -36,7 +36,7 @@ const auth = GitHub.AnonymousAuth()
     @test cuba.drone
     @test !polyroots.docs # Documentation is in the README!
     # We can also use broadcasting!
-    @test Set(results) == Set(analyze.(packages))
+    @test Set(results) == Set(analyze.(packages; auth))
 
     # Test `analyze!` directly
     mktempdir() do root
