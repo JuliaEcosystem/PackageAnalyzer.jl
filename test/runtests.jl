@@ -2,9 +2,12 @@ using Test, UUIDs
 using PackageAnalyzer
 using PackageAnalyzer: parse_project, RegistryEntry
 using JLLWrappers
+using GitHub
 
 get_libpath() = get(ENV, JLLWrappers.LIBPATH_env, nothing)
 const orig_libpath = get_libpath()
+
+const auth = GitHub.AnonymousAuth()
 
 @testset "PackageAnalyzer" begin
     general = general_registry()
@@ -15,7 +18,7 @@ const orig_libpath = get_libpath()
     @test isdir(find_package("Flux").path)
     # Test some properties of the `Measurements` package.  NOTE: they may change
     # in the future!
-    measurements = analyze(RegistryEntry(joinpath(general, "M", "Measurements")))
+    measurements = analyze(RegistryEntry(joinpath(general, "M", "Measurements")); auth)
     @test measurements.uuid == UUID("eff96d63-e80a-5855-80a2-b1b0885c5ab7")
     @test measurements.reachable
     @test measurements.docs
@@ -26,25 +29,25 @@ const orig_libpath = get_libpath()
     packages = [RegistryEntry(joinpath(general, p...)) for p in (("C", "Cuba"), ("P", "PolynomialRoots"))]
     @test Set(packages) == Set(find_packages("Cuba", "PolynomialRoots")) == Set(find_packages(["Cuba", "PolynomialRoots"]))
     @test packages ⊆ find_packages()
-    results = analyze(packages)
+    results = analyze(packages; auth)
     cuba, polyroots = results
     @test length(filter(p -> p.reachable, results)) == 2
     @test length(filter(p -> p.runtests, results)) == 2
     @test cuba.drone
     @test !polyroots.docs # Documentation is in the README!
     # We can also use broadcasting!
-    @test Set(results) == Set(analyze.(packages))
+    @test Set(results) == Set(analyze.(packages; auth))
 
     # Test `analyze!` directly
     mktempdir() do root
-        measurements2 = analyze!(root, RegistryEntry(joinpath(general, "M", "Measurements")))
-        @test measurements == measurements2
+        measurements2 = analyze!(root, RegistryEntry(joinpath(general, "M", "Measurements")); auth)
+        @test isequal(measurements, measurements2)
         @test isdir(joinpath(root, "eff96d63-e80a-5855-80a2-b1b0885c5ab7")) # not cleaned up yet
     end
 end
 
 @testset "`analyze`" begin
-    for pkg in (analyze(PackageAnalyzer), analyze("https://github.com/giordano/PackageAnalyzer.jl"), analyze(joinpath(@__DIR__, "..")))
+    for pkg in (analyze(PackageAnalyzer; auth), analyze("https://github.com/giordano/PackageAnalyzer.jl"; auth), analyze(joinpath(@__DIR__, ".."); auth))
         @test pkg.uuid == UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c")
         @test pkg.reachable == true # default
         @test pkg.docs == true
@@ -67,7 +70,7 @@ end
 
     # the tests folder isn't a package!
     # But this helps catch issues in error paths for when things go wrong
-    bad_pkg = analyze(".")
+    bad_pkg = analyze("."; auth)
     @test bad_pkg.repo == ""
     @test bad_pkg.uuid == UUID(UInt128(0))
     @test !bad_pkg.cirrus
@@ -75,17 +78,17 @@ end
     @test isempty(bad_pkg.licenses_in_project)
 
     # The argument is a package name
-    pkg = analyze("Pluto")
+    pkg = analyze("Pluto"; auth)
     # Just make sure we got the UUID correctly and some statistics are collected.
     @test pkg.uuid == UUID("c3e4b0f8-55cb-11ea-2926-15256bba5781")
     @test !isempty(pkg.license_files)
     @test !isempty(pkg.lines_of_code)
     # The argument looks like a package name but it isn't a registered package
-    @test_logs (:error, r"Could not find package in registry") match_mode=:any @test_throws ArgumentError analyze("license_in_project")
+    @test_logs (:error, r"Could not find package in registry") match_mode=:any @test_throws ArgumentError analyze("license_in_project"; auth)
 end
 
 @testset "`find_packages` with `analyze`" begin
-    results = analyze(find_packages("DataFrames", "Flux")) # this method is threaded
+    results = analyze(find_packages("DataFrames", "Flux"); auth) # this method is threaded
     @test results isa Vector{PackageAnalyzer.Package}
     @test length(results) == 2
     # DataFrames currently has 16k LoC; Flux has 5k. Let's check that they aren't mixed up
@@ -96,12 +99,12 @@ end
     @test PackageAnalyzer.count_julia_loc(results[2].lines_of_code, "src") < 14000
 
 
-    results = analyze(find_packages("DataFrames"))
+    results = analyze(find_packages("DataFrames"); auth)
     @test results isa Vector{PackageAnalyzer.Package}
     @test length(results) == 1
     @test results[1].name == "DataFrames"
 
-    result = analyze(find_package("DataFrames"))
+    result = analyze(find_package("DataFrames"); auth)
     @test result isa PackageAnalyzer.Package
     @test result.name == "DataFrames"
 end
@@ -110,7 +113,7 @@ end
     # we check the error path here; the success path is covered by other tests.
     # This also makes sure trying to clone the repo doesn't prompt for
     # username/password
-    result = PackageAnalyzer.analyze_path!(mktempdir(), "https://github.com/giordano/DOES_NOT_EXIST.jl")
+    result = PackageAnalyzer.analyze_path!(mktempdir(), "https://github.com/giordano/DOES_NOT_EXIST.jl"; auth)
     @test result isa PackageAnalyzer.Package
     @test !result.reachable
     @test isempty(result.name)
@@ -118,7 +121,7 @@ end
 
 @testset "`subdir` support" begin
     snoop_core_path = only(find_packages("SnoopCompileCore"))
-    snoop_core = analyze(snoop_core_path)
+    snoop_core = analyze(snoop_core_path; auth)
     @test !isempty(snoop_core.subdir)
     @test snoop_core.name == "SnoopCompileCore" # this test would fail if we were parsing the wrong Project.toml (that of SnoopCompile)
     # This tests that we find licenses in the subdir and put them first,
@@ -130,13 +133,13 @@ end
     # the Julia code in SnoopCompileCore. One, we can ask SnoopCompile for the lines of Julia code in its
     # top-level directory `SnoopCompileCore`. Two, we can ask SnoopCompileCore for all of it's
     # Julia code.
-    snoop_compile = analyze(find_package("SnoopCompile"))
+    snoop_compile = analyze(find_package("SnoopCompile"); auth)
     snoop_compile_count_for_core = sum(row.code for row in snoop_compile.lines_of_code if row.language == :Julia && row.sublanguage===nothing && row.directory == "SnoopCompileCore")
     snoop_core_count = sum(row.code for row in snoop_core.lines_of_code if row.language == :Julia && row.sublanguage===nothing)
     @test snoop_core_count == snoop_compile_count_for_core
 
     # this package doesn't exist in the repo anymore; let's ensure it doesn't throw
-    snoop_compile_analysis = analyze(find_package("SnoopCompileAnalysis"))
+    snoop_compile_analysis = analyze(find_package("SnoopCompileAnalysis"); auth)
     @test isempty(snoop_compile_analysis.lines_of_code)
 end
 
@@ -166,9 +169,21 @@ end
 
 @testset "`show`" begin
     # this is mostly to test that `show` doesn't error
-    str = sprint(show, analyze(pkgdir(PackageAnalyzer)))
+    str = sprint(show, analyze(pkgdir(PackageAnalyzer); auth))
     @test occursin("* uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c", str)
     @test occursin("* OSI approved: true", str)
+end
+
+@testset "Contributors" begin
+    if PackageAnalyzer.github_auth() isa GitHub.AnonymousAuth
+        @warn "Skipping contributors tests since `PackageAnalyzer.github_auth()` is anonymous"
+    else
+        pkg = analyze("DataFrames")
+        @test pkg.contributors isa Vector{<:NamedTuple}
+        @test length(pkg.contributors) > 160 # ==183 right now, and it shouldn't go down...
+        @test PackageAnalyzer.count_contributors(pkg) > 150
+        @test PackageAnalyzer.count_contributors(pkg; type="Anonymous") > 10
+    end
 end
 
 @testset "Thread-safety" begin

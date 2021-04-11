@@ -14,6 +14,7 @@ export analyze, analyze!
 
 include("count_loc.jl")
 const LicenseTableEltype=@NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}
+const ContributionTableElType=@NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int}
 
 struct Package
     name::String # name of the package
@@ -35,7 +36,7 @@ struct Package
     license_files::Vector{LicenseTableEltype} # a table of all possible license files
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
     lines_of_code::Vector{LoCTableEltype} # table of lines of code
-    contributors::Dict{String,Int} # Dictionary contributors => contributions
+    contributors::Vector{ContributionTableElType} # table of contributor data
 end
 function Package(name, uuid, repo;
                  subdir="",
@@ -53,8 +54,8 @@ function Package(name, uuid, repo;
                  gitlab_pipeline=false,
                  license_files=LicenseTableEltype[],
                  licenses_in_project=String[],
-                 lines_of_code=Vector{LoCTableEltype}(),
-                 contributors=Dict{String,Int}(),
+                 lines_of_code=LoCTableEltype[],
+                 contributors=ContributionTableElType[],
                  )
     return Package(name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
@@ -121,7 +122,8 @@ function Base.show(io::IO, p::Package)
             body *= "    * OSI approved: $(all(is_osi_approved, p.licenses_in_project))\n"
         end
         if !isempty(p.contributors)
-            body *= "  * number of contributors: $(length(p.contributors))\n"
+            n_anon = count_contributors(p; type="Anonymous")
+            body *= "  * number of contributors: $(count_contributors(p)) (and $(n_anon) anonymous contributors)\n"
         end
         body *= """
               * has documentation: $(p.docs)
@@ -448,7 +450,7 @@ function analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, 
 end
 
 """
-    analyze(m::Module) -> Package
+    analyze(m::Module; kwargs...) -> Package
 
 If you want to analyze a package which is already loaded in the current session,
 you can simply call `analyze`, which uses `pkgdir` to determine its source code:
@@ -472,7 +474,7 @@ Package DataFrames:
     * GitHub Actions
 ```
 """
-analyze(m::Module) = analyze_path(pkgdir(m))
+analyze(m::Module; kwargs...) = analyze_path(pkgdir(m); kwargs...)
 
 
 """
@@ -528,21 +530,30 @@ function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="",
     contributors = if !(auth isa GitHub.AnonymousAuth) && occursin("github.com", repo)
         Base.sleep(sleep)
         repo_name = replace(replace(repo, r"^https://github\.com/" => ""), r"\.git$" => "")
-        # Exclude commits made by known bots, including `@staticfloat`
-        #   130920   => staticfloat (when he has one commit, it's most likely an automated one)
-        #   30578772 => femtocleaner[bot]
-        #   41898282 => github-actions[bot]
-        #   50554310 => TagBot
-        Dict{String,Int}(
-            c["contributor"].login => c["contributions"] for c in GitHub.contributors(GitHub.repo(repo_name; auth); auth)[1] if c["contributor"].id ∉ (30578772, 41898282, 50554310) && !(c["contributor"].id == 130920 && c["contributions"] == 1)
-        )
+        contribution_table(repo_name; auth)
     else
-        Dict{String,Int}()
+        ContributionTableElType[]
     end
 
     Package(name, uuid, repo; subdir, reachable, docs, runtests, travis, appveyor, cirrus,
             circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
             license_files, licenses_in_project, lines_of_code, contributors)
+end
+
+function contribution_table(repo_name; auth)
+    return parse_contributions.(GitHub.contributors(GitHub.repo(repo_name; auth); auth, params=Dict("anon"=>"true"))[1])
+end
+
+count_contributors(table; type="User") = count(row.type == type for row in table)
+count_contributors(pkg::Package; kwargs...) = count_contributors(pkg.contributors; kwargs...)
+
+function parse_contributions(c)
+    contrib = c["contributor"]
+    if contrib.typ == "Anonymous"
+        return (; login = missing, id = missing, contrib.name, type=contrib.typ, contributions = c["contributions"])
+    else
+        return (; contrib.login, contrib.id, name = missing, type=contrib.typ, contributions = c["contributions"])
+    end
 end
 
 end # module
