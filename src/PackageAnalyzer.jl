@@ -263,7 +263,7 @@ function analyze!(root, pkg::RegistryEntry; auth::GitHub.Authorization=github_au
 
     isdir(dest) && return analyze_path(dest; repo, subdir, auth, sleep)
 
-    return analyze_path!(dest, repo; subdir, auth, name, uuid)
+    return analyze_path!(dest, repo; name, uuid, subdir, auth, sleep)
 end
 
 """
