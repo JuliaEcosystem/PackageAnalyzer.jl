@@ -541,7 +541,7 @@ function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="",
 end
 
 function contribution_table(repo_name; auth)
-    return parse_contributions.(GitHub.contributors(GitHub.repo(repo_name; auth); auth, params=Dict("anon"=>"true"))[1])
+    return parse_contributions.(GitHub.contributors(GitHub.Repo(repo_name); auth, params=Dict("anon"=>"true"))[1])
 end
 
 count_contributors(table; type="User") = count(row.type == type for row in table)
