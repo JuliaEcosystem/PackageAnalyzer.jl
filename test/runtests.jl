@@ -107,6 +107,15 @@ end
     result = analyze(find_package("DataFrames"); auth)
     @test result isa PackageAnalyzer.Package
     @test result.name == "DataFrames"
+
+    # Don't error when not finding stdlibs in `find_packages`
+    @test_logs find_packages("Dates")
+    # But we do emit a warning log for non-existent package `Abc`
+    @test_logs (:error,) find_packages("Abc")
+
+    # Check we get a nice error for `find_package`
+    @test_throws ArgumentError("Standard library Dates not present in registry") find_package("Dates")
+    @test_logs (:error,)  @test_throws ArgumentError("Abc not found in registry") find_package("Abc")
 end
 
 @testset "`analyze_path!`" begin
