@@ -176,9 +176,9 @@ function find_package(pkg::AbstractString; registry=general_registry())
     registry_entries = find_packages([pkg]; registry)
     if isempty(registry_entries)
         if pkg ∈ values(STDLIBS)
-            error("Could not find standard library $pkg in registry")
+            throw(ArgumentError("Standard library $pkg not present in registry"))
         else
-            error("Could not find $pkg in registry")
+            throw(ArgumentError("$pkg not found in registry"))
         end
     end
     return only(registry_entries)

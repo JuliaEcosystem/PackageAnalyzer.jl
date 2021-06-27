@@ -114,8 +114,8 @@ end
     @test_logs (:error,) find_packages("Abc")
 
     # Check we get a nice error for `find_package`
-    @test_throws ErrorException("Could not find standard library Dates in registry") find_package("Dates")
-    @test_throws ErrorException("Could not find Abc in registry") find_package("Abc")
+    @test_throws ArgumentError("Standard library Dates not present in registry") find_package("Dates")
+    @test_logs (:error,)  @test_throws ArgumentError("Abc not found in registry") find_package("Abc")
 end
 
 @testset "`analyze_path!`" begin
