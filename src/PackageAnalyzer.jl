@@ -12,6 +12,10 @@ using Git
 export general_registry, find_package, find_packages
 export analyze, analyze!
 
+# borrowed from <https://github.com/JuliaRegistries/RegistryTools.jl/blob/77cae9ef6a075e1d6ec1592bc3e166234d3f01c8/src/builtin_pkgs.jl>
+const stdlibs = isdefined(Pkg.Types, :stdlib) ? Pkg.Types.stdlib : Pkg.Types.stdlibs
+const STDLIBS = stdlibs()
+
 include("count_loc.jl")
 const LicenseTableEltype=@NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}
 const ContributionTableElType=@NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int}
@@ -168,7 +172,17 @@ general_registry() =
 Returns the [RegistryEntry](@ref) for the package `pkg`.
 The singular version of [`find_packages`](@ref).
 """
-find_package(pkg::AbstractString; registry=general_registry()) = only(find_packages([pkg]; registry))
+function find_package(pkg::AbstractString; registry=general_registry())
+    registry_entries = find_packages([pkg]; registry)
+    if isempty(registry_entries)
+        if pkg ∈ values(STDLIBS)
+            error("Could not find standard library $pkg in registry")
+        else
+            error("Could not find $pkg in registry")
+        end
+    end
+    return only(registry_entries)
+end
 
 """
     find_packages(; registry = general_registry()) -> Vector{RegistryEntry}
@@ -194,7 +208,7 @@ function find_packages(names; registry = general_registry())
             path = joinpath(registry, string(uppercase(first(name))), name)
             if isdir(path)
                push!(entries, RegistryEntry(path))
-            else
+            elseif name ∉ values(STDLIBS)
                 @error("Could not find package in registry!", name, path)
             end
         end
