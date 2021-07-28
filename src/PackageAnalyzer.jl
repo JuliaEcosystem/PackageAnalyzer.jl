@@ -504,7 +504,6 @@ Package DataFrames:
   * has `test/runtests.jl`: true
   * has continuous integration: true
     * GitHub Actions
-
 ```
 """
 analyze(m::Module; kwargs...) = analyze_path(pkgdir(m); kwargs...)
