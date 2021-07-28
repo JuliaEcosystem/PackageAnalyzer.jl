@@ -6,60 +6,69 @@ Package Flux:
   * repo: https://github.com/FluxML/Flux.jl.git
   * uuid: 587475ba-b771-5e3f-ad9e-33799f191a9c
   * is reachable: true
-  * lines of Julia code in `src`: 5074
-  * lines of Julia code in `test`: 2167
+  * Julia code in `src`: 5496 lines
+  * Julia code in `test`: 2432 lines (30.7% of `test` + `src`)
+  * documention in `docs`: 1533 lines (21.8% of `docs` + `src`)
+  * documention in README: 10 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
-  * number of contributors: 151
-  * has documentation: true
-  * has tests: true
+  * number of contributors: 159 (and 7 anonymous contributors)
+  * number of commits: 3794
+  * has `docs/make.jl`: true
+  * has `test/runtests.jl`: true
   * has continuous integration: true
     * GitHub Actions
-    * Buildkite
-</code></pre><p>The argument is a string pointing towards a local path or the name of a package in a locally-installed registry (the General registry is checked by default).</p><p><em>NOTE</em>: the Git repository of the package will be cloned, in order to inspect its content.</p><p>You can also pass a <a href="@ref"><code>RegistryEntry</code></a>, a simple datastructure which points to the directory of the package in the registry, where the file <code>Package.toml</code> is stored.  The function <a href="api/#PackageAnalyzer.find_package-Tuple{AbstractString}"><code>find_package</code></a> gives you the <a href="@ref"><code>RegistryEntry</code></a> of a package in your local copy of any registry, by default the <a href="https://github.com/JuliaRegistries/General">General registry</a>. <code>find_package</code> is invoked automatically when you pass the name of a package.</p><pre><code class="language-julia">julia&gt; analyze(find_package(&quot;JuMP&quot;))
+    * Buildkite</code></pre><p>The argument is a string pointing towards a local path or the name of a package in a locally-installed registry (the General registry is checked by default).</p><p><em>NOTE</em>: the Git repository of the package will be cloned, in order to inspect its content.</p><p>You can also pass a <a href="@ref"><code>RegistryEntry</code></a>, a simple datastructure which points to the directory of the package in the registry, where the file <code>Package.toml</code> is stored.  The function <a href="api/#PackageAnalyzer.find_package-Tuple{AbstractString}"><code>find_package</code></a> gives you the <a href="@ref"><code>RegistryEntry</code></a> of a package in your local copy of any registry, by default the <a href="https://github.com/JuliaRegistries/General">General registry</a>. <code>find_package</code> is invoked automatically when you pass the name of a package.</p><pre><code class="language-julia">julia&gt; analyze(find_package(&quot;JuMP&quot;))
 Package JuMP:
   * repo: https://github.com/jump-dev/JuMP.jl.git
   * uuid: 4076af6c-e467-56ae-b986-b466b2749572
   * is reachable: true
-  * lines of Julia code in `src`: 15551
-  * lines of Julia code in `test`: 10523
+  * Julia code in `src`: 16418 lines
+  * Julia code in `test`: 11388 lines (41.0% of `test` + `src`)
+  * documention in `docs`: 10970 lines (40.1% of `docs` + `src`)
+  * documention in README: 78 lines
   * has license(s) in file: MPL-2.0
     * filename: LICENSE.md
     * OSI approved: true
-  * number of contributors: 96
-  * has documentation: true
-  * has tests: true
+  * number of contributors: 106 (and 4 anonymous contributors)
+  * number of commits: 4128
+  * has `docs/make.jl`: true
+  * has `test/runtests.jl`: true
   * has continuous integration: true
     * GitHub Actions</code></pre><p>Additionally, you can pass in the module itself:</p><pre><code class="language-julia">julia&gt; using PackageAnalyzer
 
 julia&gt; analyze(PackageAnalyzer)
 Package PackageAnalyzer:
-  * repo:
+  * repo: 
   * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
   * is reachable: true
-  * lines of Julia code in `src`: 481
-  * lines of Julia code in `test`: 97
+  * Julia code in `src`: 574 lines
+  * Julia code in `test`: 142 lines (19.8% of `test` + `src`)
+  * documention in `docs`: 267 lines (31.7% of `docs` + `src`)
+  * documention in README: 41 lines
   * has license(s) in file: MIT
     * filename: LICENSE
     * OSI approved: true
-  * has documentation: true
-  * has tests: true
+  * has `docs/make.jl`: true
+  * has `test/runtests.jl`: true
   * has continuous integration: true
     * GitHub Actions</code></pre><p>You use the inplace version <a href="api/#PackageAnalyzer.analyze!-Tuple{Any, AbstractVector{PackageAnalyzer.RegistryEntry}}"><code>analyze!</code></a>, e.g. as <code>analyze!(root, find_package(&quot;Flux&quot;))</code> to clone the package to a particular directory <code>root</code> which is not cleaned up afterwards, and likewise can pass a vector of paths instead of a single path employ use a threaded loop to analyze each package.</p><p>You can also directly analyze the source code of a package via <a href="api/#PackageAnalyzer.analyze-Tuple{AbstractString}"><code>analyze</code></a> by passing in the path to it, for example with the <code>pkgdir</code> function:</p><pre><code class="language-julia">julia&gt; using PackageAnalyzer, DataFrames
 
 julia&gt; analyze(pkgdir(DataFrames))
 Package DataFrames:
-  * repo:
+  * repo: 
   * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
   * is reachable: true
-  * lines of Julia code in `src`: 15347
-  * lines of Julia code in `test`: 15654
+  * Julia code in `src`: 15809 lines
+  * Julia code in `test`: 17512 lines (52.6% of `test` + `src`)
+  * documention in `docs`: 3885 lines (19.7% of `docs` + `src`)
+  * documention in README: 21 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
-  * has documentation: true
-  * has tests: true
+  * has `docs/make.jl`: true
+  * has `test/runtests.jl`: true
   * has continuous integration: true
     * GitHub Actions</code></pre><h2 id="The-Package-struct"><a class="docs-heading-anchor" href="#The-Package-struct">The <code>Package</code> struct</a><a id="The-Package-struct-1"></a><a class="docs-heading-anchor-permalink" href="#The-Package-struct" title="Permalink"></a></h2><p>The returned values from <a href="api/#PackageAnalyzer.analyze-Tuple{AbstractString}"><code>analyze</code></a>, and <a href="api/#PackageAnalyzer.analyze!-Tuple{Any, AbstractVector{PackageAnalyzer.RegistryEntry}}"><code>analyze!</code></a> are objects of the type <code>Package</code>, which has the following fields:</p><pre><code class="language-julia">struct Package
     name::String # name of the package
@@ -105,46 +114,48 @@ julia&gt; DataFrame(result.license_files)
 julia&gt; result = analyze(pkgdir(DataFrames));
 
 julia&gt; DataFrame(result.lines_of_code)
-13×7 DataFrame
- Row │ directory        language  sublanguage  files  code   comments  blanks
-     │ String           Symbol    Union…       Int64  Int64  Int64     Int64
+15×7 DataFrame
+ Row │ directory        language  sublanguage  files  code   comments  blanks 
+     │ String           Symbol    Union…       Int64  Int64  Int64     Int64  
 ─────┼────────────────────────────────────────────────────────────────────────
-   1 │ test             Julia                     27  15654       320    2109
-   2 │ src              Julia                     28  15347       794    1009
-   3 │ docs             Julia                      1     41         7       5
-   4 │ docs             TOML                       1      4         0       2
-   5 │ docs             Markdown                  14      0      3292     620
-   6 │ docs             Markdown  Julia            3     29         3       4
-   7 │ docs             Markdown  Python           1     13         0       1
-   8 │ docs             Markdown  R                1      2         0       0
-   9 │ Project.toml     TOML                       1     48         0       4
-  10 │ CONTRIBUTING.md  Markdown                   1      0        56       8
-  11 │ NEWS.md          Markdown                   1      0       112      10
-  12 │ LICENSE.md       Markdown                   1      0        22       1
-  13 │ README.md        Markdown                   1      0        21      10</code></pre><h2 id="Contributors-to-the-repository"><a class="docs-heading-anchor" href="#Contributors-to-the-repository">Contributors to the repository</a><a id="Contributors-to-the-repository-1"></a><a class="docs-heading-anchor-permalink" href="#Contributors-to-the-repository" title="Permalink"></a></h2><p>If the package repository is hosted on GitHub and you can use <a href="#GitHub-authentication">GitHub authentication</a>, the list of contributors is added to the <code>contributors</code> field of the <code>Package</code> object.  This is a table which includes the GitHub username (&quot;login&quot;) and the GitHub ID (&quot;id&quot;) for contributors identified as GitHub &quot;users&quot;, and the &quot;name&quot; for contributors identified as &quot;Anonymous&quot; contributors, as well as the number of contributions provided by that user to the repository. This is the data returned from the GitHub API, and there may be people for which some of their contributions are marked as from an anonymous user (possibly more than one!) and some of their contributions are associated to their GitHub username.</p><pre><code class="language-julia">julia&gt; using PackageAnalyzer, DataFrames
+   1 │ test             Julia                     29  17512       359    2264
+   2 │ src              Julia                     31  15809       885    1253
+   3 │ benchmarks       Julia                      4    245        30      50
+   4 │ benchmarks       Shell                      2     15         0       0
+   5 │ docs             Julia                      1     45         6       5
+   6 │ docs             TOML                       1     11         0       1
+   7 │ docs             Markdown                  16      0      3782     662
+   8 │ docs             Markdown  Julia            4     30         3       4
+   9 │ docs             Markdown  Python           1     13         0       1
+  10 │ docs             Markdown  R                1      6         0       0
+  11 │ Project.toml     TOML                       1     51         0       4
+  12 │ README.md        Markdown                   1      0        21      10
+  13 │ NEWS.md          Markdown                   1      0       267      47
+  14 │ LICENSE.md       Markdown                   1      0        22       1
+  15 │ CONTRIBUTING.md  Markdown                   1      0       138      20</code></pre><h2 id="Contributors-to-the-repository"><a class="docs-heading-anchor" href="#Contributors-to-the-repository">Contributors to the repository</a><a id="Contributors-to-the-repository-1"></a><a class="docs-heading-anchor-permalink" href="#Contributors-to-the-repository" title="Permalink"></a></h2><p>If the package repository is hosted on GitHub and you can use <a href="#GitHub-authentication">GitHub authentication</a>, the list of contributors is added to the <code>contributors</code> field of the <code>Package</code> object.  This is a table which includes the GitHub username (&quot;login&quot;) and the GitHub ID (&quot;id&quot;) for contributors identified as GitHub &quot;users&quot;, and the &quot;name&quot; for contributors identified as &quot;Anonymous&quot; contributors, as well as the number of contributions provided by that user to the repository. This is the data returned from the GitHub API, and there may be people for which some of their contributions are marked as from an anonymous user (possibly more than one!) and some of their contributions are associated to their GitHub username.</p><pre><code class="language-julia">julia&gt; using PackageAnalyzer, DataFrames
 
 julia&gt; result = analyze(&quot;DataFrames&quot;);
 
 julia&gt; df = DataFrame(result.contributors);
 
 julia&gt; sort!(df, :contributions, rev=true)
-183×5 DataFrame
- Row │ login              id        name           type       contributions 
-     │ String?            Int64?    String?        String     Int64         
-─────┼──────────────────────────────────────────────────────────────────────
-   1 │ johnmyleswhite        22064  missing        User                 431
-   2 │ bkamins             6187170  missing        User                 381
-   3 │ powerdistribution   5247292  missing        User                 232
-   4 │ nalimilan           1120448  missing        User                 221
-   5 │ garborg             2823840  missing        User                 173
-   6 │ quinnj              2896623  missing        User                 101
-   7 │ simonster            470884  missing        User                  87
-   8 │ missing             missing  Harlan Harris  Anonymous             67
-   9 │ cjprybol            3497642  missing        User                  50
-  10 │ alyst                348591  missing        User                  48
-  11 │ dmbates              371258  missing        User                  47
-  12 │ tshort               636420  missing        User                  39
-  13 │ doobwa                79467  missing        User                  32
-  14 │ HarlanH              130809  missing        User                  32
-  15 │ kmsquire             223250  missing        User                  30
-  ⋮  │         ⋮             ⋮            ⋮            ⋮            ⋮</code></pre><h2 id="GitHub-authentication"><a class="docs-heading-anchor" href="#GitHub-authentication">GitHub authentication</a><a id="GitHub-authentication-1"></a><a class="docs-heading-anchor-permalink" href="#GitHub-authentication" title="Permalink"></a></h2><p>If you have a <a href="https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token">GitHub Personal Access Token</a>, you can obtain some extra information about packages whose repository is hosted on GitHub (e.g. the list of contributors).  If you store the token as an environment variable called <code>GITHUB_TOKEN</code> or <code>GITHUB_AUTH</code>, this will be automatically used whenever possible, otherwise you can generate a GitHub authentication with the <a href="api/#PackageAnalyzer.github_auth"><code>PackageAnalyzer.github_auth</code></a> function and pass it to the functions accepting the <code>auth::GitHub.Authorization</code> keyword argument.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="api/">API Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Sunday 27 June 2021 21:59">Sunday 27 June 2021</span>. Using Julia version 1.6.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+189×5 DataFrame
+ Row │ login                id        name           type       contributions 
+     │ String?              Int64?    String?        String     Int64         
+─────┼────────────────────────────────────────────────────────────────────────
+   1 │ johnmyleswhite          22064  missing        User                 431
+   2 │ bkamins               6187170  missing        User                 412
+   3 │ powerdistribution     5247292  missing        User                 232
+   4 │ nalimilan             1120448  missing        User                 223
+   5 │ garborg               2823840  missing        User                 173
+   6 │ quinnj                2896623  missing        User                 104
+   7 │ simonster              470884  missing        User                  87
+   8 │ missing               missing  Harlan Harris  Anonymous             67
+   9 │ cjprybol              3497642  missing        User                  50
+  10 │ alyst                  348591  missing        User                  48
+  11 │ dmbates                371258  missing        User                  47
+  12 │ tshort                 636420  missing        User                  39
+  13 │ doobwa                  79467  missing        User                  32
+  14 │ HarlanH                130809  missing        User                  32
+  15 │ kmsquire               223250  missing        User                  30
+  ⋮  │          ⋮              ⋮            ⋮            ⋮            ⋮</code></pre><h2 id="GitHub-authentication"><a class="docs-heading-anchor" href="#GitHub-authentication">GitHub authentication</a><a id="GitHub-authentication-1"></a><a class="docs-heading-anchor-permalink" href="#GitHub-authentication" title="Permalink"></a></h2><p>If you have a <a href="https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token">GitHub Personal Access Token</a>, you can obtain some extra information about packages whose repository is hosted on GitHub (e.g. the list of contributors).  If you store the token as an environment variable called <code>GITHUB_TOKEN</code> or <code>GITHUB_AUTH</code>, this will be automatically used whenever possible, otherwise you can generate a GitHub authentication with the <a href="api/#PackageAnalyzer.github_auth"><code>PackageAnalyzer.github_auth</code></a> function and pass it to the functions accepting the <code>auth::GitHub.Authorization</code> keyword argument.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="api/">API Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Wednesday 28 July 2021 12:09">Wednesday 28 July 2021</span>. Using Julia version 1.6.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
