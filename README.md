@@ -34,14 +34,17 @@ Package Flux:
   * repo: https://github.com/FluxML/Flux.jl.git
   * uuid: 587475ba-b771-5e3f-ad9e-33799f191a9c
   * is reachable: true
-  * lines of Julia code in `src`: 5074
-  * lines of Julia code in `test`: 2167
+  * Julia code in `src`: 5496 lines
+  * Julia code in `test`: 2432 lines (30.7% of `test` + `src`)
+  * documention in `docs`: 1533 lines (21.8% of `docs` + `src`)
+  * documention in README: 10 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
-  * number of contributors: 151
-  * has documentation: true
-  * has tests: true
+  * number of contributors: 159 (and 7 anonymous contributors)
+  * number of commits: 3794
+  * has `docs/make.jl`: true
+  * has `test/runtests.jl`: true
   * has continuous integration: true
     * GitHub Actions
     * Buildkite

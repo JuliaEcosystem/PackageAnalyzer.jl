@@ -10,18 +10,20 @@ Package Flux:
   * repo: https://github.com/FluxML/Flux.jl.git
   * uuid: 587475ba-b771-5e3f-ad9e-33799f191a9c
   * is reachable: true
-  * lines of Julia code in `src`: 5074
-  * lines of Julia code in `test`: 2167
+  * Julia code in `src`: 5496 lines
+  * Julia code in `test`: 2432 lines (30.7% of `test` + `src`)
+  * documention in `docs`: 1533 lines (21.8% of `docs` + `src`)
+  * documention in README: 10 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
-  * number of contributors: 151
-  * has documentation: true
-  * has tests: true
+  * number of contributors: 159 (and 7 anonymous contributors)
+  * number of commits: 3794
+  * has `docs/make.jl`: true
+  * has `test/runtests.jl`: true
   * has continuous integration: true
     * GitHub Actions
     * Buildkite
-
 ```
 
 The argument is a string pointing towards a local path or the name of
@@ -43,14 +45,17 @@ Package JuMP:
   * repo: https://github.com/jump-dev/JuMP.jl.git
   * uuid: 4076af6c-e467-56ae-b986-b466b2749572
   * is reachable: true
-  * lines of Julia code in `src`: 15551
-  * lines of Julia code in `test`: 10523
+  * Julia code in `src`: 16418 lines
+  * Julia code in `test`: 11388 lines (41.0% of `test` + `src`)
+  * documention in `docs`: 10970 lines (40.1% of `docs` + `src`)
+  * documention in README: 78 lines
   * has license(s) in file: MPL-2.0
     * filename: LICENSE.md
     * OSI approved: true
-  * number of contributors: 96
-  * has documentation: true
-  * has tests: true
+  * number of contributors: 106 (and 4 anonymous contributors)
+  * number of commits: 4128
+  * has `docs/make.jl`: true
+  * has `test/runtests.jl`: true
   * has continuous integration: true
     * GitHub Actions
 ```
@@ -62,16 +67,18 @@ julia> using PackageAnalyzer
 
 julia> analyze(PackageAnalyzer)
 Package PackageAnalyzer:
-  * repo:
+  * repo: 
   * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
   * is reachable: true
-  * lines of Julia code in `src`: 481
-  * lines of Julia code in `test`: 97
+  * Julia code in `src`: 574 lines
+  * Julia code in `test`: 142 lines (19.8% of `test` + `src`)
+  * documention in `docs`: 267 lines (31.7% of `docs` + `src`)
+  * documention in README: 41 lines
   * has license(s) in file: MIT
     * filename: LICENSE
     * OSI approved: true
-  * has documentation: true
-  * has tests: true
+  * has `docs/make.jl`: true
+  * has `test/runtests.jl`: true
   * has continuous integration: true
     * GitHub Actions
 ```
@@ -87,16 +94,18 @@ julia> using PackageAnalyzer, DataFrames
 
 julia> analyze(pkgdir(DataFrames))
 Package DataFrames:
-  * repo:
+  * repo: 
   * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
   * is reachable: true
-  * lines of Julia code in `src`: 15347
-  * lines of Julia code in `test`: 15654
+  * Julia code in `src`: 15809 lines
+  * Julia code in `test`: 17512 lines (52.6% of `test` + `src`)
+  * documention in `docs`: 3885 lines (19.7% of `docs` + `src`)
+  * documention in README: 21 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
-  * has documentation: true
-  * has tests: true
+  * has `docs/make.jl`: true
+  * has `test/runtests.jl`: true
   * has continuous integration: true
     * GitHub Actions
 ```
@@ -193,23 +202,25 @@ julia> using PackageAnalyzer, DataFrames
 julia> result = analyze(pkgdir(DataFrames));
 
 julia> DataFrame(result.lines_of_code)
-13×7 DataFrame
- Row │ directory        language  sublanguage  files  code   comments  blanks
-     │ String           Symbol    Union…       Int64  Int64  Int64     Int64
+15×7 DataFrame
+ Row │ directory        language  sublanguage  files  code   comments  blanks 
+     │ String           Symbol    Union…       Int64  Int64  Int64     Int64  
 ─────┼────────────────────────────────────────────────────────────────────────
-   1 │ test             Julia                     27  15654       320    2109
-   2 │ src              Julia                     28  15347       794    1009
-   3 │ docs             Julia                      1     41         7       5
-   4 │ docs             TOML                       1      4         0       2
-   5 │ docs             Markdown                  14      0      3292     620
-   6 │ docs             Markdown  Julia            3     29         3       4
-   7 │ docs             Markdown  Python           1     13         0       1
-   8 │ docs             Markdown  R                1      2         0       0
-   9 │ Project.toml     TOML                       1     48         0       4
-  10 │ CONTRIBUTING.md  Markdown                   1      0        56       8
-  11 │ NEWS.md          Markdown                   1      0       112      10
-  12 │ LICENSE.md       Markdown                   1      0        22       1
-  13 │ README.md        Markdown                   1      0        21      10
+   1 │ test             Julia                     29  17512       359    2264
+   2 │ src              Julia                     31  15809       885    1253
+   3 │ benchmarks       Julia                      4    245        30      50
+   4 │ benchmarks       Shell                      2     15         0       0
+   5 │ docs             Julia                      1     45         6       5
+   6 │ docs             TOML                       1     11         0       1
+   7 │ docs             Markdown                  16      0      3782     662
+   8 │ docs             Markdown  Julia            4     30         3       4
+   9 │ docs             Markdown  Python           1     13         0       1
+  10 │ docs             Markdown  R                1      6         0       0
+  11 │ Project.toml     TOML                       1     51         0       4
+  12 │ README.md        Markdown                   1      0        21      10
+  13 │ NEWS.md          Markdown                   1      0       267      47
+  14 │ LICENSE.md       Markdown                   1      0        22       1
+  15 │ CONTRIBUTING.md  Markdown                   1      0       138      20
 ```
 
 ## Contributors to the repository
@@ -231,26 +242,26 @@ julia> result = analyze("DataFrames");
 julia> df = DataFrame(result.contributors);
 
 julia> sort!(df, :contributions, rev=true)
-183×5 DataFrame
- Row │ login              id        name           type       contributions 
-     │ String?            Int64?    String?        String     Int64         
-─────┼──────────────────────────────────────────────────────────────────────
-   1 │ johnmyleswhite        22064  missing        User                 431
-   2 │ bkamins             6187170  missing        User                 381
-   3 │ powerdistribution   5247292  missing        User                 232
-   4 │ nalimilan           1120448  missing        User                 221
-   5 │ garborg             2823840  missing        User                 173
-   6 │ quinnj              2896623  missing        User                 101
-   7 │ simonster            470884  missing        User                  87
-   8 │ missing             missing  Harlan Harris  Anonymous             67
-   9 │ cjprybol            3497642  missing        User                  50
-  10 │ alyst                348591  missing        User                  48
-  11 │ dmbates              371258  missing        User                  47
-  12 │ tshort               636420  missing        User                  39
-  13 │ doobwa                79467  missing        User                  32
-  14 │ HarlanH              130809  missing        User                  32
-  15 │ kmsquire             223250  missing        User                  30
-  ⋮  │         ⋮             ⋮            ⋮            ⋮            ⋮
+189×5 DataFrame
+ Row │ login                id        name           type       contributions 
+     │ String?              Int64?    String?        String     Int64         
+─────┼────────────────────────────────────────────────────────────────────────
+   1 │ johnmyleswhite          22064  missing        User                 431
+   2 │ bkamins               6187170  missing        User                 412
+   3 │ powerdistribution     5247292  missing        User                 232
+   4 │ nalimilan             1120448  missing        User                 223
+   5 │ garborg               2823840  missing        User                 173
+   6 │ quinnj                2896623  missing        User                 104
+   7 │ simonster              470884  missing        User                  87
+   8 │ missing               missing  Harlan Harris  Anonymous             67
+   9 │ cjprybol              3497642  missing        User                  50
+  10 │ alyst                  348591  missing        User                  48
+  11 │ dmbates                371258  missing        User                  47
+  12 │ tshort                 636420  missing        User                  39
+  13 │ doobwa                  79467  missing        User                  32
+  14 │ HarlanH                130809  missing        User                  32
+  15 │ kmsquire               223250  missing        User                  30
+  ⋮  │          ⋮              ⋮            ⋮            ⋮            ⋮
 ```
 
 ## GitHub authentication
