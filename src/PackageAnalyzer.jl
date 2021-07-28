@@ -463,7 +463,6 @@ Package Pluto:
   * has `test/runtests.jl`: true
   * has continuous integration: true
     * GitHub Actions
-
 ```
 """
 function analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth(), sleep=0)
