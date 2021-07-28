@@ -94,7 +94,10 @@ end
     # DataFrames currently has 16k LoC; Flux has 5k. Let's check that they aren't mixed up
     # due to some kind of race condition.
     @test results[1].name == "DataFrames"
-    @test PackageAnalyzer.count_julia_loc(results[1].lines_of_code, "src") > 14000
+    @test PackageAnalyzer.count_julia_loc(results[1], "src") > 14000
+    @test PackageAnalyzer.count_docs(results[1]) > 5000
+    @test PackageAnalyzer.count_readme(results[1]) > 5
+
     @test results[2].name == "Flux"
     @test PackageAnalyzer.count_julia_loc(results[2].lines_of_code, "src") < 14000
 
@@ -191,6 +194,7 @@ end
         @test pkg.contributors isa Vector{<:NamedTuple}
         @test length(pkg.contributors) > 160 # ==183 right now, and it shouldn't go down...
         @test PackageAnalyzer.count_contributors(pkg) > 150
+        @test PackageAnalyzer.count_commits(pkg) > 2000
         @test PackageAnalyzer.count_contributors(pkg; type="Anonymous") > 10
     end
 end

@@ -1,7 +1,7 @@
 module PackageAnalyzer
 
 # Standard libraries
-using Pkg, TOML, UUIDs
+using Pkg, TOML, UUIDs, Printf
 # Third-party packages
 using LicenseCheck # for `find_license` and `is_osi_approved`
 using JSON3 # for interfacing with `tokei` to count lines of code
@@ -106,9 +106,18 @@ function Base.show(io::IO, p::Package)
         """
     if p.reachable
         if !isempty(p.lines_of_code)
+            l_src = count_julia_loc(p, "src")
+            l_test = count_julia_loc(p, "test")
+            l_docs = count_docs(p)
+            l_readme = count_readme(p)
+
+            p_test = @sprintf("%.1f", 100*l_test / (l_test + l_src))
+            p_docs = @sprintf("%.1f", 100*l_docs / (l_docs + l_src))
             body *= """
-                  * lines of Julia code in `src`: $(count_julia_loc(p.lines_of_code, "src"))
-                  * lines of Julia code in `test`: $(count_julia_loc(p.lines_of_code, "test"))
+                  * Julia code in `src`: $(l_src) lines
+                  * Julia code in `test`: $(l_test) lines ($(p_test)% of `test` + `src`)
+                  * documention in `docs`: $(l_docs) lines ($(p_docs)% of `docs` + `src`)
+                  * documention in README: $(l_readme) lines
                 """
         end
         if isempty(p.license_files)
@@ -128,10 +137,11 @@ function Base.show(io::IO, p::Package)
         if !isempty(p.contributors)
             n_anon = count_contributors(p; type="Anonymous")
             body *= "  * number of contributors: $(count_contributors(p)) (and $(n_anon) anonymous contributors)\n"
+            body *= "  * number of commits: $(count_commits(p))\n"
         end
         body *= """
-              * has documentation: $(p.docs)
-              * has tests: $(p.runtests)
+              * has `docs/make.jl`: $(p.docs)
+              * has `test/runtests.jl`: $(p.runtests)
             """
         ci_services = (p.github_actions => "GitHub Actions",
                        p.travis => "Travis",
@@ -361,14 +371,17 @@ Package BinaryBuilder:
   * repo: https://github.com/JuliaPackaging/BinaryBuilder.jl.git
   * uuid: 12aac903-9f7c-5d81-afc2-d9565ea332ae
   * is reachable: true
-  * lines of Julia code in `src`: 4724
-  * lines of Julia code in `test`: 1542
+  * Julia code in `src`: 4758 lines
+  * Julia code in `test`: 1566 lines (24.8% of `test` + `src`)
+  * documention in `docs`: 998 lines (17.3% of `docs` + `src`)
+  * documention in README: 22 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
-  * number of contributors: 50
-  * has documentation: true
-  * has tests: true
+  * number of contributors: 53 (and 0 anonymous contributors)
+  * number of commits: 1516
+  * has `docs/make.jl`: true
+  * has `test/runtests.jl`: true
   * has continuous integration: true
     * GitHub Actions
     * Azure Pipelines
@@ -435,18 +448,22 @@ Package Pluto:
   * repo: https://github.com/fonsp/Pluto.jl.git
   * uuid: c3e4b0f8-55cb-11ea-2926-15256bba5781
   * is reachable: true
-  * lines of Julia code in `src`: 5108
-  * lines of Julia code in `test`: 2342
+  * Julia code in `src`: 6896 lines
+  * Julia code in `test`: 3682 lines (34.8% of `test` + `src`)
+  * documention in `docs`: 0 lines (0.0% of `docs` + `src`)
+  * documention in README: 110 lines
   * has license(s) in file: MIT
     * filename: LICENSE
     * OSI approved: true
   * has license(s) in Project.toml: MIT
     * OSI approved: true
-  * number of contributors: 63
-  * has documentation: false
-  * has tests: true
+  * number of contributors: 73 (and 1 anonymous contributors)
+  * number of commits: 940
+  * has `docs/make.jl`: false
+  * has `test/runtests.jl`: true
   * has continuous integration: true
     * GitHub Actions
+
 ```
 """
 function analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth(), sleep=0)
@@ -474,18 +491,21 @@ julia> using DataFrames
 
 julia> analyze(DataFrames)
 Package DataFrames:
-  * repo:
+  * repo: 
   * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
   * is reachable: true
-  * lines of Julia code in `src`: 15347
-  * lines of Julia code in `test`: 15654
+  * Julia code in `src`: 15809 lines
+  * Julia code in `test`: 17512 lines (52.6% of `test` + `src`)
+  * documention in `docs`: 3885 lines (19.7% of `docs` + `src`)
+  * documention in README: 21 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
-  * has documentation: true
-  * has tests: true
+  * has `docs/make.jl`: true
+  * has `test/runtests.jl`: true
   * has continuous integration: true
     * GitHub Actions
+
 ```
 """
 analyze(m::Module; kwargs...) = analyze_path(pkgdir(m); kwargs...)
@@ -558,9 +578,6 @@ function contribution_table(repo_name; auth)
     return parse_contributions.(GitHub.contributors(GitHub.Repo(repo_name); auth, params=Dict("anon"=>"true"))[1])
 end
 
-count_contributors(table; type="User") = count(row.type == type for row in table)
-count_contributors(pkg::Package; kwargs...) = count_contributors(pkg.contributors; kwargs...)
-
 function parse_contributions(c)
     contrib = c["contributor"]
     if contrib.typ == "Anonymous"
@@ -569,5 +586,30 @@ function parse_contributions(c)
         return (; contrib.login, contrib.id, name = missing, type=contrib.typ, contributions = c["contributions"])
     end
 end
+
+
+#####
+##### Counting things
+#####
+
+count_commits(table) = sum(row.contributions for row in table; init=0)
+count_commits(pkg::Package) = count_commits(pkg.contributors)
+
+count_contributors(table; type="User") = count(row.type == type for row in table)
+count_contributors(pkg::Package; kwargs...) = count_contributors(pkg.contributors; kwargs...)
+
+
+count_julia_loc(table, dir) = sum(row.code for row in table if row.directory == dir && row.language == :Julia; init=0)
+
+function count_docs(table, dirs = ("docs", "doc"))
+    rm_langs = (:TOML, :SVG, :CSS, :Javascript)
+    sum(row.code + row.comments for row in table if lowercase(row.directory) in dirs && row.language ∉ rm_langs && row.sublanguage ∉ rm_langs; init=0)
+end
+
+count_readme(table) = count_docs(table, ("readme", "readme.md"))
+
+count_julia_loc(pkg::Package, args...) = count_julia_loc(pkg.lines_of_code, args...)
+count_docs(pkg::Package, args...) = count_docs(pkg.lines_of_code, args...)
+count_readme(pkg::Package, args...) = count_readme(pkg.lines_of_code, args...)
 
 end # module
