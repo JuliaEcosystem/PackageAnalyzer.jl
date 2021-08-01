@@ -573,7 +573,12 @@ function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="",
 end
 
 function contribution_table(repo_name; auth)
-    return parse_contributions.(GitHub.contributors(GitHub.Repo(repo_name); auth, params=Dict("anon"=>"true"))[1])
+    return try
+        parse_contributions.(GitHub.contributors(GitHub.Repo(repo_name); auth, params=Dict("anon"=>"true"))[1])
+    catch e
+        @error "Could not obtain contributors for $(repo_name)" exception=(e, catch_backtrace())
+        ContributionTableElType[]
+    end
 end
 
 function parse_contributions(c)
