@@ -9,6 +9,9 @@ using Tokei_jll # count lines of code
 using GitHub # Use GitHub API to get extra information about the repo
 using Git
 using RegistryInstances
+using Downloads
+using Tar
+using CodecZlib
 
 export general_registry, find_package, find_packages
 export analyze, analyze!
@@ -289,7 +292,11 @@ function analyze!(root, pkg::PkgEntry; auth::GitHub.Authorization=github_auth(),
 
     isdir(dest) && return analyze_path(dest; repo, subdir, auth, sleep)
 
-    return analyze_path!(dest, repo; name, uuid, subdir, auth, sleep)
+    info = registry_info(pkg)
+    v = maximum(keys(info.version_info))
+    tree_hash = bytes2hex(info.version_info[v].git_tree_sha1.bytes)
+
+    return analyze_path!(dest, repo; name, uuid, subdir, auth, sleep, tree_hash)
 end
 
 """
@@ -308,7 +315,8 @@ GitHub, the list of contributors to the repository is also collected, after
 waiting for `sleep` seconds for each entry.  See
 [`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub authentication.
 """
-function analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid=UUID(UInt128(0)), subdir="", auth=github_auth(), sleep=0)
+function analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid=UUID(UInt128(0)), subdir="", auth=github_auth(), sleep=0, tree_hash=nothing)
+    only_subdir = false
     reachable = try
         # Clone only latest commit on the default branch.  Note: some
         # repositories aren't reachable because the author made them private or
@@ -316,13 +324,36 @@ function analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid
         # so we close STDIN to prevent git from prompting for username/password.
         # We need to use `detach` to make closing STDIN effective, suggested by
         # @staticfloat.
-        run(pipeline(detach(`$(git()) clone -q --depth 1 $(repo) $(dest)`); stdin=devnull, stderr=devnull))
+        if tree_hash === nothing
+            run(pipeline(detach(`$(git()) clone -q --depth 1 $(repo) $(dest)`); stdin=devnull, stderr=devnull))
+        else
+            m = match(r"github.com/(?<user>.*)/(?<repo>.*)\.git", repo)
+            io = IOBuffer()
+            url = "https://api.github.com/repos/$(m[:user])/$(m[:repo])/tarball/$(tree_hash)"
+            Downloads.download(url, io)
+            seekstart(io)
+            tmp = mktempdir()
+            Tar.extract(GzipDecompressorStream(io), tmp)
+            @show readdir(tmp)
+            files = only(readdir(tmp; join=true))
+            @show readdir(files)
+            isdir(dest) || mkdir(dest)
+            @show readdir(dest)
+            @assert isdir(files)
+            @assert isdir(dest)
+            @show tmp files dest url
+            mv(files, dest; force=true)
+            @show readdir(dest)
+            only_subdir=true
+        end
         true
-    catch
+    catch e
+        rethrow()
+        @show e
         # The repository may be unreachable
         false
     end
-    return reachable ? analyze_path(dest; repo, reachable, subdir, auth, sleep) : Package(name, uuid, repo; subdir)
+    return reachable ? analyze_path(dest; repo, reachable, subdir, auth, sleep, only_subdir) : Package(name, uuid, repo; subdir)
 end
 
 """
@@ -391,9 +422,8 @@ Package BinaryBuilder:
 ```
 """
 function analyze(p; auth::GitHub.Authorization=github_auth(), sleep=0)
-    mktempdir() do root
-        analyze!(root, p; auth, sleep)
-    end
+    root = mktempdir()
+    analyze!(root, p; auth, sleep)
 end
 
 function parse_project(dir)
@@ -519,10 +549,14 @@ the package's repository is hosted on GitHub and `auth` is a non-anonymous
 GitHub authentication, wait for `sleep` seconds before collecting the list of
 its contributors.
 """
-function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="", auth::GitHub.Authorization=github_auth(), sleep=0)
+function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="", auth::GitHub.Authorization=github_auth(), sleep=0, only_subdir=false)
     # we will look for docs, tests, license, and count lines of code
     # in the `pkgdir`; we will look for CI in the `dir`.
-    pkgdir = joinpath(dir, subdir)
+    if only_subdir
+        pkgdir = dir
+    else
+        pkgdir = joinpath(dir, subdir)
+    end
     name, uuid, licenses_in_project = parse_project(pkgdir)
     docs = isfile(joinpath(pkgdir, "docs", "make.jl")) || isfile(joinpath(pkgdir, "doc", "make.jl"))
     runtests = isfile(joinpath(pkgdir, "test", "runtests.jl"))
