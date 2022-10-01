@@ -55,29 +55,29 @@ struct Package
     tree_hash::String
 end
 function Package(name, uuid, repo;
-    subdir="",
-    reachable=false,
-    docs=false,
-    runtests=false,
-    github_actions=false,
-    travis=false,
-    appveyor=false,
-    cirrus=false,
-    circle=false,
-    drone=false,
-    buildkite=false,
-    azure_pipelines=false,
-    gitlab_pipeline=false,
-    license_files=LicenseTableEltype[],
-    licenses_in_project=String[],
-    lines_of_code=LoCTableEltype[],
-    contributors=ContributionTableElType[],
-    version=v"0",
-    tree_hash=""
-)
+                 subdir="",
+                 reachable=false,
+                 docs=false,
+                 runtests=false,
+                 github_actions=false,
+                 travis=false,
+                 appveyor=false,
+                 cirrus=false,
+                 circle=false,
+                 drone=false,
+                 buildkite=false,
+                 azure_pipelines=false,
+                 gitlab_pipeline=false,
+                 license_files=LicenseTableEltype[],
+                 licenses_in_project=String[],
+                 lines_of_code=LoCTableEltype[],
+                 contributors=ContributionTableElType[],
+                 version=v"0",
+                 tree_hash=""
+                 )
     return Package(name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
-        appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
-        license_files, licenses_in_project, lines_of_code, contributors, version, tree_hash)
+                   appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
+                   license_files, licenses_in_project, lines_of_code, contributors, version, tree_hash)
 end
 
 # define `isequal`, `==`, and `hash` just in terms of the fields
@@ -148,15 +148,15 @@ function Base.show(io::IO, p::Package)
               * has `test/runtests.jl`: $(p.runtests)
             """
         ci_services = (p.github_actions => "GitHub Actions",
-            p.travis => "Travis",
-            p.appveyor => "AppVeyor",
-            p.cirrus => "Cirrus",
-            p.circle => "Circle",
-            p.drone => "Drone CI",
-            p.buildkite => "Buildkite",
-            p.azure_pipelines => "Azure Pipelines",
-            p.gitlab_pipeline => "GitLab Pipeline",
-        )
+                       p.travis => "Travis",
+                       p.appveyor => "AppVeyor",
+                       p.cirrus => "Cirrus",
+                       p.circle => "Circle",
+                       p.drone => "Drone CI",
+                       p.buildkite => "Buildkite",
+                       p.azure_pipelines => "Azure Pipelines",
+                       p.gitlab_pipeline => "GitLab Pipeline",
+                       )
         if any(first.(ci_services))
             body *= "  * has continuous integration: true\n"
             for (k, v) in ci_services
@@ -195,7 +195,7 @@ end
 Returns the [RegistryEntry](@ref) for the package `pkg`.
 The singular version of [`find_packages`](@ref).
 """
-function find_package(pkg::AbstractString; registry=general_registry())
+function find_package(pkg::AbstractString; registry = general_registry())
     pkg_entries = find_packages([pkg]; registry)
     if isempty(pkg_entries)
         if pkg ∈ values(STDLIBS)
