@@ -57,14 +57,14 @@ const auth = GitHub.AnonymousAuth()
         pkgs = find_packages_in_manifest(joinpath(dirname(Base.active_project()), "Manifest.toml"))
         @test pkgs isa Vector{Tuple{PkgEntry, PackageAnalyzer.AbstractVersion}}
         few = first(pkgs, 3)
-        results = analyze(few)
+        results = analyze(few; auth)
         @test length(results) == 3
         # Version number saved out
         @test all(results[i].version == few[i][2] for i in 1:length(few))
 
         # same through `analyze!`
         root = mktempdir()
-        results2 = analyze!(root, few)
+        results2 = analyze!(root, few; auth)
         @test isequal(results, results2)
     end
 
