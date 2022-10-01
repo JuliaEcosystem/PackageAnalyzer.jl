@@ -24,9 +24,9 @@ const auth = GitHub.AnonymousAuth()
     @test !isempty(measurements.lines_of_code)
     # Test results of a couple of packages.  Same caveat as above
     uuids = only.(uuids_from_name.(Ref(general), ["Cuba", "PolynomialRoots"]))
-    packages = [general.pkgs[uuids[1]], general.pkgs[uuids[2]]]
-    @test Set(packages) == Set(find_packages("Cuba", "PolynomialRoots")) == Set(find_packages(["Cuba", "PolynomialRoots"]))
-    @test packages ⊆ find_packages()
+    # We compare by UUID, since other fields may be initialized or not
+    @test Set(uuids) == Set([x.uuid for x in find_packages("Cuba", "PolynomialRoots")]) == Set([x.uuid for x in find_packages(["Cuba", "PolynomialRoots"])])
+    @test uuids ⊆ [x.uuid for x in find_packages()]
     results = analyze(packages; auth)
     cuba, polyroots = results
     @test length(filter(p -> p.reachable, results)) == 2
