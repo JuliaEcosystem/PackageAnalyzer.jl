@@ -9,16 +9,16 @@ julia> analyze("Flux")
 Package Flux:
   * repo: https://github.com/FluxML/Flux.jl.git
   * uuid: 587475ba-b771-5e3f-ad9e-33799f191a9c
+  * version: dev
   * is reachable: true
-  * Julia code in `src`: 5496 lines
-  * Julia code in `test`: 2432 lines (30.7% of `test` + `src`)
-  * documention in `docs`: 1533 lines (21.8% of `docs` + `src`)
-  * documention in README: 10 lines
+  * tree hash: d6a6169b154b554bec101a3d3a63e02b6ac3557d
+  * Julia code in `src`: 5300 lines
+  * Julia code in `test`: 3034 lines (36.4% of `test` + `src`)
+  * documention in `docs`: 1893 lines (26.3% of `docs` + `src`)
+  * documention in README: 15 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
-  * number of contributors: 159 (and 7 anonymous contributors)
-  * number of commits: 3794
   * has `docs/make.jl`: true
   * has `test/runtests.jl`: true
   * has continuous integration: true
@@ -39,20 +39,20 @@ default the [General registry](https://github.com/JuliaRegistries/General).
 `find_package` is invoked automatically when you pass the name of a package.
 
 ```julia
-julia> analyze(find_package("JuMP"))
+julia> analyze(find_package("JuMP"); version=v"1")
 Package JuMP:
   * repo: https://github.com/jump-dev/JuMP.jl.git
   * uuid: 4076af6c-e467-56ae-b986-b466b2749572
+  * version: 1.0.0
   * is reachable: true
-  * Julia code in `src`: 16418 lines
-  * Julia code in `test`: 11388 lines (41.0% of `test` + `src`)
-  * documention in `docs`: 10970 lines (40.1% of `docs` + `src`)
-  * documention in README: 78 lines
+  * tree hash: 936e7ebf6c84f0c0202b83bb22461f4ebc5c9969
+  * Julia code in `src`: 16906 lines
+  * Julia code in `test`: 12777 lines (43.0% of `test` + `src`)
+  * documention in `docs`: 15978 lines (48.6% of `docs` + `src`)
+  * documention in README: 79 lines
   * has license(s) in file: MPL-2.0
     * filename: LICENSE.md
     * OSI approved: true
-  * number of contributors: 106 (and 4 anonymous contributors)
-  * number of commits: 4128
   * has `docs/make.jl`: true
   * has `test/runtests.jl`: true
   * has continuous integration: true
@@ -68,11 +68,13 @@ julia> analyze(PackageAnalyzer)
 Package PackageAnalyzer:
   * repo: 
   * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
+  * version: 0.0.0
   * is reachable: true
-  * Julia code in `src`: 574 lines
-  * Julia code in `test`: 142 lines (19.8% of `test` + `src`)
-  * documention in `docs`: 267 lines (31.7% of `docs` + `src`)
-  * documention in README: 41 lines
+  * tree hash: 99f489846e107d7dc06081d3ccb930d15590541f
+  * Julia code in `src`: 729 lines
+  * Julia code in `test`: 178 lines (19.6% of `test` + `src`)
+  * documention in `docs`: 267 lines (26.8% of `docs` + `src`)
+  * documention in README: 44 lines
   * has license(s) in file: MIT
     * filename: LICENSE
     * OSI approved: true
@@ -95,10 +97,12 @@ julia> analyze(pkgdir(DataFrames))
 Package DataFrames:
   * repo: 
   * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
+  * version: 0.0.0
   * is reachable: true
-  * Julia code in `src`: 15809 lines
-  * Julia code in `test`: 17512 lines (52.6% of `test` + `src`)
-  * documention in `docs`: 3885 lines (19.7% of `docs` + `src`)
+  * tree hash: db2a9cb664fcea7836da4b414c3278d71dd602d2
+  * Julia code in `src`: 15628 lines
+  * Julia code in `test`: 21089 lines (57.4% of `test` + `src`)
+  * documention in `docs`: 6270 lines (28.6% of `docs` + `src`)
   * documention in README: 21 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
@@ -154,15 +158,12 @@ You can use the function [`find_packages`](@ref) to find all packages in a given
 registry:
 
 ```julia
-julia> find_packages(; registry=general_registry())
-4632-element Vector{PackageAnalyzer.RegistryEntry}:
- PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/C/CitableImage")
- PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/T/Trixi2Img")
- PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/I/ImPlot")
- PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/S/StableDQMC")
- PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/S/Strapping")
-[...]
+julia> result = find_packages(; registry=general_registry());
+
+julia> summary(result)
+"7213-element Vector{PkgEntry}"
 ```
+
 Do not abuse this function! Consider using the in-place function `analyze!(root, registry_entries)` to avoid re-cloning packages if you might run the analysis more than once.
 
 !!! warning

@@ -106,9 +106,13 @@ function Base.show(io::IO, p::Package)
     end
     body *= """
           * uuid: $(p.uuid)
+          * version: $(p.version)
           * is reachable: $(p.reachable)
         """
     if p.reachable
+        body *= """
+          * tree hash: $(p.tree_hash)
+        """
         if !isempty(p.lines_of_code)
             l_src = count_julia_loc(p, "src")
             l_test = count_julia_loc(p, "test")
@@ -460,16 +464,16 @@ julia> analyze(find_package("BinaryBuilder"))
 Package BinaryBuilder:
   * repo: https://github.com/JuliaPackaging/BinaryBuilder.jl.git
   * uuid: 12aac903-9f7c-5d81-afc2-d9565ea332ae
+  * version: dev
   * is reachable: true
-  * Julia code in `src`: 4758 lines
-  * Julia code in `test`: 1566 lines (24.8% of `test` + `src`)
-  * documention in `docs`: 998 lines (17.3% of `docs` + `src`)
+  * tree hash: 13335f33356c8df9899472634e02552fd6f99ce4
+  * Julia code in `src`: 4994 lines
+  * Julia code in `test`: 1795 lines (26.4% of `test` + `src`)
+  * documention in `docs`: 1129 lines (18.4% of `docs` + `src`)
   * documention in README: 22 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
-  * number of contributors: 53 (and 0 anonymous contributors)
-  * number of commits: 1516
   * has `docs/make.jl`: true
   * has `test/runtests.jl`: true
   * has continuous integration: true
@@ -541,26 +545,27 @@ You can analyze a package just by its name, whether you have it installed
 locally or not:
 
 ```julia
-julia> analyze("Pluto")
+julia> analyze("Pluto"; version=v"0.18.0")
 Package Pluto:
   * repo: https://github.com/fonsp/Pluto.jl.git
   * uuid: c3e4b0f8-55cb-11ea-2926-15256bba5781
+  * version: 0.18.0
   * is reachable: true
-  * Julia code in `src`: 6896 lines
-  * Julia code in `test`: 3682 lines (34.8% of `test` + `src`)
+  * tree hash: db1306745717d127037c5697436b04cfb9d7b3dd
+  * Julia code in `src`: 8337 lines
+  * Julia code in `test`: 5448 lines (39.5% of `test` + `src`)
   * documention in `docs`: 0 lines (0.0% of `docs` + `src`)
-  * documention in README: 110 lines
+  * documention in README: 118 lines
   * has license(s) in file: MIT
     * filename: LICENSE
     * OSI approved: true
   * has license(s) in Project.toml: MIT
     * OSI approved: true
-  * number of contributors: 73 (and 1 anonymous contributors)
-  * number of commits: 940
   * has `docs/make.jl`: false
   * has `test/runtests.jl`: true
   * has continuous integration: true
     * GitHub Actions
+
 ```
 """
 function analyze(name_or_dir_or_url::AbstractString; repo="", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth(), sleep=0, version::AbstractVersion=:dev)
@@ -591,10 +596,12 @@ julia> analyze(DataFrames)
 Package DataFrames:
   * repo: 
   * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
+  * version: 0.0.0
   * is reachable: true
-  * Julia code in `src`: 15809 lines
-  * Julia code in `test`: 17512 lines (52.6% of `test` + `src`)
-  * documention in `docs`: 3885 lines (19.7% of `docs` + `src`)
+  * tree hash: db2a9cb664fcea7836da4b414c3278d71dd602d2
+  * Julia code in `src`: 15628 lines
+  * Julia code in `test`: 21089 lines (57.4% of `test` + `src`)
+  * documention in `docs`: 6270 lines (28.6% of `docs` + `src`)
   * documention in README: 21 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
