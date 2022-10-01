@@ -12,7 +12,6 @@ Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 RegistryInstances = "2792f1a3-b283-48e8-9a74-f99dce5104f3"
 TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
-Tar = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
 Tokei_jll = "3ac119c9-1236-5556-b556-adc8150b0244"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
