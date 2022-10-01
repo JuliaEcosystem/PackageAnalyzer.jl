@@ -282,7 +282,7 @@ the list of contributors to the repository is also collected, after waiting for
 `sleep` seconds.  Only the number of contributors will be shown in the summary.
 See [`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub authentication.
 """
-function analyze!(root, pkg::PkgEntry; auth::GitHub.Authorization=github_auth(), sleep=0)
+function analyze!(root, pkg::PkgEntry; auth::GitHub.Authorization=github_auth(), sleep=0, version=:dev)
     name = pkg.name
     uuid = pkg.uuid
     info = registry_info(pkg)
@@ -291,16 +291,26 @@ function analyze!(root, pkg::PkgEntry; auth::GitHub.Authorization=github_auth(),
     dest = joinpath(root, string(uuid))
 
     isdir(dest) && return analyze_path(dest; repo, subdir, auth, sleep)
+    
+    if version === :dev
+        tree_hash = nothing
+    else
+        info = registry_info(pkg)
+        if version === :stable
+            version = maximum(keys(info.version_info))
+            tree_hash = bytes2hex(info.version_info[version].git_tree_sha1.bytes)
+        else
+            tree_hash = bytes2hex(info.version_info[version].git_tree_sha1.bytes)
+        end
+    end
 
-    info = registry_info(pkg)
-    v = maximum(keys(info.version_info))
-    tree_hash = bytes2hex(info.version_info[v].git_tree_sha1.bytes)
+    @debug "Analyzing version $version of $name"
 
     return analyze_path!(dest, repo; name, uuid, subdir, auth, sleep, tree_hash)
 end
 
 """
-    analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid=UUID(UInt128(0)), subdir="", auth=github_auth(), sleep=0) -> Package
+    analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid=UUID(UInt128(0)), subdir="", auth=github_auth(), sleep=0, tree_hash=nothing, version) -> Package
 
 Analyze the Julia package located at the URL given by `repo` by cloning it to `dest`
 and calling `analyze_path(dest)`.
@@ -309,6 +319,9 @@ If the clone fails, it returns a `Package` with `reachable=false`. If a `name` a
 these are used to populate the corresponding fields of the `Package`. If the clone succeeds, the `name`
 and `uuid` are taken instead from the Project.toml in the package itself, and the values passed here
 are ignored.
+
+If `tree_hash!==nothing`, attempts to analyze the code associated to that tree hash, instead of the code in
+the latest version of the repo.
 
 If the GitHub authentication `auth` is non-anonymous and the repository is on
 GitHub, the list of contributors to the repository is also collected, after
@@ -334,22 +347,14 @@ function analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid
             seekstart(io)
             tmp = mktempdir()
             Tar.extract(GzipDecompressorStream(io), tmp)
-            @show readdir(tmp)
             files = only(readdir(tmp; join=true))
-            @show readdir(files)
             isdir(dest) || mkdir(dest)
-            @show readdir(dest)
-            @assert isdir(files)
-            @assert isdir(dest)
-            @show tmp files dest url
             mv(files, dest; force=true)
-            @show readdir(dest)
             only_subdir=true
         end
         true
     catch e
-        rethrow()
-        @show e
+        @debug "Error; maybe unreachable" exception=e
         # The repository may be unreachable
         false
     end
@@ -369,7 +374,9 @@ for `sleep` seconds for each entry (useful to avoid getting rate-limited by
 GitHub).  See [`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub
 authentication.
 """
-function analyze!(root, pkg_entries::AbstractVector{PkgEntry}; auth::GitHub.Authorization=github_auth(), sleep=0)
+function analyze!(root, pkg_entries::AbstractVector{PkgEntry}; auth::GitHub.Authorization=github_auth(), sleep=0, version=:dev)
+    version in (:dev, :stable) || error("Only `:dev` and `:stable` are allowed when analyzing multiple packages")
+
     inputs = Channel{Tuple{Int, PkgEntry}}(length(pkg_entries))
     for (i,r) in enumerate(pkg_entries)
         put!(inputs, (i,r))
@@ -377,15 +384,15 @@ function analyze!(root, pkg_entries::AbstractVector{PkgEntry}; auth::GitHub.Auth
     close(inputs)
     outputs = Channel{Tuple{Int, Package}}(length(pkg_entries))
     Threads.foreach(inputs) do (i, r)
-        put!(outputs, (i, analyze!(root, r; auth, sleep)))
+        put!(outputs, (i, analyze!(root, r; auth, sleep, version)))
     end
     close(outputs)
     return last.(sort!(collect(outputs); by = first))
 end
 
 """
-    analyze(package::PkgEntry; auth::GitHub.Authorization=github_auth(), sleep=0) -> Package
-    analyze(packages::AbstractVector{<:PkgEntry}; auth::GitHub.Authorization=github_auth(), sleep=0) -> Vector{Package}
+    analyze(package::PkgEntry; auth::GitHub.Authorization=github_auth(), sleep=0, version=:dev) -> Package
+    analyze(packages::AbstractVector{<:PkgEntry}; auth::GitHub.Authorization=github_auth(), sleep=0, version=:dev) -> Vector{Package}
 
 Analyzes a package or list of packages using the information in their directory
 in a registry by creating a temporary directory and calling `analyze!`,
@@ -421,9 +428,9 @@ Package BinaryBuilder:
 
 ```
 """
-function analyze(p; auth::GitHub.Authorization=github_auth(), sleep=0)
+function analyze(p; auth::GitHub.Authorization=github_auth(), sleep=0, version=:dev)
     root = mktempdir()
-    analyze!(root, p; auth, sleep)
+    analyze!(root, p; auth, sleep, version)
 end
 
 function parse_project(dir)
@@ -446,7 +453,7 @@ function parse_project(dir)
 end
 
 """
-    analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth())
+    analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth(), version=:dev)
 
 Analyze the package pointed to by the mandatory argument and return a summary of
 its properties.
@@ -468,6 +475,12 @@ If the GitHub authentication is non-anonymous and the repository is on GitHub,
 the list of contributors to the repository is also collected.  Only the number
 of contributors will be shown in the summary.  See
 [`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub authentication.
+
+Pass the keyword argument `version` to confgiure which version of the code is analyzed. Options:
+
+* `:dev` to use the latest code in the repository
+* `:stable` to use the latest released version of the code, or
+* pass a `VersionNumber` to analyze a particular version of the package.
 
 ## Example
 
@@ -497,17 +510,17 @@ Package Pluto:
     * GitHub Actions
 ```
 """
-function analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth(), sleep=0)
+function analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth(), sleep=0, version=:dev)
     if Base.isidentifier(name_or_dir_or_url)
         # The argument looks like a package name rather than a directory: find
         # the package in `registry` and analyze it
-        return analyze(find_package(name_or_dir_or_url; registry); auth, sleep)
+        return analyze(find_package(name_or_dir_or_url; registry); auth, sleep, version)
     elseif isdir(name_or_dir_or_url)
-        return analyze_path(name_or_dir_or_url; repo, reachable, subdir, auth, sleep)
+        return analyze_path(name_or_dir_or_url; repo, reachable, subdir, auth, sleep, version)
     else
         repo = name_or_dir_or_url
         dest = mktempdir()
-        return analyze_path!(dest, repo; subdir, auth, sleep)
+        return analyze_path!(dest, repo; subdir, auth, sleep, version)
     end
 end
 
@@ -542,12 +555,16 @@ analyze(m::Module; kwargs...) = analyze_path(pkgdir(m); kwargs...)
 
 
 """
-    analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="", auth::GitHub.Authorization=github_auth(), sleep=0) -> Package
+    analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="", auth::GitHub.Authorization=github_auth(), sleep=0, only_subdir=false) -> Package
 
 Analyze the package whose source code is located at the local path `dir`.  If
 the package's repository is hosted on GitHub and `auth` is a non-anonymous
 GitHub authentication, wait for `sleep` seconds before collecting the list of
 its contributors.
+
+`only_subdir` indicates that while the package's code does live in a subdirectory of the repo,
+`dir` points only to that code and we do not have access to the top-level code. We still pass non-empty `subdir`
+in this case, to record the fact that the package does indeed live in a subdirectory.
 """
 function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="", auth::GitHub.Authorization=github_auth(), sleep=0, only_subdir=false)
     # we will look for docs, tests, license, and count lines of code
@@ -580,7 +597,9 @@ function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="",
     else
         github_actions = false
     end
-    license_files = find_licenses(dir)
+    # if `only_subdir` is true, we'll get the paths wrong here.
+    # However, we'll find them w/ correct paths in the next check.
+    license_files = only_subdir ? LicenseTableEltype[] : find_licenses(dir)
     if isdir(pkgdir)
         if !isempty(subdir)
             # Look for licenses at top-level and in the subdirectory
