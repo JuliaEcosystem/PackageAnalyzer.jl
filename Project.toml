@@ -1,7 +1,7 @@
 name = "PackageAnalyzer"
 uuid = "e713c705-17e4-4cec-abe0-95bf5bf3e10c"
 authors = ["Mosè Giordano <mose@gnu.org>"]
-version = "0.2.0"
+version = "1.0.0"
 
 [deps]
 Git = "d7ba0133-e1db-5d97-8f8c-041e4b3a1eb2"
