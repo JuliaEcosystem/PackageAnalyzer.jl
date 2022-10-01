@@ -66,7 +66,7 @@ function Package(name, uuid, repo;
                  lines_of_code=LoCTableEltype[],
                  contributors=ContributionTableElType[],
                  tree_hash=""
-)
+                 )
     return Package(name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
                    license_files, licenses_in_project, lines_of_code, contributors, tree_hash)
@@ -571,7 +571,7 @@ function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="",
 
     Package(name, uuid, repo; subdir, reachable, docs, runtests, travis, appveyor, cirrus,
             circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
-        license_files, licenses_in_project, lines_of_code, contributors, tree_hash)
+            license_files, licenses_in_project, lines_of_code, contributors, tree_hash)
 end
 
 function contribution_table(repo_name; auth)
