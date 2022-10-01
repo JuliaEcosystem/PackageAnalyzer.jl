@@ -60,20 +60,11 @@ function Package(name, uuid, repo;
                  licenses_in_project=String[],
                  lines_of_code=LoCTableEltype[],
                  contributors=ContributionTableElType[],
-                 )
+    tree_hash=""
+)
     return Package(name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
-                   appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
-                   license_files, licenses_in_project, lines_of_code, contributors)
-end
-
-"""
-    RegistryEntry(path::String)
-
-Light data structure pointing to the directory where an entry of a registry is
-stored.
-"""
-struct RegistryEntry
-    path::String
+        appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
+        license_files, licenses_in_project, lines_of_code, contributors, tree_hash)
 end
 
 # define `isequal`, `==`, and `hash` just in terms of the fields
@@ -521,6 +512,7 @@ function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="",
     # we will look for docs, tests, license, and count lines of code
     # in the `pkgdir`; we will look for CI in the `dir`.
     pkgdir = joinpath(dir, subdir)
+    tree_hash = bytes2hex(Pkg.GitTools.tree_hash(pkgdir))
     name, uuid, licenses_in_project = parse_project(pkgdir)
     docs = isfile(joinpath(pkgdir, "docs", "make.jl")) || isfile(joinpath(pkgdir, "doc", "make.jl"))
     runtests = isfile(joinpath(pkgdir, "test", "runtests.jl"))
@@ -569,7 +561,7 @@ function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="",
 
     Package(name, uuid, repo; subdir, reachable, docs, runtests, travis, appveyor, cirrus,
             circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
-            license_files, licenses_in_project, lines_of_code, contributors)
+        license_files, licenses_in_project, lines_of_code, contributors, tree_hash)
 end
 
 function contribution_table(repo_name; auth)
