@@ -309,19 +309,32 @@ function analyze!(root, pkg::PkgEntry; auth::GitHub.Authorization=github_auth(),
     return analyze_path!(dest, repo; name, uuid, subdir, auth, sleep, tree_hash)
 end
 
+function github_extract_code!(dest::AbstractString, user::AbstractString, repo::AbstractString, tree_hash::AbstractString)
+    io = IOBuffer()
+    url = "https://api.github.com/repos/$(user)/$(repo)/tarball/$(tree_hash)"
+    Downloads.download(url, io)
+    seekstart(io)
+    tmp = mktempdir()
+    Tar.extract(GzipDecompressorStream(io), tmp)
+    files = only(readdir(tmp; join=true))
+    isdir(dest) || mkdir(dest)
+    mv(files, dest; force=true)
+    return nothing
+end
+
 """
-    analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid=UUID(UInt128(0)), subdir="", auth=github_auth(), sleep=0, tree_hash=nothing, version) -> Package
+    analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid=UUID(UInt128(0)), subdir="", auth=github_auth(), sleep=0, tree_hash=nothing) -> Package
 
 Analyze the Julia package located at the URL given by `repo` by cloning it to `dest`
-and calling `analyze_path(dest)`.
+and calling `analyze_path(dest)`. If `tree_hash !== nothing`, only the code associated
+to that tree hash is placed into `dest`. That allows analyzing particular version numbers,
+but in the case of packages in subdirectories, it also means that top-level information
+(like CI workflows) is unavailable.
 
 If the clone fails, it returns a `Package` with `reachable=false`. If a `name` and `uuid` are provided,
 these are used to populate the corresponding fields of the `Package`. If the clone succeeds, the `name`
 and `uuid` are taken instead from the Project.toml in the package itself, and the values passed here
 are ignored.
-
-If `tree_hash!==nothing`, attempts to analyze the code associated to that tree hash, instead of the code in
-the latest version of the repo.
 
 If the GitHub authentication `auth` is non-anonymous and the repository is on
 GitHub, the list of contributors to the repository is also collected, after
@@ -341,15 +354,16 @@ function analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid
             run(pipeline(detach(`$(git()) clone -q --depth 1 $(repo) $(dest)`); stdin=devnull, stderr=devnull))
         else
             m = match(r"github.com/(?<user>.*)/(?<repo>.*)\.git", repo)
-            io = IOBuffer()
-            url = "https://api.github.com/repos/$(m[:user])/$(m[:repo])/tarball/$(tree_hash)"
-            Downloads.download(url, io)
-            seekstart(io)
-            tmp = mktempdir()
-            Tar.extract(GzipDecompressorStream(io), tmp)
-            files = only(readdir(tmp; join=true))
-            isdir(dest) || mkdir(dest)
-            mv(files, dest; force=true)
+            if m !== nothing
+                @debug "Downloading code via github api"
+                github_extract_code!(dest, m[:user], m[:repo], tree_hash)
+            else
+                @debug "Falling back to full clone"
+                tmp = mktempdir()
+                run(pipeline(detach(`$(git()) clone -q $(repo) $(tmp)`); stdin=devnull, stderr=devnull))
+                Tar.extract(Cmd(`git archive $tree_hash`; dir=tmp), dest)
+            end
+            # Either way, we've only put the subdir code into `dest`
             only_subdir=true
         end
         true
@@ -481,6 +495,9 @@ Pass the keyword argument `version` to confgiure which version of the code is an
 * `:dev` to use the latest code in the repository
 * `:stable` to use the latest released version of the code, or
 * pass a `VersionNumber` to analyze a particular version of the package.
+
+If `version !== :dev`, only the code associated to that version of the package will be downloaded.
+That means for packages in subdirectories, top-level information (like CI scripts) may be unavailable.
 
 ## Example
 
