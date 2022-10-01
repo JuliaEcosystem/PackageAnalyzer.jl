@@ -51,8 +51,8 @@ struct Package
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
     lines_of_code::Vector{LoCTableEltype} # table of lines of code
     contributors::Vector{ContributionTableElType} # table of contributor data
-    version::AbstractVersion
-    tree_hash::String
+    version::AbstractVersion # the version was asked to be analyzed (`dev` or a `VersionNumber`)
+    tree_hash::String # the tree hash of the code that was analyzed
 end
 function Package(name, uuid, repo;
                  subdir="",
@@ -728,8 +728,8 @@ function analyze_path(dir::AbstractString; repo="", reachable=true, subdir="", a
     end
 
     Package(name, uuid, repo; subdir, reachable, docs, runtests, travis, appveyor, cirrus,
-        circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
-        license_files, licenses_in_project, lines_of_code, contributors, version, tree_hash)
+            circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
+            license_files, licenses_in_project, lines_of_code, contributors, version, tree_hash)
 end
 
 function contribution_table(repo_name; auth)
