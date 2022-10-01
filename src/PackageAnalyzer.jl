@@ -46,6 +46,7 @@ struct Package
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
     lines_of_code::Vector{LoCTableEltype} # table of lines of code
     contributors::Vector{ContributionTableElType} # table of contributor data
+    tree_hash::String
 end
 function Package(name, uuid, repo;
                  subdir="",
