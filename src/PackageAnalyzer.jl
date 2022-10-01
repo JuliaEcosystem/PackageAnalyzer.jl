@@ -65,11 +65,11 @@ function Package(name, uuid, repo;
                  licenses_in_project=String[],
                  lines_of_code=LoCTableEltype[],
                  contributors=ContributionTableElType[],
-    tree_hash=""
+                 tree_hash=""
 )
     return Package(name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
-        appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
-        license_files, licenses_in_project, lines_of_code, contributors, tree_hash)
+                   appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
+                   license_files, licenses_in_project, lines_of_code, contributors, tree_hash)
 end
 
 # define `isequal`, `==`, and `hash` just in terms of the fields
