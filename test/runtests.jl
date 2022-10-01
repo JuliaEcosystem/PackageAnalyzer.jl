@@ -58,7 +58,7 @@ const auth = GitHub.AnonymousAuth()
         @test pkgs isa Vector{Tuple{PkgEntry, PackageAnalyzer.AbstractVersion}}
         few = first(pkgs, 3)
         results = analyze(few; auth)
-        @test length(results) == 3
+        @test length(results) == length(few)
         # Version number saved out
         @test all(results[i].version == few[i][2] for i in 1:length(few))
 

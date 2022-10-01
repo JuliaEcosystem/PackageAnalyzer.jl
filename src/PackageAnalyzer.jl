@@ -328,10 +328,14 @@ function analyze!(root, pkg::PkgEntry; auth::GitHub.Authorization=github_auth(),
             # Stale; cleanup
             rm(dest; recursive=true)
         else
-            # We can re-use it! We've keyed off pkg uuid and tree hash.
-            # We assume no one's messed with the files since.
-            # We pass `only_subdir=true` since that's the state we should be in for non-dev versions.
-            return analyze_path(dest; repo, subdir, auth, sleep, only_subdir=true, version)
+            # We can re-use it! Assuming the contents are correct
+            dest_tree_hash = bytes2hex(Pkg.GitTools.tree_hash(dest))
+            if dest_tree_hash == tree_hash
+                return analyze_path(dest; repo, subdir, auth, sleep, only_subdir=true, version)
+            else
+                @debug "Incorrect contents of $dest"
+                rm(dest; recursive=true)
+            end
         end
     end
 
