@@ -22,10 +22,11 @@ const auth = GitHub.AnonymousAuth()
     @test measurements.runtests
     @test !measurements.buildkite
     @test !isempty(measurements.lines_of_code)
+    packages = find_packages("Cuba", "PolynomialRoots")
     # Test results of a couple of packages.  Same caveat as above
     uuids = only.(uuids_from_name.(Ref(general), ["Cuba", "PolynomialRoots"]))
     # We compare by UUID, since other fields may be initialized or not
-    @test Set(uuids) == Set([x.uuid for x in find_packages("Cuba", "PolynomialRoots")]) == Set([x.uuid for x in find_packages(["Cuba", "PolynomialRoots"])])
+    @test Set(uuids) == Set([x.uuid for x in packages]) == Set([x.uuid for x in find_packages(["Cuba", "PolynomialRoots"])])
     @test uuids ⊆ [x.uuid for x in find_packages()]
     results = analyze(packages; auth)
     cuba, polyroots = results
