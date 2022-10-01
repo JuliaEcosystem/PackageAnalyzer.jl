@@ -523,7 +523,6 @@ function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="",
     # we will look for docs, tests, license, and count lines of code
     # in the `pkgdir`; we will look for CI in the `dir`.
     pkgdir = joinpath(dir, subdir)
-    tree_hash = bytes2hex(Pkg.GitTools.tree_hash(pkgdir))
     name, uuid, licenses_in_project = parse_project(pkgdir)
     docs = isfile(joinpath(pkgdir, "docs", "make.jl")) || isfile(joinpath(pkgdir, "doc", "make.jl"))
     runtests = isfile(joinpath(pkgdir, "test", "runtests.jl"))
@@ -558,6 +557,12 @@ function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="",
     else
         license_files = LicenseTableEltype[]
         lines_of_code = LoCTableEltype[]
+    end
+
+    if isdir(pkgdir)
+        tree_hash = bytes2hex(Pkg.GitTools.tree_hash(pkgdir))
+    else
+        tree_hash = ""
     end
 
     # If the repository is on GitHub and we have a non-anonymous GitHub

@@ -153,6 +153,7 @@ end
     # this package doesn't exist in the repo anymore; let's ensure it doesn't throw
     snoop_compile_analysis = analyze(find_package("SnoopCompileAnalysis"); auth)
     @test isempty(snoop_compile_analysis.lines_of_code)
+    @test isempty(snoop_compile_analysis.tree_hash)
 end
 
 @testset "`parse_project`" begin
