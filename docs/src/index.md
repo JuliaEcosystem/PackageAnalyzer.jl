@@ -32,10 +32,9 @@ a package in a locally-installed registry (the General registry is checked by de
 *NOTE*: the Git repository of the package will be cloned, in order to inspect
 its content.
 
-You can also pass a [`RegistryEntry`](@ref), a simple datastructure which points
-to the directory of the package in the registry, where the file `Package.toml`
-is stored.  The function [`find_package`](@ref) gives you the
-[`RegistryEntry`](@ref) of a package in your local copy of any registry, by
+You can also pass a [`PkgEntry`](@ref) from RegistryInstances.jl. 
+The function [`find_package`](@ref) gives you the
+[`PkgEntry`](@ref) of a package in your local copy of any registry, by
 default the [General registry](https://github.com/JuliaRegistries/General).
 `find_package` is invoked automatically when you pass the name of a package.
 
@@ -146,7 +145,7 @@ To run the analysis for multiple packages you can either use broadcasting
 ```julia
 analyze.(registry_entries)
 ```
-or use the method `analyze(registry_entries::AbstractVector{<:RegistryEntry})` which
+or use the method `analyze(pkg_entries::AbstractVector{<:PkgEntry})` which
 runs the analysis with multiple threads.
 
 You can use the function [`find_packages`](@ref) to find all packages in a given
@@ -166,6 +165,8 @@ Do not abuse this function! Consider using the in-place function `analyze!(root,
 
 !!! warning
     Cloning all the repos in General will take more than 20 GB of disk space and can take up to a few hours to complete.
+
+You can use RegistryInstance's `reachable_registries()` function to find other `RegistryInstance` objects to use for the `registry` keyword argument.
 
 ## License information
 
