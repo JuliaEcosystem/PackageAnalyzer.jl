@@ -292,10 +292,6 @@ function analyze!(root, pkg::PkgEntry; auth::GitHub.Authorization=github_auth(),
     info = registry_info(pkg)
     repo = info.repo
     subdir = something(info.subdir, "")
-    dest = joinpath(root, string(uuid))
-
-    # TODO: we should verify the version we are analyzing exists there...
-    isdir(dest) && return analyze_path(dest; repo, subdir, auth, sleep)
 
     if version === :dev
         tree_hash = nothing
@@ -310,8 +306,24 @@ function analyze!(root, pkg::PkgEntry; auth::GitHub.Authorization=github_auth(),
             tree_hash = bytes2hex(info.version_info[version].git_tree_sha1.bytes)
         end
     end
-
     @debug "Analyzing version $version of $name"
+
+    dest = joinpath(root, string(uuid), string(something(tree_hash, "dev")))
+
+    # Re-use logic.
+    # We can never re-use dev, because maybe it got updated.
+    # However if we have an actual tree hash there, we can use it.
+    if isdir(dest)
+        if version === :dev
+            # Stale; cleanup
+            rm(dest; recursive=true)
+        else
+            # We can re-use it! We've keyed off pkg uuid and tree hash.
+            # We assume no one's messed with the files since.
+            # We pass `only_subdir=true` since that's the state we should be in for non-dev versions.
+            return analyze_path(dest; repo, subdir, auth, sleep, only_subdir=true)
+        end
+    end
 
     return analyze_path!(dest, repo; name, uuid, subdir, auth, sleep, tree_hash, version)
 end
@@ -347,6 +359,7 @@ waiting for `sleep` seconds for each entry.  See
 [`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub authentication.
 """
 function analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid=UUID(UInt128(0)), subdir="", auth=github_auth(), sleep=0, tree_hash=nothing, version=v"0")
+    isdir(dest) || mkpath(dest)
     only_subdir = false
     reachable = try
         # Clone only latest commit on the default branch.  Note: some
