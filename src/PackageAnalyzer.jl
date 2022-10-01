@@ -13,8 +13,10 @@ using Downloads
 using Tar
 using CodecZlib
 
-export general_registry, find_package, find_packages
+export general_registry, find_package, find_packages, find_packages_in_manifest
 export analyze, analyze!
+
+const AbstractVersion = Union{VersionNumber,Symbol}
 
 # borrowed from <https://github.com/JuliaRegistries/RegistryTools.jl/blob/841a56d8274e2857e3fd5ea993ba698cdbf51849/src/builtin_pkgs.jl>
 const stdlibs = isdefined(Pkg.Types, :stdlib) ? Pkg.Types.stdlib : Pkg.Types.stdlibs
@@ -25,8 +27,8 @@ const STDLIBS = Dict(k => get_stdlib_name(v) for (k, v) in stdlibs())
 
 include("count_loc.jl")
 
-const LicenseTableEltype=@NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}
-const ContributionTableElType=@NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int}
+const LicenseTableEltype = @NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}
+const ContributionTableElType = @NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int}
 
 struct Package
     name::String # name of the package
@@ -49,31 +51,33 @@ struct Package
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
     lines_of_code::Vector{LoCTableEltype} # table of lines of code
     contributors::Vector{ContributionTableElType} # table of contributor data
+    version::AbstractVersion
     tree_hash::String
 end
 function Package(name, uuid, repo;
-                 subdir="",
-                 reachable=false,
-                 docs=false,
-                 runtests=false,
-                 github_actions=false,
-                 travis=false,
-                 appveyor=false,
-                 cirrus=false,
-                 circle=false,
-                 drone=false,
-                 buildkite=false,
-                 azure_pipelines=false,
-                 gitlab_pipeline=false,
-                 license_files=LicenseTableEltype[],
-                 licenses_in_project=String[],
-                 lines_of_code=LoCTableEltype[],
-                 contributors=ContributionTableElType[],
-                 tree_hash=""
-                 )
+    subdir="",
+    reachable=false,
+    docs=false,
+    runtests=false,
+    github_actions=false,
+    travis=false,
+    appveyor=false,
+    cirrus=false,
+    circle=false,
+    drone=false,
+    buildkite=false,
+    azure_pipelines=false,
+    gitlab_pipeline=false,
+    license_files=LicenseTableEltype[],
+    licenses_in_project=String[],
+    lines_of_code=LoCTableEltype[],
+    contributors=ContributionTableElType[],
+    version=v"0",
+    tree_hash=""
+)
     return Package(name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
-                   appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
-                   license_files, licenses_in_project, lines_of_code, contributors, tree_hash)
+        appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
+        license_files, licenses_in_project, lines_of_code, contributors, version, tree_hash)
 end
 
 # define `isequal`, `==`, and `hash` just in terms of the fields
@@ -111,8 +115,8 @@ function Base.show(io::IO, p::Package)
             l_docs = count_docs(p)
             l_readme = count_readme(p)
 
-            p_test = @sprintf("%.1f", 100*l_test / (l_test + l_src))
-            p_docs = @sprintf("%.1f", 100*l_docs / (l_docs + l_src))
+            p_test = @sprintf("%.1f", 100 * l_test / (l_test + l_src))
+            p_docs = @sprintf("%.1f", 100 * l_docs / (l_docs + l_src))
             body *= """
                   * Julia code in `src`: $(l_src) lines
                   * Julia code in `test`: $(l_test) lines ($(p_test)% of `test` + `src`)
@@ -144,15 +148,15 @@ function Base.show(io::IO, p::Package)
               * has `test/runtests.jl`: $(p.runtests)
             """
         ci_services = (p.github_actions => "GitHub Actions",
-                       p.travis => "Travis",
-                       p.appveyor => "AppVeyor",
-                       p.cirrus => "Cirrus",
-                       p.circle => "Circle",
-                       p.drone => "Drone CI",
-                       p.buildkite => "Buildkite",
-                       p.azure_pipelines => "Azure Pipelines",
-                       p.gitlab_pipeline => "GitLab Pipeline",
-                       )
+            p.travis => "Travis",
+            p.appveyor => "AppVeyor",
+            p.cirrus => "Cirrus",
+            p.circle => "Circle",
+            p.drone => "Drone CI",
+            p.buildkite => "Buildkite",
+            p.azure_pipelines => "Azure Pipelines",
+            p.gitlab_pipeline => "GitLab Pipeline",
+        )
         if any(first.(ci_services))
             body *= "  * has continuous integration: true\n"
             for (k, v) in ci_services
@@ -218,9 +222,9 @@ or individual package names as separate arguments.
 """
 find_packages
 
-find_packages(names::AbstractString...; registry = general_registry()) =  find_packages(names; registry=registry)
+find_packages(names::AbstractString...; registry=general_registry()) = find_packages(names; registry=registry)
 
-function find_packages(names; registry = general_registry())
+function find_packages(names; registry=general_registry())
     if names !== nothing
         entries = PkgEntry[]
         for name in names
@@ -240,8 +244,8 @@ end
 # The UUID of the "julia" pseudo-package in the General registry
 const JULIA_UUID = UUID("1222c4b2-2114-5bfd-aeef-88e4692bbb3e")
 
-function find_packages(; registry = general_registry(),
-                       filter = ((uuid, p),) -> !endswith(p.name, "_jll") && uuid != JULIA_UUID)
+function find_packages(; registry=general_registry(),
+    filter=((uuid, p),) -> !endswith(p.name, "_jll") && uuid != JULIA_UUID)
     # Get the PkgEntry's of all packages in the registry.  Filter out JLL packages: they are
     # automatically generated and we know that they don't have testing nor
     # documentation. We also filter out the "julia" package which is not a real
@@ -271,7 +275,7 @@ function github_auth(token::String="")
 end
 
 """
-    analyze!(root, package::RegistryEntry; auth::GitHub.Authorization=github_auth()) -> Package
+    analyze!(root, package::PkgEntry; auth::GitHub.Authorization=github_auth()) -> Package
 
 Analyze the package whose entry in the registry is in the `dir` directory,
 cloning the package code to `joinpath(root, uuid)` where `uuid` is the UUID
@@ -282,7 +286,7 @@ the list of contributors to the repository is also collected, after waiting for
 `sleep` seconds.  Only the number of contributors will be shown in the summary.
 See [`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub authentication.
 """
-function analyze!(root, pkg::PkgEntry; auth::GitHub.Authorization=github_auth(), sleep=0, version=:dev)
+function analyze!(root, pkg::PkgEntry; auth::GitHub.Authorization=github_auth(), sleep=0, version::AbstractVersion=:dev)
     name = pkg.name
     uuid = pkg.uuid
     info = registry_info(pkg)
@@ -290,8 +294,9 @@ function analyze!(root, pkg::PkgEntry; auth::GitHub.Authorization=github_auth(),
     subdir = something(info.subdir, "")
     dest = joinpath(root, string(uuid))
 
+    # TODO: we should verify the version we are analyzing exists there...
     isdir(dest) && return analyze_path(dest; repo, subdir, auth, sleep)
-    
+
     if version === :dev
         tree_hash = nothing
     else
@@ -299,6 +304,8 @@ function analyze!(root, pkg::PkgEntry; auth::GitHub.Authorization=github_auth(),
         if version === :stable
             version = maximum(keys(info.version_info))
             tree_hash = bytes2hex(info.version_info[version].git_tree_sha1.bytes)
+        elseif version isa Symbol
+            error("Unrecognized version $version. Must be `:dev`, `:stable`, or a `VersionNumber`.")
         else
             tree_hash = bytes2hex(info.version_info[version].git_tree_sha1.bytes)
         end
@@ -306,16 +313,14 @@ function analyze!(root, pkg::PkgEntry; auth::GitHub.Authorization=github_auth(),
 
     @debug "Analyzing version $version of $name"
 
-    return analyze_path!(dest, repo; name, uuid, subdir, auth, sleep, tree_hash)
+    return analyze_path!(dest, repo; name, uuid, subdir, auth, sleep, tree_hash, version)
 end
 
-function github_extract_code!(dest::AbstractString, user::AbstractString, repo::AbstractString, tree_hash::AbstractString)
-    io = IOBuffer()
-    url = "https://api.github.com/repos/$(user)/$(repo)/tarball/$(tree_hash)"
-    Downloads.download(url, io)
-    seekstart(io)
+function github_extract_code!(dest::AbstractString, user::AbstractString, repo::AbstractString, tree_hash::AbstractString; auth)
+    path = "/repos/$(user)/$(repo)/tarball/$(tree_hash)"
+    resp = GitHub.gh_get(GitHub.DEFAULT_API, path; auth)
     tmp = mktempdir()
-    Tar.extract(GzipDecompressorStream(io), tmp)
+    Tar.extract(GzipDecompressorStream(IOBuffer(resp.body)), tmp)
     files = only(readdir(tmp; join=true))
     isdir(dest) || mkdir(dest)
     mv(files, dest; force=true)
@@ -341,7 +346,7 @@ GitHub, the list of contributors to the repository is also collected, after
 waiting for `sleep` seconds for each entry.  See
 [`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub authentication.
 """
-function analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid=UUID(UInt128(0)), subdir="", auth=github_auth(), sleep=0, tree_hash=nothing)
+function analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid=UUID(UInt128(0)), subdir="", auth=github_auth(), sleep=0, tree_hash=nothing, version=v"0")
     only_subdir = false
     reachable = try
         # Clone only latest commit on the default branch.  Note: some
@@ -356,7 +361,7 @@ function analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid
             m = match(r"github.com/(?<user>.*)/(?<repo>.*)\.git", repo)
             if m !== nothing
                 @debug "Downloading code via github api"
-                github_extract_code!(dest, m[:user], m[:repo], tree_hash)
+                github_extract_code!(dest, m[:user], m[:repo], tree_hash; auth)
             else
                 @debug "Falling back to full clone"
                 tmp = mktempdir()
@@ -364,23 +369,28 @@ function analyze_path!(dest::AbstractString, repo::AbstractString; name="", uuid
                 Tar.extract(Cmd(`git archive $tree_hash`; dir=tmp), dest)
             end
             # Either way, we've only put the subdir code into `dest`
-            only_subdir=true
+            only_subdir = true
         end
         true
     catch e
-        @debug "Error; maybe unreachable" exception=e
+        @debug "Error; maybe unreachable" exception = e
         # The repository may be unreachable
         false
     end
-    return reachable ? analyze_path(dest; repo, reachable, subdir, auth, sleep, only_subdir) : Package(name, uuid, repo; subdir)
+    return reachable ? analyze_path(dest; repo, reachable, subdir, auth, sleep, only_subdir, version) : Package(name, uuid, repo; subdir, version)
 end
 
 """
+    analyze!(root, pkg_entries::AbstractVector{<:Tuple{PkgEntry, $AbstractVersion}}; auth::GitHub.Authorization=github_auth(), sleep=0) -> Vector{Package}
     analyze!(root, pkg_entries::AbstractVector{<:PkgEntry}; auth::GitHub.Authorization=github_auth(), sleep=0) -> Vector{Package}
 
 Analyze all packages in the iterable `pkg_entries`, using threads, cloning them to `root`
 if a directory with their `uuid` does not already exist.  Returns a
 `Vector{Package}`.
+
+Optionally, use pairs `(PkgEntry, $AbstractVersion)` to specify the version numbers, or pass a keyword argument `version`.
+The version number may be a `VersionNumber`, or `:dev`, or `:stable`. When pairs are passed, the
+keyword argument `version` will be ignored.
 
 If the GitHub authentication is non-anonymous and the repository is on GitHub,
 the list of contributors to the repositories is also collected, after waiting
@@ -388,25 +398,32 @@ for `sleep` seconds for each entry (useful to avoid getting rate-limited by
 GitHub).  See [`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub
 authentication.
 """
-function analyze!(root, pkg_entries::AbstractVector{PkgEntry}; auth::GitHub.Authorization=github_auth(), sleep=0, version=:dev)
-    version in (:dev, :stable) || error("Only `:dev` and `:stable` are allowed when analyzing multiple packages")
-
-    inputs = Channel{Tuple{Int, PkgEntry}}(length(pkg_entries))
-    for (i,r) in enumerate(pkg_entries)
-        put!(inputs, (i,r))
+function analyze!(root, pkg_entries::AbstractVector{<:Tuple{PkgEntry,AbstractVersion}}; auth::GitHub.Authorization=github_auth(), sleep=0, version=nothing)
+    inputs = Channel{Tuple{Int,Tuple{PkgEntry,AbstractVersion}}}(length(pkg_entries))
+    for (i, r) in enumerate(pkg_entries)
+        put!(inputs, (i, r))
     end
     close(inputs)
-    outputs = Channel{Tuple{Int, Package}}(length(pkg_entries))
+    outputs = Channel{Tuple{Int,Package}}(length(pkg_entries))
     Threads.foreach(inputs) do (i, r)
-        put!(outputs, (i, analyze!(root, r; auth, sleep, version)))
+        pkg, version = r
+        put!(outputs, (i, analyze!(root, pkg; auth, sleep, version)))
     end
     close(outputs)
-    return last.(sort!(collect(outputs); by = first))
+    return last.(sort!(collect(outputs); by=first))
+end
+
+function analyze!(root, pkg_entries::AbstractVector{PkgEntry}; version=:dev, kw...)
+    if version ∉ (:dev, :stable)
+        throw(ArgumentError("Only `:dev` and `:stable` are allowed as keyword arguments when analyzing multiple packages"))
+    end
+    pkg_entries = [(pkg, version) for pkg in pkg_entries]
+    return analyze!(root, pkg_entries; kw...)
 end
 
 """
-    analyze(package::PkgEntry; auth::GitHub.Authorization=github_auth(), sleep=0, version=:dev) -> Package
-    analyze(packages::AbstractVector{<:PkgEntry}; auth::GitHub.Authorization=github_auth(), sleep=0, version=:dev) -> Vector{Package}
+    analyze(package::PkgEntry; auth::GitHub.Authorization=github_auth(), sleep=0, version::AbstractVersion=:dev) -> Package
+    analyze(packages::AbstractVector{<:PkgEntry}; auth::GitHub.Authorization=github_auth(), sleep=0, version::AbstractVersion=:dev) -> Vector{Package}
 
 Analyzes a package or list of packages using the information in their directory
 in a registry by creating a temporary directory and calling `analyze!`,
@@ -442,13 +459,13 @@ Package BinaryBuilder:
 
 ```
 """
-function analyze(p; auth::GitHub.Authorization=github_auth(), sleep=0, version=:dev)
+function analyze(p; auth::GitHub.Authorization=github_auth(), sleep=0, version::AbstractVersion=:dev)
     root = mktempdir()
     analyze!(root, p; auth, sleep, version)
 end
 
 function parse_project(dir)
-    bad_project = (; name = "Invalid Project.toml", uuid = UUID(UInt128(0)), licenses_in_project=String[])
+    bad_project = (; name="Invalid Project.toml", uuid=UUID(UInt128(0)), licenses_in_project=String[])
     project_path = joinpath(dir, "Project.toml")
     if !isfile(project_path)
         project_path = joinpath(dir, "JuliaProject.toml")
@@ -463,11 +480,11 @@ function parse_project(dir)
     if licenses_in_project isa String
         licenses_in_project = [licenses_in_project]
     end
-    return (; name = project["name"]::String, uuid, licenses_in_project)
+    return (; name=project["name"]::String, uuid, licenses_in_project)
 end
 
 """
-    analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth(), version=:dev)
+    analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth(), version::AbstractVersion=:dev)
 
 Analyze the package pointed to by the mandatory argument and return a summary of
 its properties.
@@ -527,7 +544,7 @@ Package Pluto:
     * GitHub Actions
 ```
 """
-function analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth(), sleep=0, version=:dev)
+function analyze(name_or_dir_or_url::AbstractString; repo="", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth(), sleep=0, version::AbstractVersion=:dev)
     if Base.isidentifier(name_or_dir_or_url)
         # The argument looks like a package name rather than a directory: find
         # the package in `registry` and analyze it
@@ -570,6 +587,48 @@ Package DataFrames:
 """
 analyze(m::Module; kwargs...) = analyze_path(pkgdir(m); kwargs...)
 
+function match_pkg(uuid, version, registries)
+    for r in registries
+        haskey(r.pkgs, uuid) || continue
+        # Ok the registry has the package. Does it have the version we need?
+        pkg = r.pkgs[uuid]
+        info = registry_info(pkg)
+        haskey(info.version_info, version) || continue
+        # Yes it does
+        return pkg
+    end
+    return nothing
+end
+
+function find_packages_in_manifest(path_to_manifest; registries=reachable_registries())
+    manifest = TOML.parsefile(path_to_manifest)
+    format = parse(VersionNumber, get(manifest, "manifest_format", "1.0"))
+    if format.major == 2
+        pkgs = manifest["deps"]
+    elseif format.major == 1
+        pkgs = manifest
+    else
+        error("Unsupported Manifest format $format")
+    end
+    results = Tuple{PkgEntry,AbstractVersion}[]
+    for (name, list) in pkgs
+        for manifest_entry in list
+            uuid = UUID(manifest_entry["uuid"]::String)
+            if uuid in keys(STDLIBS)
+                continue
+            end
+            version = VersionNumber(manifest_entry["version"]::String)
+            pkg = match_pkg(uuid, version, registries)
+            if pkg === nothing
+                @error("Could not find (package, version) pair in any registry!", name, uuid, version)
+            else
+                push!(results, (pkg, version))
+            end
+        end
+    end
+    return results
+end
+
 
 """
     analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="", auth::GitHub.Authorization=github_auth(), sleep=0, only_subdir=false) -> Package
@@ -583,7 +642,7 @@ its contributors.
 `dir` points only to that code and we do not have access to the top-level code. We still pass non-empty `subdir`
 in this case, to record the fact that the package does indeed live in a subdirectory.
 """
-function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="", auth::GitHub.Authorization=github_auth(), sleep=0, only_subdir=false)
+function analyze_path(dir::AbstractString; repo="", reachable=true, subdir="", auth::GitHub.Authorization=github_auth(), sleep=0, only_subdir=false, version=v"0")
     # we will look for docs, tests, license, and count lines of code
     # in the `pkgdir`; we will look for CI in the `dir`.
     if only_subdir
@@ -614,13 +673,13 @@ function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="",
     else
         github_actions = false
     end
-    # if `only_subdir` is true, we'll get the paths wrong here.
+    # if `only_subdir` is true, and we are indeed in a subdirectory, we'll get the paths wrong here.
     # However, we'll find them w/ correct paths in the next check.
-    license_files = only_subdir ? LicenseTableEltype[] : find_licenses(dir)
+    license_files = only_subdir && !isempty(subdir) ? LicenseTableEltype[] : find_licenses(dir)
     if isdir(pkgdir)
         if !isempty(subdir)
             # Look for licenses at top-level and in the subdirectory
-            subdir_licenses_files = [(; license_filename = joinpath(subdir, row.license_filename), row.licenses_found, row.license_file_percent_covered) for row in find_licenses(pkgdir)]
+            subdir_licenses_files = [(; license_filename=joinpath(subdir, row.license_filename), row.licenses_found, row.license_file_percent_covered) for row in find_licenses(pkgdir)]
             license_files = [subdir_licenses_files; license_files]
         end
         lines_of_code = count_loc(pkgdir)
@@ -646,15 +705,15 @@ function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="",
     end
 
     Package(name, uuid, repo; subdir, reachable, docs, runtests, travis, appveyor, cirrus,
-            circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
-            license_files, licenses_in_project, lines_of_code, contributors, tree_hash)
+        circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
+        license_files, licenses_in_project, lines_of_code, contributors, version, tree_hash)
 end
 
 function contribution_table(repo_name; auth)
     return try
-        parse_contributions.(GitHub.contributors(GitHub.Repo(repo_name); auth, params=Dict("anon"=>"true"))[1])
+        parse_contributions.(GitHub.contributors(GitHub.Repo(repo_name); auth, params=Dict("anon" => "true"))[1])
     catch e
-        @error "Could not obtain contributors for $(repo_name)" exception=(e, catch_backtrace())
+        @error "Could not obtain contributors for $(repo_name)" exception = (e, catch_backtrace())
         ContributionTableElType[]
     end
 end
@@ -662,9 +721,9 @@ end
 function parse_contributions(c)
     contrib = c["contributor"]
     if contrib.typ == "Anonymous"
-        return (; login = missing, id = missing, contrib.name, type=contrib.typ, contributions = c["contributions"])
+        return (; login=missing, id=missing, contrib.name, type=contrib.typ, contributions=c["contributions"])
     else
-        return (; contrib.login, contrib.id, name = missing, type=contrib.typ, contributions = c["contributions"])
+        return (; contrib.login, contrib.id, name=missing, type=contrib.typ, contributions=c["contributions"])
     end
 end
 
@@ -682,7 +741,7 @@ count_contributors(pkg::Package; kwargs...) = count_contributors(pkg.contributor
 
 count_julia_loc(table, dir) = sum(row.code for row in table if row.directory == dir && row.language == :Julia; init=0)
 
-function count_docs(table, dirs = ("docs", "doc"))
+function count_docs(table, dirs=("docs", "doc"))
     rm_langs = (:TOML, :SVG, :CSS, :Javascript)
     sum(row.code + row.comments for row in table if lowercase(row.directory) in dirs && row.language ∉ rm_langs && row.sublanguage ∉ rm_langs; init=0)
 end
