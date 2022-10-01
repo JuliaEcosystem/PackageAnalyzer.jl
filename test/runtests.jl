@@ -20,6 +20,7 @@ const auth = GitHub.AnonymousAuth()
     @test measurements.reachable
     @test measurements.docs
     @test measurements.runtests
+    @test !isempty(measurements.tree_hash)
     @test !measurements.buildkite
     @test !isempty(measurements.lines_of_code)
     packages = find_packages("Cuba", "PolynomialRoots")
