@@ -253,7 +253,6 @@ function find_packages(; registry=general_registry(),
     return collect(values(Base.filter(filter, registry.pkgs)))
 end
 
-
 """
     PackageAnalyzer.github_auth(token::String="")
 
@@ -275,7 +274,7 @@ function github_auth(token::String="")
 end
 
 """
-    analyze!(root, package::PkgEntry; auth::GitHub.Authorization=github_auth()) -> Package
+    analyze!(root, package::PkgEntry; auth::GitHub.Authorization=github_auth(), version::$AbstractVersion=:dev) -> Package
 
 Analyze the package whose entry in the registry is in the `dir` directory,
 cloning the package code to `joinpath(root, uuid)` where `uuid` is the UUID
@@ -294,21 +293,28 @@ function analyze!(root, pkg::PkgEntry; auth::GitHub.Authorization=github_auth(),
     subdir = something(info.subdir, "")
 
     if version === :dev
-        tree_hash = nothing
+        tree_sha = nothing
     else
         info = registry_info(pkg)
         if version === :stable
             version = maximum(keys(info.version_info))
-            tree_hash = bytes2hex(info.version_info[version].git_tree_sha1.bytes)
+            tree_sha = info.version_info[version].git_tree_sha1
         elseif version isa Symbol
             error("Unrecognized version $version. Must be `:dev`, `:stable`, or a `VersionNumber`.")
         else
-            tree_hash = bytes2hex(info.version_info[version].git_tree_sha1.bytes)
+            tree_sha = info.version_info[version].git_tree_sha1
         end
     end
+    if tree_sha === nothing
+        tree_hash = nothing
+    else
+        tree_hash = bytes2hex(tree_sha.bytes)
+    end
+
     @debug "Analyzing version $version of $name"
 
-    dest = joinpath(root, string(uuid), string(something(tree_hash, "dev")))
+    vs = tree_sha === nothing ? "dev" : Base.version_slug(uuid, tree_sha)
+    dest = joinpath(root, name, vs)
 
     # Re-use logic.
     # We can never re-use dev, because maybe it got updated.
@@ -321,7 +327,7 @@ function analyze!(root, pkg::PkgEntry; auth::GitHub.Authorization=github_auth(),
             # We can re-use it! We've keyed off pkg uuid and tree hash.
             # We assume no one's messed with the files since.
             # We pass `only_subdir=true` since that's the state we should be in for non-dev versions.
-            return analyze_path(dest; repo, subdir, auth, sleep, only_subdir=true)
+            return analyze_path(dest; repo, subdir, auth, sleep, only_subdir=true, version)
         end
     end
 
@@ -563,7 +569,8 @@ function analyze(name_or_dir_or_url::AbstractString; repo="", reachable=true, su
         # the package in `registry` and analyze it
         return analyze(find_package(name_or_dir_or_url; registry); auth, sleep, version)
     elseif isdir(name_or_dir_or_url)
-        return analyze_path(name_or_dir_or_url; repo, reachable, subdir, auth, sleep, version)
+        # We don't know the version for a pre-existing directory, so set it to `v"0"`.
+        return analyze_path(name_or_dir_or_url; repo, reachable, subdir, auth, sleep, version=v"0")
     else
         repo = name_or_dir_or_url
         dest = mktempdir()
@@ -644,7 +651,7 @@ end
 
 
 """
-    analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="", auth::GitHub.Authorization=github_auth(), sleep=0, only_subdir=false) -> Package
+    analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="", auth::GitHub.Authorization=github_auth(), sleep=0, only_subdir=false, version=v"0") -> Package
 
 Analyze the package whose source code is located at the local path `dir`.  If
 the package's repository is hosted on GitHub and `auth` is a non-anonymous
@@ -654,6 +661,9 @@ its contributors.
 `only_subdir` indicates that while the package's code does live in a subdirectory of the repo,
 `dir` points only to that code and we do not have access to the top-level code. We still pass non-empty `subdir`
 in this case, to record the fact that the package does indeed live in a subdirectory.
+
+Pass `version` to store the associated version number. Since this call only has access to files on disk, it does not
+know the associated version number in any registry.
 """
 function analyze_path(dir::AbstractString; repo="", reachable=true, subdir="", auth::GitHub.Authorization=github_auth(), sleep=0, only_subdir=false, version=v"0")
     # we will look for docs, tests, license, and count lines of code

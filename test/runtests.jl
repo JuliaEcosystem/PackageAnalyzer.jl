@@ -42,11 +42,33 @@ const auth = GitHub.AnonymousAuth()
     mktempdir() do root
         measurements2 = analyze!(root, find_package("Measurements"); auth)
         @test isequal(measurements, measurements2)
-        @test isdir(joinpath(root, "eff96d63-e80a-5855-80a2-b1b0885c5ab7")) # not cleaned up yet
+        @test isdir(joinpath(root, "Measurements", "dev")) # not cleaned up yet
+        @test measurements.version == :dev
+
+        measurements3 = analyze!(root, find_package("Measurements"); auth, version=v"2.8.0")
+        @test !isequal(measurements, measurements3) # different versions
+        @test measurements3.version == v"2.8.0"
+        @test isdir(joinpath(root, "Measurements", "PwGjt")) # not cleaned up yet
     end
 end
 
+@testset "find_packages_in_manifest" begin
+    pkgs = find_packages_in_manifest(joinpath(dirname(Base.active_project()), "Manifest.toml"))
+    @test pkgs isa Vector{Tuple{PkgEntry, PackageAnalyzer.AbstractVersion}}
+    few = first(pkgs, 3)
+    results = analyze(few)
+    @test length(results) == 3
+    # Version number saved out
+    @test all(results[i].version == few[i][2] for i in 1:length(few))
+
+    # same through `analyze!`
+    root = mktempdir()
+    results2 = analyze!(root, few)
+    @test results == results2
+end
+
 @testset "`analyze`" begin
+    # `dev` analysis:
     for pkg in (analyze(PackageAnalyzer; auth), analyze("https://github.com/giordano/PackageAnalyzer.jl"; auth), analyze(joinpath(@__DIR__, ".."); auth))
         @test pkg.uuid == UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c")
         @test pkg.reachable == true # default
@@ -71,20 +93,50 @@ end
     # the tests folder isn't a package!
     # But this helps catch issues in error paths for when things go wrong
     bad_pkg = analyze(@__DIR__; auth)
-    @test bad_pkg.repo == ""
+    @test bad_pkg.version == v"0"
     @test bad_pkg.uuid == UUID(UInt128(0))
     @test !bad_pkg.cirrus
     @test isempty(bad_pkg.license_files)
     @test isempty(bad_pkg.licenses_in_project)
+    @test bad_pkg.version == v"0"
+
 
     # The argument is a package name
     pkg = analyze("Pluto"; auth)
+    @test pkg.version == :dev
+
     # Just make sure we got the UUID correctly and some statistics are collected.
     @test pkg.uuid == UUID("c3e4b0f8-55cb-11ea-2926-15256bba5781")
     @test !isempty(pkg.license_files)
     @test !isempty(pkg.lines_of_code)
     # The argument looks like a package name but it isn't a registered package
     @test_logs (:error, r"Could not find package in registry") match_mode=:any @test_throws ArgumentError analyze("license_in_project"; auth)
+
+    old = analyze("PackageAnalyzer"; version=v"0.1", auth)
+    @test old.version == v"0.1" # we save out the version number
+    @test old.tree_hash == "a4cb0648ddcbeb6bc161f87906a0c17c456a27dc"
+    @test old.docs == true
+    @test old.subdir == ""
+    # This shouln't change, unless we change *how* we count LoC, since the code is fixed:
+    @test PackageAnalyzer.count_julia_loc(old.lines_of_code, "src") == 549
+
+    root = mktempdir()
+    old2 = analyze!(root, find_package("PackageAnalyzer"); version=v"0.1", auth)
+    @test isequal(old, old2)
+
+    dev = analyze!(root, find_package("PackageAnalyzer"); version=:dev, auth)
+    @test !isequal(old, dev) # different
+
+    # Should not re-download or collide w/ dev download
+    old3 = analyze!(root, find_package("PackageAnalyzer"); version=v"0.1", auth)
+    @test isequal(old, old3)
+
+    stable = analyze!(root, find_package("PackageAnalyzer"); version=:stable, auth)
+    # For `stable`, we save out the corresponding `VersionNumber`
+    @test stable.version isa VersionNumber
+
+
+
 end
 
 @testset "`find_packages` with `analyze`" begin
