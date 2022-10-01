@@ -1,8 +1,9 @@
 using Test, UUIDs
 using PackageAnalyzer
-using PackageAnalyzer: parse_project, RegistryEntry
+using PackageAnalyzer: parse_project
 using JLLWrappers
 using GitHub
+using RegistryInstances
 
 get_libpath() = get(ENV, JLLWrappers.LIBPATH_env, nothing)
 const orig_libpath = get_libpath()
@@ -11,36 +12,34 @@ const auth = GitHub.AnonymousAuth()
 
 @testset "PackageAnalyzer" begin
     general = general_registry()
-    @test isdir(general)
-    @test all(p -> isdir(p.path), find_packages())
-    @test find_package("julia") ∉ find_packages()
-    @test all(p -> isdir(p.path), find_packages("Flux"))
-    @test isdir(find_package("Flux").path)
+    @test general isa RegistryInstance
     # Test some properties of the `Measurements` package.  NOTE: they may change
     # in the future!
-    measurements = analyze(RegistryEntry(joinpath(general, "M", "Measurements")); auth)
+    measurements = analyze(find_package("Measurements"); auth)
     @test measurements.uuid == UUID("eff96d63-e80a-5855-80a2-b1b0885c5ab7")
     @test measurements.reachable
     @test measurements.docs
     @test measurements.runtests
     @test !measurements.buildkite
     @test !isempty(measurements.lines_of_code)
+    packages = find_packages("Cuba", "PolynomialRoots")
     # Test results of a couple of packages.  Same caveat as above
-    packages = [RegistryEntry(joinpath(general, p...)) for p in (("C", "Cuba"), ("P", "PolynomialRoots"))]
-    @test Set(packages) == Set(find_packages("Cuba", "PolynomialRoots")) == Set(find_packages(["Cuba", "PolynomialRoots"]))
-    @test packages ⊆ find_packages()
+    uuids = only.(uuids_from_name.(Ref(general), ["Cuba", "PolynomialRoots"]))
+    # We compare by UUID, since other fields may be initialized or not
+    @test Set(uuids) == Set([x.uuid for x in packages]) == Set([x.uuid for x in find_packages(["Cuba", "PolynomialRoots"])])
+    @test uuids ⊆ [x.uuid for x in find_packages()]
     results = analyze(packages; auth)
     cuba, polyroots = results
     @test length(filter(p -> p.reachable, results)) == 2
     @test length(filter(p -> p.runtests, results)) == 2
-    @test cuba.drone
+    @test cuba.cirrus
     @test !polyroots.docs # Documentation is in the README!
     # We can also use broadcasting!
     @test Set(results) == Set(analyze.(packages; auth))
 
     # Test `analyze!` directly
     mktempdir() do root
-        measurements2 = analyze!(root, RegistryEntry(joinpath(general, "M", "Measurements")); auth)
+        measurements2 = analyze!(root, find_package("Measurements"); auth)
         @test isequal(measurements, measurements2)
         @test isdir(joinpath(root, "eff96d63-e80a-5855-80a2-b1b0885c5ab7")) # not cleaned up yet
     end
@@ -70,7 +69,7 @@ end
 
     # the tests folder isn't a package!
     # But this helps catch issues in error paths for when things go wrong
-    bad_pkg = analyze("."; auth)
+    bad_pkg = analyze(@__DIR__; auth)
     @test bad_pkg.repo == ""
     @test bad_pkg.uuid == UUID(UInt128(0))
     @test !bad_pkg.cirrus
@@ -172,11 +171,11 @@ end
 
     # has `license = "MIT"`
     project_1 = (; name = "PackageAnalyzer", uuid = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c"), licenses_in_project=["MIT"])
-    @test parse_project("license_in_project") == project_1
+    @test parse_project(joinpath(@__DIR__, "license_in_project")) == project_1
 
     # has `license = ["MIT", "GPL"]`
     project_2 = (; name = "PackageAnalyzer", uuid = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c"), licenses_in_project=["MIT", "GPL"])
-    @test parse_project("licenses_in_project") == project_2
+    @test parse_project(joinpath(@__DIR__, "licenses_in_project")) == project_2
 end
 
 @testset "`show`" begin
