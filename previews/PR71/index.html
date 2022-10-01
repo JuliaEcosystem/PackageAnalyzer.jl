@@ -5,34 +5,34 @@ julia&gt; analyze(&quot;Flux&quot;)
 Package Flux:
   * repo: https://github.com/FluxML/Flux.jl.git
   * uuid: 587475ba-b771-5e3f-ad9e-33799f191a9c
+  * version: dev
   * is reachable: true
-  * Julia code in `src`: 5496 lines
-  * Julia code in `test`: 2432 lines (30.7% of `test` + `src`)
-  * documention in `docs`: 1533 lines (21.8% of `docs` + `src`)
-  * documention in README: 10 lines
+  * tree hash: d6a6169b154b554bec101a3d3a63e02b6ac3557d
+  * Julia code in `src`: 5300 lines
+  * Julia code in `test`: 3034 lines (36.4% of `test` + `src`)
+  * documention in `docs`: 1893 lines (26.3% of `docs` + `src`)
+  * documention in README: 15 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
-  * number of contributors: 159 (and 7 anonymous contributors)
-  * number of commits: 3794
   * has `docs/make.jl`: true
   * has `test/runtests.jl`: true
   * has continuous integration: true
     * GitHub Actions
-    * Buildkite</code></pre><p>The argument is a string pointing towards a local path or the name of a package in a locally-installed registry (the General registry is checked by default).</p><p><em>NOTE</em>: the Git repository of the package will be cloned, in order to inspect its content.</p><p>You can also pass a <a href="@ref"><code>PkgEntry</code></a> from RegistryInstances.jl.  The function <a href="api/#PackageAnalyzer.find_package-Tuple{AbstractString}"><code>find_package</code></a> gives you the <a href="@ref"><code>PkgEntry</code></a> of a package in your local copy of any registry, by default the <a href="https://github.com/JuliaRegistries/General">General registry</a>. <code>find_package</code> is invoked automatically when you pass the name of a package.</p><pre><code class="language-julia hljs">julia&gt; analyze(find_package(&quot;JuMP&quot;))
+    * Buildkite</code></pre><p>The argument is a string pointing towards a local path or the name of a package in a locally-installed registry (the General registry is checked by default).</p><p><em>NOTE</em>: the Git repository of the package will be cloned, in order to inspect its content.</p><p>You can also pass a <a href="@ref"><code>PkgEntry</code></a> from RegistryInstances.jl.  The function <a href="api/#PackageAnalyzer.find_package-Tuple{AbstractString}"><code>find_package</code></a> gives you the <a href="@ref"><code>PkgEntry</code></a> of a package in your local copy of any registry, by default the <a href="https://github.com/JuliaRegistries/General">General registry</a>. <code>find_package</code> is invoked automatically when you pass the name of a package.</p><pre><code class="language-julia hljs">julia&gt; analyze(find_package(&quot;JuMP&quot;); version=v&quot;1&quot;)
 Package JuMP:
   * repo: https://github.com/jump-dev/JuMP.jl.git
   * uuid: 4076af6c-e467-56ae-b986-b466b2749572
+  * version: 1.0.0
   * is reachable: true
-  * Julia code in `src`: 16418 lines
-  * Julia code in `test`: 11388 lines (41.0% of `test` + `src`)
-  * documention in `docs`: 10970 lines (40.1% of `docs` + `src`)
-  * documention in README: 78 lines
+  * tree hash: 936e7ebf6c84f0c0202b83bb22461f4ebc5c9969
+  * Julia code in `src`: 16906 lines
+  * Julia code in `test`: 12777 lines (43.0% of `test` + `src`)
+  * documention in `docs`: 15978 lines (48.6% of `docs` + `src`)
+  * documention in README: 79 lines
   * has license(s) in file: MPL-2.0
     * filename: LICENSE.md
     * OSI approved: true
-  * number of contributors: 106 (and 4 anonymous contributors)
-  * number of commits: 4128
   * has `docs/make.jl`: true
   * has `test/runtests.jl`: true
   * has continuous integration: true
@@ -42,11 +42,13 @@ julia&gt; analyze(PackageAnalyzer)
 Package PackageAnalyzer:
   * repo: 
   * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
+  * version: 0.0.0
   * is reachable: true
-  * Julia code in `src`: 574 lines
-  * Julia code in `test`: 142 lines (19.8% of `test` + `src`)
-  * documention in `docs`: 267 lines (31.7% of `docs` + `src`)
-  * documention in README: 41 lines
+  * tree hash: 99f489846e107d7dc06081d3ccb930d15590541f
+  * Julia code in `src`: 729 lines
+  * Julia code in `test`: 178 lines (19.6% of `test` + `src`)
+  * documention in `docs`: 267 lines (26.8% of `docs` + `src`)
+  * documention in README: 44 lines
   * has license(s) in file: MIT
     * filename: LICENSE
     * OSI approved: true
@@ -59,10 +61,12 @@ julia&gt; analyze(pkgdir(DataFrames))
 Package DataFrames:
   * repo: 
   * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
+  * version: 0.0.0
   * is reachable: true
-  * Julia code in `src`: 15809 lines
-  * Julia code in `test`: 17512 lines (52.6% of `test` + `src`)
-  * documention in `docs`: 3885 lines (19.7% of `docs` + `src`)
+  * tree hash: db2a9cb664fcea7836da4b414c3278d71dd602d2
+  * Julia code in `src`: 15628 lines
+  * Julia code in `test`: 21089 lines (57.4% of `test` + `src`)
+  * documention in `docs`: 6270 lines (28.6% of `docs` + `src`)
   * documention in README: 21 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
@@ -93,14 +97,10 @@ Package DataFrames:
     contributors::Vector{@NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int}} # table of contributor data
     tree_hash::String # `git_tree_sha1` hash of the analyzed code
     version::Union{Symbol, VersionNumber} # the version that was analyzed; either `dev` for the latest release at the time, or a `VersionNumber`.
-end</code></pre><h2 id="Analyzing-multiple-packages"><a class="docs-heading-anchor" href="#Analyzing-multiple-packages">Analyzing multiple packages</a><a id="Analyzing-multiple-packages-1"></a><a class="docs-heading-anchor-permalink" href="#Analyzing-multiple-packages" title="Permalink"></a></h2><p>To run the analysis for multiple packages you can either use broadcasting</p><pre><code class="language-julia hljs">analyze.(registry_entries)</code></pre><p>or use the method <code>analyze(pkg_entries::AbstractVector{&lt;:PkgEntry})</code> which runs the analysis with multiple threads.</p><p>You can use the function <a href="api/#PackageAnalyzer.find_packages"><code>find_packages</code></a> to find all packages in a given registry:</p><pre><code class="language-julia hljs">julia&gt; find_packages(; registry=general_registry())
-4632-element Vector{PackageAnalyzer.RegistryEntry}:
- PackageAnalyzer.RegistryEntry(&quot;/Users/eph/.julia/registries/General/C/CitableImage&quot;)
- PackageAnalyzer.RegistryEntry(&quot;/Users/eph/.julia/registries/General/T/Trixi2Img&quot;)
- PackageAnalyzer.RegistryEntry(&quot;/Users/eph/.julia/registries/General/I/ImPlot&quot;)
- PackageAnalyzer.RegistryEntry(&quot;/Users/eph/.julia/registries/General/S/StableDQMC&quot;)
- PackageAnalyzer.RegistryEntry(&quot;/Users/eph/.julia/registries/General/S/Strapping&quot;)
-[...]</code></pre><p>Do not abuse this function! Consider using the in-place function <code>analyze!(root, registry_entries)</code> to avoid re-cloning packages if you might run the analysis more than once.</p><div class="admonition is-warning"><header class="admonition-header">Warning</header><div class="admonition-body"><p>Cloning all the repos in General will take more than 20 GB of disk space and can take up to a few hours to complete.</p></div></div><p>You can use RegistryInstance&#39;s <code>reachable_registries()</code> function to find other <code>RegistryInstance</code> objects to use for the <code>registry</code> keyword argument.</p><h2 id="License-information"><a class="docs-heading-anchor" href="#License-information">License information</a><a id="License-information-1"></a><a class="docs-heading-anchor-permalink" href="#License-information" title="Permalink"></a></h2><p>The <code>license_files</code> field of the <code>Package</code> object is a <a href="https://github.com/JuliaData/Tables.jl"><code>Tables.jl</code></a> row table containing much more detailed information about any or all files containing licenses, identified by <a href="https://github.com/google/licensecheck"><code>licensecheck</code></a> via <a href="https://github.com/ericphanson/LicenseCheck.jl">LicenseCheck.jl</a>. For example, <a href="https://github.com/jean-pierreBoth/RandomProjectionTree.jl">RandomProjectionTree.jl</a> is dual licensed under both Apache-2.0 and the MIT license, and provides two separate license files. Interestingly, the README is also identified as containing an Apache-2.0 license; I&#39;ve filed an <a href="https://github.com/google/licensecheck/issues/40">issue</a> to see if this is intentional.</p><pre><code class="language-julia hljs">julia&gt; using PackageAnalyzer, DataFrames
+end</code></pre><h2 id="Analyzing-multiple-packages"><a class="docs-heading-anchor" href="#Analyzing-multiple-packages">Analyzing multiple packages</a><a id="Analyzing-multiple-packages-1"></a><a class="docs-heading-anchor-permalink" href="#Analyzing-multiple-packages" title="Permalink"></a></h2><p>To run the analysis for multiple packages you can either use broadcasting</p><pre><code class="language-julia hljs">analyze.(registry_entries)</code></pre><p>or use the method <code>analyze(pkg_entries::AbstractVector{&lt;:PkgEntry})</code> which runs the analysis with multiple threads.</p><p>You can use the function <a href="api/#PackageAnalyzer.find_packages"><code>find_packages</code></a> to find all packages in a given registry:</p><pre><code class="language-julia hljs">julia&gt; result = find_packages(; registry=general_registry());
+
+julia&gt; summary(result)
+&quot;7213-element Vector{PkgEntry}&quot;</code></pre><p>Do not abuse this function! Consider using the in-place function <code>analyze!(root, registry_entries)</code> to avoid re-cloning packages if you might run the analysis more than once.</p><div class="admonition is-warning"><header class="admonition-header">Warning</header><div class="admonition-body"><p>Cloning all the repos in General will take more than 20 GB of disk space and can take up to a few hours to complete.</p></div></div><p>You can use RegistryInstance&#39;s <code>reachable_registries()</code> function to find other <code>RegistryInstance</code> objects to use for the <code>registry</code> keyword argument.</p><h2 id="License-information"><a class="docs-heading-anchor" href="#License-information">License information</a><a id="License-information-1"></a><a class="docs-heading-anchor-permalink" href="#License-information" title="Permalink"></a></h2><p>The <code>license_files</code> field of the <code>Package</code> object is a <a href="https://github.com/JuliaData/Tables.jl"><code>Tables.jl</code></a> row table containing much more detailed information about any or all files containing licenses, identified by <a href="https://github.com/google/licensecheck"><code>licensecheck</code></a> via <a href="https://github.com/ericphanson/LicenseCheck.jl">LicenseCheck.jl</a>. For example, <a href="https://github.com/jean-pierreBoth/RandomProjectionTree.jl">RandomProjectionTree.jl</a> is dual licensed under both Apache-2.0 and the MIT license, and provides two separate license files. Interestingly, the README is also identified as containing an Apache-2.0 license; I&#39;ve filed an <a href="https://github.com/google/licensecheck/issues/40">issue</a> to see if this is intentional.</p><pre><code class="language-julia hljs">julia&gt; using PackageAnalyzer, DataFrames
 
 julia&gt; result = analyze(&quot;RandomProjectionTree&quot;);
 
@@ -160,4 +160,4 @@ julia&gt; sort!(df, :contributions, rev=true)
   13 │ doobwa                  79467  missing        User                  32
   14 │ HarlanH                130809  missing        User                  32
   15 │ kmsquire               223250  missing        User                  30
-  ⋮  │          ⋮              ⋮            ⋮            ⋮            ⋮</code></pre><h2 id="GitHub-authentication"><a class="docs-heading-anchor" href="#GitHub-authentication">GitHub authentication</a><a id="GitHub-authentication-1"></a><a class="docs-heading-anchor-permalink" href="#GitHub-authentication" title="Permalink"></a></h2><p>If you have a <a href="https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token">GitHub Personal Access Token</a>, you can obtain some extra information about packages whose repository is hosted on GitHub (e.g. the list of contributors).  If you store the token as an environment variable called <code>GITHUB_TOKEN</code> or <code>GITHUB_AUTH</code>, this will be automatically used whenever possible, otherwise you can generate a GitHub authentication with the <a href="api/#PackageAnalyzer.github_auth"><code>PackageAnalyzer.github_auth</code></a> function and pass it to the functions accepting the <code>auth::GitHub.Authorization</code> keyword argument.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="api/">API Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Saturday 1 October 2022 19:48">Saturday 1 October 2022</span>. Using Julia version 1.6.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+  ⋮  │          ⋮              ⋮            ⋮            ⋮            ⋮</code></pre><h2 id="GitHub-authentication"><a class="docs-heading-anchor" href="#GitHub-authentication">GitHub authentication</a><a id="GitHub-authentication-1"></a><a class="docs-heading-anchor-permalink" href="#GitHub-authentication" title="Permalink"></a></h2><p>If you have a <a href="https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token">GitHub Personal Access Token</a>, you can obtain some extra information about packages whose repository is hosted on GitHub (e.g. the list of contributors).  If you store the token as an environment variable called <code>GITHUB_TOKEN</code> or <code>GITHUB_AUTH</code>, this will be automatically used whenever possible, otherwise you can generate a GitHub authentication with the <a href="api/#PackageAnalyzer.github_auth"><code>PackageAnalyzer.github_auth</code></a> function and pass it to the functions accepting the <code>auth::GitHub.Authorization</code> keyword argument.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="api/">API Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.23 on <span class="colophon-date" title="Saturday 1 October 2022 19:53">Saturday 1 October 2022</span>. Using Julia version 1.6.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
