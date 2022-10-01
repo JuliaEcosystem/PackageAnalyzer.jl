@@ -46,6 +46,7 @@ struct Package
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
     lines_of_code::Vector{LoCTableEltype} # table of lines of code
     contributors::Vector{ContributionTableElType} # table of contributor data
+    tree_hash::String
 end
 function Package(name, uuid, repo;
                  subdir="",
@@ -65,10 +66,11 @@ function Package(name, uuid, repo;
                  licenses_in_project=String[],
                  lines_of_code=LoCTableEltype[],
                  contributors=ContributionTableElType[],
+                 tree_hash=""
                  )
     return Package(name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
-                   license_files, licenses_in_project, lines_of_code, contributors)
+                   license_files, licenses_in_project, lines_of_code, contributors, tree_hash)
 end
 
 # define `isequal`, `==`, and `hash` just in terms of the fields
@@ -557,6 +559,12 @@ function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="",
         lines_of_code = LoCTableEltype[]
     end
 
+    if isdir(pkgdir)
+        tree_hash = bytes2hex(Pkg.GitTools.tree_hash(pkgdir))
+    else
+        tree_hash = ""
+    end
+
     # If the repository is on GitHub and we have a non-anonymous GitHub
     # authentication, get the list of contributors
     contributors = if !(auth isa GitHub.AnonymousAuth) && occursin("github.com", repo)
@@ -569,7 +577,7 @@ function analyze_path(dir::AbstractString; repo = "", reachable=true, subdir="",
 
     Package(name, uuid, repo; subdir, reachable, docs, runtests, travis, appveyor, cirrus,
             circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
-            license_files, licenses_in_project, lines_of_code, contributors)
+            license_files, licenses_in_project, lines_of_code, contributors, tree_hash)
 end
 
 function contribution_table(repo_name; auth)

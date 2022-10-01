@@ -20,6 +20,7 @@ const auth = GitHub.AnonymousAuth()
     @test measurements.reachable
     @test measurements.docs
     @test measurements.runtests
+    @test !isempty(measurements.tree_hash)
     @test !measurements.buildkite
     @test !isempty(measurements.lines_of_code)
     packages = find_packages("Cuba", "PolynomialRoots")
@@ -152,6 +153,7 @@ end
     # this package doesn't exist in the repo anymore; let's ensure it doesn't throw
     snoop_compile_analysis = analyze(find_package("SnoopCompileAnalysis"); auth)
     @test isempty(snoop_compile_analysis.lines_of_code)
+    @test isempty(snoop_compile_analysis.tree_hash)
 end
 
 @testset "`parse_project`" begin

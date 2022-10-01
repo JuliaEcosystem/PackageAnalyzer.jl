@@ -135,6 +135,7 @@ struct Package
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
     lines_of_code::Vector{@NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int}} # table of lines of code
     contributors::Vector{@NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int}} # table of contributor data
+    tree_hash::String # `git_tree_sha1` hash of the analyzed code
 end
 ```
 
