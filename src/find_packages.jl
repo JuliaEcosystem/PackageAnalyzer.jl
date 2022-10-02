@@ -15,9 +15,9 @@ or individual package names as separate arguments.
 """
 find_packages
 
-find_packages(names::AbstractString...; registries=reachable_registries(), version::Union{VersionNumber, Nothing}=nothing) = find_packages(names; registries, version)
+find_packages(names::AbstractString...; registries=reachable_registries(), version::Union{VersionNumber, Symbol}=:stable) = find_packages(names; registries, version)
 
-function find_packages(names; registries=reachable_registries(), version::Union{VersionNumber, Nothing}=nothing)
+function find_packages(names; registries=reachable_registries(), version::Union{VersionNumber, Symbol}=:stable)
     entries = Release[]
     for name in names
         # Skip stdlibs
@@ -50,7 +50,14 @@ Returns the [PkgSource](@ref) for the package `pkg`.
 
 See also:  [`find_packages`](@ref).
 """
-function find_package(name_or_uuid::Union{AbstractString, UUID}; registries=reachable_registries(), version::Union{VersionNumber, Nothing}=nothing, strict=true, warn=true)
+function find_package(name_or_uuid::Union{AbstractString, UUID}; registries=reachable_registries(), version::Union{VersionNumber, Symbol}=:stable, strict=true, warn=true)
+    if version isa Symbol
+        if version ∉ (:stable, :dev)
+            error("Unrecognized version $version. Either pass a `VersionNumber` or `:stable` or `:dev`.")
+        end
+    end
+    no_version_msg = "Could not find version $version for package $name_or_uuid"
+
     local_entries = PkgEntry[]
     for registry in registries
         uuids = get_uuids(name_or_uuid, registry)
@@ -71,26 +78,45 @@ function find_package(name_or_uuid::Union{AbstractString, UUID}; registries=reac
         return nothing
     elseif length(local_entries) == 1
         entry = only(local_entries)
-        if version === nothing
-            version = max_version(entry)
+        if version === :stable
+            return Release(entry, max_version(entry))
+        elseif version isa VersionNumber
+            info = registry_info(entry)
+            if !haskey(info.version_info, version)
+                strict && error(no_version_msg)
+                warn && @error(no_version_msg) 
+                return nothing
+            end
+            return Release(entry, version)
+        else # dev
+            info = registry_info(entry)
+            return Trunk(; repo_url=info.repo, subdir=something(info.subdir, ""))
         end
-        return Release(entry, version)
     else
         # We found the package in multiple registries
         # We want to use the entry associated to the registry
         # with the highest version number if `version==nothing`
-        if version === nothing
+        if version === :stable || version === :dev
             infos = registry_info.(entries)
             max_versions = [maximum(keys(info.version_info)) for info in infos]
             idx = argmax(max_versions)
-            return Release(entries[idx], max_versions[idx])
+            if version === :stable
+                return Release(entries[idx], max_versions[idx])
+            else
+                entry = entries[idx]
+                info = registry_info(entry)
+                return Trunk(; repo_url=info.repo, subdir=something(info.subdir, ""))
+            end
         else
             infos = registry_info.(entries)
             idx = findfirst(info -> haskey(info.version_info, version), infos)
             if idx === nothing
-                error("")
+                strict && error(no_version_msg)
+                warn && @error(no_version_msg) 
+                return nothing
             end
             entry = entries[idx]
+            info = registry_info(info)
             return Release(entry, version)
         end
     end

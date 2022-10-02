@@ -213,14 +213,19 @@ end
 Base.@kwdef struct Dev <: PkgSource
     name::String = ""
     uuid::UUID = UUID(0)
-    # Only one of `path` or `repo_url` should be non-empty
     path::String = ""
-    repo_url::String = ""
 end
 
 function Base.show(io::IO, d::Dev)
-    non_empty = isempty(d.path) ? d.repo_url : d.path
-    print(io, "Dev(", d.name, ", \"", non_empty, "\")")
+    print(io, "Dev(", d.name, ", \"", d.path, "\")")
+end
+Base.@kwdef struct Trunk <: PkgSource
+    repo_url::String=""
+    subdir::String=""
+end
+
+function Base.show(io::IO, d::Trunk)
+    print(io, "Trunk(", d.name, ", \"", d.repo_url, "\")")
 end
 
 # Provides methods to obtain a `PkgSource`

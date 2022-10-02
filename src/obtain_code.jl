@@ -1,16 +1,16 @@
 # `obtain_code`: PkgSource -> (local_path, reachable, version)
 
-function obtain_code(dev::Dev; root=mktempdir(), auth=github_auth())
-    if !isempty(dev.path)
-        return (dev.path, true, nothing)
-    end
+function obtain_code(dev::Dev; root=nothing, auth=nothing)
+    return (dev.path, true, nothing, "")
+end
+
+function obtain_code(trunk::Trunk; root=mktempdir(), auth=nothing)
     # Clone from URL and store in root
     # We always store in a tempdir bc we will need to reclone
     # anyway, since we are asking for latest release.
     dest = joinpath(root, mktempdir())
-    
-    reachable = download_latest_code(dest, dev.repo_url)
-    return (dest, reachable, nothing)
+    reachable = download_latest_code(dest, trunk.repo_url)
+    return (dest, reachable, nothing, trunk.subdir)
 end
 
 function obtain_code(added::Added; root=mktempdir(), auth=github_auth())
@@ -37,7 +37,7 @@ function obtain_code(added::Added; root=mktempdir(), auth=github_auth())
         @debug "Must be download corruption; tree hash of download does not match expected" get_tree_hash(dest) tree_hash
         reachable = false
     end
-    return (dest, reachable, nothing)
+    return (dest, reachable, nothing, "")
 end
 
 
@@ -58,7 +58,7 @@ function obtain_code(release::Release; root=mktempdir(), auth=github_auth())
         path_tree_hash = get_tree_hash(path)
         if path_tree_hash == tree_hash
             @debug "Found installed path at $(path)! Using that"
-            return (path, true, version)
+            return (path, true, version, "")
         end
     end
 
@@ -68,7 +68,7 @@ function obtain_code(release::Release; root=mktempdir(), auth=github_auth())
         dest_tree_hash = get_tree_hash(dest)
         if dest_tree_hash == tree_hash
             @debug "Found existing download at $(dest)!"
-            return (dest, true, version)
+            return (dest, true, version, "")
         end
     end
 
@@ -80,7 +80,7 @@ function obtain_code(release::Release; root=mktempdir(), auth=github_auth())
         @debug "Must be download corruption; tree hash of download does not match expected" get_tree_hash(dest) tree_hash
         reachable = false
     end
-    return (dest, reachable, version)
+    return (dest, reachable, version, "")
 end
 
 
