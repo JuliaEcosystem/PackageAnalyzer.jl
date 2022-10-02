@@ -219,13 +219,18 @@ end
 function Base.show(io::IO, d::Dev)
     print(io, "Dev(", d.name, ", \"", d.path, "\")")
 end
+
 Base.@kwdef struct Trunk <: PkgSource
     repo_url::String=""
     subdir::String=""
 end
 
 function Base.show(io::IO, d::Trunk)
-    print(io, "Trunk(", d.name, ", \"", d.repo_url, "\")")
+    print(io, "Trunk(\"", d.repo_url)
+    if !isempty(d.subdir)
+        print(io, ":", d.subdir)
+    end
+    print(io, "\")")
 end
 
 # Provides methods to obtain a `PkgSource`
