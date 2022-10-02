@@ -192,9 +192,37 @@ function general_registry()
     end
 end
 
+# We could have:
+# * release version: registry + version or registry + tree_hash (equivalent)
+# * Pkg.add: path + tree_hash, or url + tree_hash
+# * Pkg.dev: just path or url
+#
+# Additionally, the user may pass us just a path, which we treat like Pkg.dev
+# or the user may pass us a Module, which we treat the same way (via pkgdir),
+# or they may ask for the dev version, which again we treat the same way.
+#
+# They may ask for a specific version, which we treat like release.
+abstract type PkgSource end
+
+struct Release <: PkgSource
+    entry::PkgEntry
+    version::Union{VersionNumber, Nothing} # nothing means latest?
+end
+
+Base.@kwdef struct Added <: PkgSource
+    path::Union{String, Nothing} = nothing
+    repo_url::Union{String, Nothing} = nothing
+    tree_hash::String = ""
+end
+
+Base.@kwdef struct Dev <: PkgSource
+    path::Union{String, Nothing} = nothing
+    repo_url::Union{String, Nothing} = nothing
+end
+
 
 """
-    find_package(pkg; registry = general_registry()) -> RegistryEntry
+    find_package(pkg; registry = general_registry()) -> PkgEntry
 
 Returns the [RegistryEntry](@ref) for the package `pkg`.
 The singular version of [`find_packages`](@ref).
@@ -212,9 +240,9 @@ function find_package(pkg::AbstractString; registry = general_registry())
 end
 
 """
-    find_packages(; registry = general_registry()) -> Vector{RegistryEntry}
-    find_packages(names::AbstractString...; registry = general_registry()) -> Vector{RegistryEntry}
-    find_packages(names; registry = general_registry()) -> Vector{RegistryEntry}
+    find_packages(; registries=reachable_registries())) -> Vector{PkgEntry}
+    find_packages(names::AbstractString...; registries=reachable_registries()) -> Vector{PkgEntry}
+    find_packages(names; registries=reachable_registries()) -> Vector{PkgEntry}
 
 Find all packages in the given registry (specified by the `registry` keyword
 argument), the General registry by default. Return a vector of
@@ -226,19 +254,35 @@ or individual package names as separate arguments.
 """
 find_packages
 
-find_packages(names::AbstractString...; registry=general_registry()) = find_packages(names; registry=registry)
+find_packages(names::AbstractString...; registries=reachable_registries()) = find_packages(names; registries)
 
-function find_packages(names; registry=general_registry())
+function find_packages(names; registries=reachable_registries())
     if names !== nothing
-        entries = PkgEntry[]
+        entries = Release[]
         for name in names
-            uuids = uuids_from_name(registry, name)
-            if length(uuids) > 1
-                error("There are more than one packages with name $(name)! These have UUIDs $uuids")
-            elseif length(uuids) == 1
-                push!(entries, registry.pkgs[only(uuids)])
-            elseif name ∉ values(STDLIBS)
+            local_entries = PkgEntry[]
+            for registry in registries
+                uuids = uuids_from_name(registry, name)
+                if length(uuids) > 1
+                    error("There are more than one packages with name $(name)! These have UUIDs $uuids")
+                elseif length(uuids) == 1
+                    entry = registry.pkgs[only(uuids)]
+                    push!(local_entries, entry)
+                end
+            end
+            if isempty(local_entries) && name ∉ values(STDLIBS)
                 @error("Could not find package in registry!", name)
+            elseif length(local_entries) == 1
+                push!(entries, Release(only(local_entries), nothing))
+            else
+                # We found the package in multiple registries
+                # We want to use the entry associated to the registry
+                # with the highest version number
+                infos = registry_info.(entries)
+                max_versions = [ maximum(keys(info.version_info)) for info in infos]
+                idx = argmax(max_versions)
+                entry = entries[idx]
+                push!(entries, Release(entry, nothing))
             end
         end
         return entries
@@ -248,13 +292,17 @@ end
 # The UUID of the "julia" pseudo-package in the General registry
 const JULIA_UUID = UUID("1222c4b2-2114-5bfd-aeef-88e4692bbb3e")
 
-function find_packages(; registry=general_registry(),
+function find_packages(; registries=reachable_registries(),
     filter=((uuid, p),) -> !endswith(p.name, "_jll") && uuid != JULIA_UUID)
+    results = Release[]
     # Get the PkgEntry's of all packages in the registry.  Filter out JLL packages: they are
     # automatically generated and we know that they don't have testing nor
     # documentation. We also filter out the "julia" package which is not a real
     # package and just points at the Julia source code.
-    return collect(values(Base.filter(filter, registry.pkgs)))
+    for registry in registries
+        append!(results, Release.(values(Base.filter(filter, registry.pkgs)), Ref(nothing)))
+    end
+    return results
 end
 
 """
@@ -530,14 +578,11 @@ end
 
 Convienence function to run [`find_packages_in_manifest`](@ref) then [`analyze`](@ref) on the results. Positional argument `path_to_manifest` defaults to `joinpath(dirname(Base.active_project()), "Manifest.toml")`.
 """
-function analyze_manifest(path_to_manifest; registries=reachable_registries(),
+function analyze_manifest(args...; registries=reachable_registries(),
                           auth=github_auth(), sleep=0)
-    pkgs = find_packages_in_manifest(path_to_manifest; registries)
+    pkgs = find_packages_in_manifest(args...; registries)
     return analyze(pkgs; auth, sleep)
 end
-
-analyze_manifest(; kw...) = analyze_manifest(joinpath(dirname(Base.active_project()), "Manifest.toml"); kw...)
-
 
 """
     analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth(), version::AbstractVersion=:dev)
@@ -601,18 +646,24 @@ Package Pluto:
 
 ```
 """
-function analyze(name_or_dir_or_url::AbstractString; repo="", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth(), sleep=0, version::AbstractVersion=:dev)
+function analyze(name_or_dir_or_url::AbstractString; repo="", reachable=true, subdir="", registries=reachable_registries(), auth::GitHub.Authorization=github_auth(), sleep=0, version=nothing)
     if Base.isidentifier(name_or_dir_or_url)
         # The argument looks like a package name rather than a directory: find
         # the package in `registry` and analyze it
-        return analyze(find_package(name_or_dir_or_url; registry); auth, sleep, version)
+        release = Release(find_package(name_or_dir_or_url; registries), version)
+        return analyze(release; auth, sleep)
     elseif isdir(name_or_dir_or_url)
-        # We don't know the version for a pre-existing directory, so set it to `v"0"`.
-        return analyze_path(name_or_dir_or_url; repo, reachable, subdir, auth, sleep, version=v"0")
+        # Local directory
+        if version !== nothing
+            error("")
+        end
+        return analyze(Dev(; path=name_or_dir_or_url); repo, reachable, subdir, auth, sleep)
     else
-        repo = name_or_dir_or_url
-        dest = mktempdir()
-        return analyze_path!(dest, repo; subdir, auth, sleep, version)
+        # Remote URL
+        if version !== nothing
+            error("Not supported")
+        end
+        return analyze(Dev(; repo_url=name_or_dir_or_url); subdir, auth, sleep)
     end
 end
 
@@ -645,7 +696,7 @@ Package DataFrames:
     * GitHub Actions
 ```
 """
-analyze(m::Module; kwargs...) = analyze_path(pkgdir(m); kwargs...)
+analyze(m::Module; kwargs...) = analyze_path(Dev(; path=pkgdir(m)); kwargs...)
 
 function match_pkg(uuid, version, registries)
     for r in registries
@@ -660,6 +711,11 @@ function match_pkg(uuid, version, registries)
     return nothing
 end
 
+function find_packages_in_manifest(; kw...)
+    manifest_path = joinpath(dirname(Base.active_project()), "Manifest.toml")
+    return find_packages_in_manifest(manifest_path; kw...)
+end
+
 function find_packages_in_manifest(path_to_manifest; registries=reachable_registries())
     manifest = TOML.parsefile(path_to_manifest)
     format = parse(VersionNumber, get(manifest, "manifest_format", "1.0"))
@@ -670,20 +726,52 @@ function find_packages_in_manifest(path_to_manifest; registries=reachable_regist
     else
         error("Unsupported Manifest format $format")
     end
-    results = Tuple{PkgEntry,AbstractVersion}[]
+    results = PkgSource[]
     for (name, list) in pkgs
         for manifest_entry in list
             uuid = UUID(manifest_entry["uuid"]::String)
             if uuid in keys(STDLIBS)
                 continue
             end
+            manifest_tree_hash = get(manifest_entry, "git-tree-sha1", "")::String
+            # Option 1: No tree-hash. Then we're dev'd.
+            if isempty(manifest_tree_hash) # dev
+                # This should always exist, in the dev case
+                # (dev-from-url clones then devs the local path)
+                path = manifest_entry["path"]::String
+                push!(results, Dev(; path))
+                continue
+            end
+            # Option 2: has repo-url (could be local path)
+            repo_url = get(manifest_entry, "repo-url", "")::String
+            if !isempty(repo_url)
+                if isdir(repo_url) # local
+                    path=repo_url
+                    repo_url=nothing
+                else
+                    path=nothing
+                end
+                push!(results, Added(; path, repo_url, tree_hash=manifest_tree_hash))
+                continue
+            end
+
+            # Option 3: Release package
+
             version = VersionNumber(manifest_entry["version"]::String)
             pkg = match_pkg(uuid, version, registries)
+            
             if pkg === nothing
                 @error("Could not find (package, version) pair in any registry!", name, uuid, version)
-            else
-                push!(results, (pkg, version))
+                continue
             end
+
+            lookup = registry_info(pkg).version_info[version]
+            tree_hash_from_registry = bytes2hex(lookup.git_tree_sha1.bytes)
+            if tree_hash_from_registry != manifest_tree_hash
+                error()
+            end
+            
+            push!(results, Release(pkg, version))
         end
     end
     return results
