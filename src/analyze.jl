@@ -121,6 +121,18 @@ function analyze(m::Module; kwargs...)
     return analyze(Dev(; path); kwargs...)
 end
 
+"""
+    analyze(; kwargs...) -> Package
+
+If you have an active Julia project with a package at top-level, then you can simply call `analyze()` to analyze its code.
+"""
+function analyze(; kwargs...)
+    project = Base.active_project()
+    if project === nothing
+        error("No active project! Pass a path to a package directory, package name, package URL, or activate a project with a package first.")
+    end
+    analyze(dirname(project))
+end
 
 """
     analyze_manifest([path_to_manifest]; registries=reachable_registries(),
