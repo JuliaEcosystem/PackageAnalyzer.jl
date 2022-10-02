@@ -1,4 +1,3 @@
-
 """
     analyze_packages(pkg_entries; auth::GitHub.Authorization=github_auth(), sleep=0, root=mktempdir()) -> Vector{Package}
 
@@ -18,7 +17,6 @@ GitHub).  See [`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub
 authentication.
 """
 function analyze_packages(pkg_entries; auth::GitHub.Authorization=github_auth(), sleep=0, root=mktempdir())
-
     inputs = Channel{Tuple{Int,PkgSource}}(length(pkg_entries))
     for (i, r) in enumerate(pkg_entries)
         put!(inputs, (i, r))

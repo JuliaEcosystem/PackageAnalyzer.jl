@@ -1,4 +1,4 @@
-
+# Functions that yield `PkgSource`'s or collections of them
 """
     find_package(pkg; registry = general_registry()) -> PkgEntry
 
@@ -126,19 +126,24 @@ function find_packages_in_manifest(path_to_manifest; registries=reachable_regist
                 # This should always exist, in the dev case
                 # (dev-from-url clones then devs the local path)
                 path = manifest_entry["path"]::String
-                push!(results, Dev(; path))
+                # Note: we may or may not be in a subdir, we cannot know!
+                # The path will be all the way to the subdir package
+                push!(results, Dev(; name, uuid, path))
                 continue
             end
             # Option 2: has repo-url (could be local path)
+            # Then we're `Added`
             repo_url = get(manifest_entry, "repo-url", "")::String
             if !isempty(repo_url)
                 if isdir(repo_url) # local
-                    path=repo_url
-                    repo_url=nothing
+                    path = repo_url
+                    repo_url = ""
                 else
-                    path=nothing
+                    path = ""
                 end
-                push!(results, Added(; path, repo_url, tree_hash=manifest_tree_hash))
+                subdir = get(manifest_entry, "repo-subdir", "")::String
+
+                push!(results, Added(; name, uuid, path, repo_url, tree_hash=manifest_tree_hash, subdir))
                 continue
             end
 

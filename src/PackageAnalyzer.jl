@@ -25,10 +25,9 @@ get_stdlib_name(s::AbstractString) = s
 get_stdlib_name(s::Tuple) = first(s)
 const STDLIBS = Dict(k => get_stdlib_name(v) for (k, v) in stdlibs())
 
-include("count_loc.jl")
-
 const LicenseTableEltype = @NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}
 const ContributionTableElType = @NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int}
+const LoCTableEltype = @NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int}
 
 struct Package
     name::String # name of the package
@@ -51,7 +50,7 @@ struct Package
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
     lines_of_code::Vector{LoCTableEltype} # table of lines of code
     contributors::Vector{ContributionTableElType} # table of contributor data
-    version::AbstractVersion # the version was asked to be analyzed (`dev` or a `VersionNumber`)
+    version::Union{VersionNumber, Nothing} # the version number, if a release was analyzed
     tree_hash::String # the tree hash of the code that was analyzed
 end
 function Package(name, uuid, repo;
@@ -72,7 +71,7 @@ function Package(name, uuid, repo;
                  licenses_in_project=String[],
                  lines_of_code=LoCTableEltype[],
                  contributors=ContributionTableElType[],
-                 version=v"0",
+                 version=nothing,
                  tree_hash=""
                  )
     return Package(name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
@@ -194,21 +193,29 @@ struct Release <: PkgSource
 end
 
 Base.@kwdef struct Added <: PkgSource
-    path::Union{String, Nothing} = nothing
-    repo_url::Union{String, Nothing} = nothing
+    name::String = ""
+    uuid::UUID = UUID(0)
+    # Only one of `path` or `repo_url` should be non-empty
+    path::String = ""
+    repo_url::String = ""
     tree_hash::String = ""
+    subdir::String = ""
 end
 
 Base.@kwdef struct Dev <: PkgSource
-    path::Union{String, Nothing} = nothing
-    repo_url::Union{String, Nothing} = nothing
+    name::String = ""
+    uuid::UUID = UUID(0)
+    # Only one of `path` or `repo_url` should be non-empty
+    path::String = ""
+    repo_url::String = ""
 end
 
 include("find_packages.jl")
-include("entrypoints.jl")
-include("core.jl")
+include("obtain_code.jl")
+include("analyze.jl")
 include("parallel.jl")
 include("utilities.jl")
+include("count_loc.jl")
 
 """
     analyze(package::PkgEntry; auth::GitHub.Authorization=github_auth(), sleep=0, version::AbstractVersion=:dev) -> Package
