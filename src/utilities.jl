@@ -27,6 +27,7 @@ function github_extract_code!(dest::AbstractString, user::AbstractString, repo::
     # https://github.com/$(user)/$(repo)/archive/tarball/$(tree_hash)
     # But we go through `GitHub.gh_get` so we can easily use our auth token `auth`,
     # in particular to support private packages.
+    # Note: GitHub does *not* support the `git archive` protocol, so we cannot just do a remote `git archive`.
     path = "/repos/$(user)/$(repo)/tarball/$(tree_hash)"
     resp = GitHub.gh_get(GitHub.DEFAULT_API, path; auth)
     tmp = mktempdir()
