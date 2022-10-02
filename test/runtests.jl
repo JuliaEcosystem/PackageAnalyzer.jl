@@ -10,9 +10,6 @@ const orig_libpath = get_libpath()
 
 const auth = GitHub.AnonymousAuth()
 
-function compare_release(x::Release, y::Release)
-    return x.entry.uuid == y.entry.uuid && x.version == y.version
-end
 @testset "PackageAnalyzer" begin
     @testset "Basic" begin
         # Test some properties of the `Measurements` package.  NOTE: they may change
