@@ -6,7 +6,7 @@
 # and call `analyze` or `analyze_packages` with `PkgSource`'s.
 
 """
-    analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth(), version::AbstractVersion=:dev)
+    analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth(), version=nothing)
 
 Analyze the package pointed to by the mandatory argument and return a summary of
 its properties.
@@ -67,18 +67,18 @@ Package Pluto:
 
 ```
 """
-function analyze(name_or_dir_or_url::AbstractString; repo="", reachable=true, subdir="", registries=reachable_registries(), auth::GitHub.Authorization=github_auth(), sleep=0, version=nothing)
+function analyze(name_or_dir_or_url::AbstractString; repo="", subdir="", registries=reachable_registries(), auth::GitHub.Authorization=github_auth(), sleep=0, version=nothing)
     if Base.isidentifier(name_or_dir_or_url)
         # The argument looks like a package name rather than a directory: find
         # the package in `registry` and analyze it
-        release = Release(find_package(name_or_dir_or_url; registries), version)
+        release = find_package(name_or_dir_or_url; registries, version)
         return analyze(release; auth, sleep)
     elseif isdir(name_or_dir_or_url)
         # Local directory
         if version !== nothing
             error("")
         end
-        return analyze(Dev(; path=name_or_dir_or_url); repo, reachable, subdir, auth, sleep)
+        return analyze(Dev(; path=name_or_dir_or_url); repo, subdir, auth, sleep)
     else
         # Remote URL
         if version !== nothing
@@ -139,7 +139,7 @@ end
 
 # Here, we lower commands one step further to `analyze_code`
 
-function analyze(pkg::Release; root, auth, sleep)
+function analyze(pkg::Release; root=mktempdir(), auth=github_auth(), sleep=0)
     local_dir, reachable, version = obtain_code(pkg; root, auth)
     info = registry_info(pkg.entry)
     repo = something(info.repo, "")
@@ -151,7 +151,7 @@ function analyze(pkg::Release; root, auth, sleep)
     return analyze_code(local_dir; auth, subdir, reachable, only_subdir, repo, sleep, version)
 end
 
-function analyze(pkg::Added; root, auth, sleep)
+function analyze(pkg::Added; root=mktempdir(), auth=github_auth(), sleep=0)
     local_dir, reachable, version = obtain_code(pkg; root, auth)
     subdir = something(pkg.subdir, "")
     repo = something(pkg.repo_url, "")
@@ -162,7 +162,7 @@ function analyze(pkg::Added; root, auth, sleep)
     return analyze_code(local_dir; auth, subdir, reachable, only_subdir, repo, sleep, version)
 end
 
-function analyze(pkg::Dev; root, auth, sleep)
+function analyze(pkg::Dev; root=mktempdir(), auth=github_auth(), sleep=0)
     local_dir, reachable, version = obtain_code(pkg; root, auth)
     repo = something(pkg.repo_url, "")
     subdir = ""

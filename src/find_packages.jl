@@ -1,12 +1,12 @@
 # Functions that yield `PkgSource`'s or collections of them
 """
-    find_package(pkg; registry = general_registry()) -> PkgEntry
+    find_package(pkg; registries=reachable_registries(), version::Union{VersionNumber, Nothing}=nothing) -> PkgEntry
 
 Returns the [RegistryEntry](@ref) for the package `pkg`.
 The singular version of [`find_packages`](@ref).
 """
-function find_package(pkg::AbstractString; registry = general_registry())
-    pkg_entries = find_packages([pkg]; registry)
+function find_package(pkg::AbstractString; registries=reachable_registries(), version::Union{VersionNumber, Nothing}=nothing)
+    pkg_entries = find_packages([pkg]; registries, version)
     if isempty(pkg_entries)
         if pkg ∈ values(STDLIBS)
             throw(ArgumentError("Standard library $pkg not present in registry"))
@@ -32,9 +32,9 @@ or individual package names as separate arguments.
 """
 find_packages
 
-find_packages(names::AbstractString...; registries=reachable_registries()) = find_packages(names; registries)
+find_packages(names::AbstractString...; registries=reachable_registries(), version::Union{VersionNumber, Nothing}=nothing) = find_packages(names; registries, version)
 
-function find_packages(names; registries=reachable_registries())
+function find_packages(names; registries=reachable_registries(), version::Union{VersionNumber, Nothing}=nothing)
     if names !== nothing
         entries = Release[]
         for name in names
@@ -51,16 +51,25 @@ function find_packages(names; registries=reachable_registries())
             if isempty(local_entries) && name ∉ values(STDLIBS)
                 @error("Could not find package in registry!", name)
             elseif length(local_entries) == 1
-                push!(entries, Release(only(local_entries), nothing))
+                push!(entries, Release(only(local_entries), version))
             else
                 # We found the package in multiple registries
                 # We want to use the entry associated to the registry
-                # with the highest version number
-                infos = registry_info.(entries)
-                max_versions = [ maximum(keys(info.version_info)) for info in infos]
-                idx = argmax(max_versions)
-                entry = entries[idx]
-                push!(entries, Release(entry, nothing))
+                # with the highest version number if `version==nothing`
+                if version === nothing
+                    infos = registry_info.(entries)
+                    max_versions = [maximum(keys(info.version_info)) for info in infos]
+                    idx = argmax(max_versions)
+                    entry = entries[idx]
+                else
+                    infos = registry_info.(entries)
+                    idx = findfirst(info -> haskey(info.version_info, version), infos)
+                    if idx === nothing
+                        error("")
+                    end
+                    entry = entries[idx]
+                end
+                push!(entries, Release(entry, version))
             end
         end
         return entries
@@ -82,8 +91,6 @@ function find_packages(; registries=reachable_registries(),
     end
     return results
 end
-
-
 
 function match_pkg(uuid, version, registries)
     for r in registries
