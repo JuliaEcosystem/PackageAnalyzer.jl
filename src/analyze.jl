@@ -6,37 +6,28 @@
 # and call `analyze` or `analyze_packages` with `PkgSource`'s.
 
 """
-    analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth(), version=nothing)
+    analyze(name_or_dir_or_url::AbstractString; registry=general_registry(), auth::GitHub.Authorization=github_auth(), version=nothing)
 
 Analyze the package pointed to by the mandatory argument and return a summary of
 its properties.
 
 If `name_or_dir_or_url` is a valid Julia identifier, it is assumed to be the name of a
 package available in `registry`.  The function then uses [`find_package`](@ref)
-to find its entry in the registry and analyze its content.
+to find its entry in the registry and analyze the content of its latest registered version (or a different version, if the keyword argument `version` is supplied).
 
 If `name_or_dir_or_url` is a filesystem path, analyze the package whose source code is
-located at `name_or_dir_or_url`. Optionally `repo` and `reachable` a boolean indicating
-whether or not the package is reachable online, since these can't be inferred
-from the source code.  The `subdir` keyword arguments indicates the subdirectory
-of `dir` under which the Julia package can be found.
+located at `name_or_dir_or_url`.
 
-Otherwise, `name_or_dir_or_url` is assumed to be a URL. The repository is cloned to a temporary directory
-and analyzed.
+Otherwise, `name_or_dir_or_url` is assumed to be a URL. The repository is cloned to a temporary directory and analyzed.
+
+That means for packages in subdirectories, top-level information (like CI scripts) may be unavailable.
 
 If the GitHub authentication is non-anonymous and the repository is on GitHub,
 the list of contributors to the repository is also collected.  Only the number
 of contributors will be shown in the summary.  See
 [`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub authentication.
 
-Pass the keyword argument `version` to confgiure which version of the code is analyzed. Options:
 
-* `:dev` to use the latest code in the repository
-* `:stable` to use the latest released version of the code, or
-* pass a `VersionNumber` to analyze a particular version of the package.
-
-If `version !== :dev`, only the code associated to that version of the package will be downloaded.
-That means for packages in subdirectories, top-level information (like CI scripts) may be unavailable.
 
 ## Example
 
