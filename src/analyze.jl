@@ -11,23 +11,20 @@
 Analyze the package pointed to by the mandatory argument and return a summary of
 its properties.
 
-If `name_or_dir_or_url` is a valid Julia identifier, it is assumed to be the name of a
+* If `name_or_dir_or_url` is a valid Julia identifier, it is assumed to be the name of a
 package available in `registry`.  The function then uses [`find_package`](@ref)
 to find its entry in the registry and analyze the content of its latest registered version (or a different version, if the keyword argument `version` is supplied).
-
-If `name_or_dir_or_url` is a filesystem path, analyze the package whose source code is
+* If `name_or_dir_or_url` is a filesystem path, analyze the package whose source code is
 located at `name_or_dir_or_url`.
-
-Otherwise, `name_or_dir_or_url` is assumed to be a URL. The repository is cloned to a temporary directory and analyzed.
-
-That means for packages in subdirectories, top-level information (like CI scripts) may be unavailable.
+* Otherwise, `name_or_dir_or_url` is assumed to be a URL. The repository is cloned to a temporary directory and analyzed.
 
 If the GitHub authentication is non-anonymous and the repository is on GitHub,
 the list of contributors to the repository is also collected.  Only the number
 of contributors will be shown in the summary.  See
 [`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub authentication.
 
-
+!!! warning
+    For packages in subdirectories, top-level information (like CI scripts) is only available when `name_or_dir_or_url` is a URL, or `name_or_dir_or_url` is a name and `version = :dev`. In other cases, the top-level code is not accessible.
 
 ## Example
 
@@ -116,7 +113,7 @@ Package DataFrames:
     * GitHub Actions
 ```
 """
-analyze(m::Module; kwargs...) = analyze_path(Dev(; path=pkgdir(m)); kwargs...)
+analyze(m::Module; kwargs...) = analyze(Dev(; path=pkgdir(m)); kwargs...)
 
 
 """
@@ -162,8 +159,8 @@ end
 
 function analyze(pkg::Dev; root=mktempdir(), auth=github_auth(), sleep=0)
     local_dir, reachable, version, _ = obtain_code(pkg; root, auth)
-    repo = something(pkg.repo_url, "")
     subdir = ""
+    repo = ""
     if !reachable
         return Package(pkg.name, pkg.uuid, repo; reachable, subdir, version)
     end
