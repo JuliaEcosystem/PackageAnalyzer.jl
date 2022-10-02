@@ -113,7 +113,13 @@ Package DataFrames:
     * GitHub Actions
 ```
 """
-analyze(m::Module; kwargs...) = analyze(Dev(; path=pkgdir(m)); kwargs...)
+function analyze(m::Module; kwargs...)
+    path = pkgdir(m)
+    if path === nothing
+        error("Could not find package directory associated to module $m")
+    end
+    return analyze(Dev(; path); kwargs...)
+end
 
 
 """
@@ -172,7 +178,7 @@ function analyze(pkg::Trunk; root=mktempdir(), auth=github_auth(), sleep=0)
     local_dir, reachable, version, subdir = obtain_code(pkg; root, auth)
     repo = pkg.repo_url
     if !reachable
-        return Package(pkg.name, pkg.uuid, repo; reachable, subdir, version)
+        return Package("", UUID(0), repo; reachable, subdir, version)
     end
     only_subdir = false
     return analyze_code(local_dir; auth, subdir, reachable, only_subdir, repo, sleep, version)

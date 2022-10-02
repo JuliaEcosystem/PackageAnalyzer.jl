@@ -18,7 +18,7 @@ find_packages
 find_packages(names::AbstractString...; registries=reachable_registries(), version::Union{VersionNumber, Symbol}=:stable) = find_packages(names; registries, version)
 
 function find_packages(names; registries=reachable_registries(), version::Union{VersionNumber, Symbol}=:stable)
-    entries = Release[]
+    entries = PkgSource[]
     for name in names
         # Skip stdlibs
         name in values(STDLIBS) && continue
@@ -69,53 +69,43 @@ function find_package(name_or_uuid::Union{AbstractString, UUID}; registries=reac
         end
     end
     if isempty(local_entries)
-        msg = "Could not find package $name in any registry!"
+        msg = "Could not find package $(name_or_uuid) in any registry!"
         if strict
             error(msg)
         elseif warn
             @error(msg)
         end
         return nothing
-    elseif length(local_entries) == 1
-        entry = only(local_entries)
-        if version === :stable
-            return Release(entry, max_version(entry))
-        elseif version isa VersionNumber
-            info = registry_info(entry)
-            if !haskey(info.version_info, version)
-                strict && error(no_version_msg)
-                warn && @error(no_version_msg) 
-                return nothing
-            end
-            return Release(entry, version)
-        else # dev
-            info = registry_info(entry)
-            return Trunk(; repo_url=info.repo, subdir=something(info.subdir, ""))
-        end
     else
-        # We found the package in multiple registries
-        # We want to use the entry associated to the registry
-        # with the highest version number if `version==nothing`
-        if version === :stable || version === :dev
-            infos = registry_info.(entries)
+        # We found the package in one or more registries
+        # For `stable` and `:dev`,
+        # we want to use the entry associated to the registry
+        # with the highest version number.
+        # for the others, it shouldn't matter what registry,
+        # just one with the version.
+        if version isa Symbol
+            infos = registry_info.(local_entries)
             max_versions = [maximum(keys(info.version_info)) for info in infos]
             idx = argmax(max_versions)
             if version === :stable
-                return Release(entries[idx], max_versions[idx])
-            else
-                entry = entries[idx]
+                return Release(local_entries[idx], max_versions[idx])
+            else # `:dev`
+                entry = local_entries[idx]
                 info = registry_info(entry)
-                return Trunk(; repo_url=info.repo, subdir=something(info.subdir, ""))
+                if info.repo === nothing
+                    error("Package $(name_or_uuid) has no repository URL stored in registry at $(entry.registry_path)!")
+                end
+                return Trunk(; repo_url=info.repo::String, subdir=something(info.subdir, ""))
             end
-        else
-            infos = registry_info.(entries)
+        else # release version
+            infos = registry_info.(local_entries)
             idx = findfirst(info -> haskey(info.version_info, version), infos)
             if idx === nothing
                 strict && error(no_version_msg)
                 warn && @error(no_version_msg) 
                 return nothing
             end
-            entry = entries[idx]
+            entry = local_entries[idx]
             info = registry_info(info)
             return Release(entry, version)
         end
@@ -146,7 +136,11 @@ function max_version(entry::PkgEntry)
 end
 
 function find_packages_in_manifest(; kw...)
-    manifest_path = joinpath(dirname(Base.active_project()), "Manifest.toml")
+    project = Base.active_project()
+    if project === nothing
+        error("No active project! Pass a path to a manifest directly, or activate a project first.")
+    end
+    manifest_path = joinpath(dirname(project), "Manifest.toml")
     return find_packages_in_manifest(manifest_path; kw...)
 end
 

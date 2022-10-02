@@ -187,6 +187,7 @@ end
 # They may ask for a specific version, which we treat like release.
 abstract type PkgSource end
 
+# Represents the released version of a package
 struct Release <: PkgSource
     entry::PkgEntry
     version::VersionNumber
@@ -196,6 +197,7 @@ function Base.show(io::IO, r::Release)
     print(io, "Release(", r.entry.name, ", ", r.version, ")")
 end
 
+# Represents a `Pkg.add`'d package (non-release)
 Base.@kwdef struct Added <: PkgSource
     name::String = ""
     uuid::UUID = UUID(0)
@@ -210,6 +212,7 @@ function Base.show(io::IO, a::Added)
     print(io, "Added(", a.name, ", \"", a.tree_hash, "\")")
 end
 
+# Represents a Pkg.dev'd package
 Base.@kwdef struct Dev <: PkgSource
     name::String = ""
     uuid::UUID = UUID(0)
@@ -220,6 +223,8 @@ function Base.show(io::IO, d::Dev)
     print(io, "Dev(", d.name, ", \"", d.path, "\")")
 end
 
+# Represents the latest state of the trunk branch
+# of a repo
 Base.@kwdef struct Trunk <: PkgSource
     repo_url::String=""
     subdir::String=""

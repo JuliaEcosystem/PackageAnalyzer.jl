@@ -86,6 +86,6 @@ function _find_licenses(dir)
     end
 end
 
-function get_tree_hash(dir)
+function get_tree_hash(dir::AbstractString)
     return bytes2hex(Pkg.GitTools.tree_hash(dir))
 end

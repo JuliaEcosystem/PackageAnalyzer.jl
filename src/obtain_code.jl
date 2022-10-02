@@ -74,7 +74,11 @@ function obtain_code(release::Release; root=mktempdir(), auth=github_auth())
 
     tree_hash = bytes2hex(tree_sha.bytes)
     info = registry_info(release.entry)
-    reachable = download_tree_hash(dest, info.repo; tree_hash, auth)
+    repo = info.repo
+    if repo === nothing
+        error("Package $(release.entry.name) does not have assocaiated repo URL in registry at $(release.entry.registry_path)")
+    end
+    reachable = download_tree_hash(dest, repo; tree_hash, auth)
 
     if reachable && get_tree_hash(dest) != tree_hash
         @debug "Must be download corruption; tree hash of download does not match expected" get_tree_hash(dest) tree_hash
@@ -109,7 +113,8 @@ function download_tree_hash(dest, repo; tree_hash, auth=github_auth())
         m = match(r"github.com/(?<user>.*)/(?<repo>.*)\.git", repo)
         if m !== nothing
             @debug "Downloading code via github api"
-            github_extract_code!(dest, m[:user], m[:repo], tree_hash; auth)
+            # These extra `AbstractString` type assertions make JET happy.
+            github_extract_code!(dest, m[:user]::AbstractString, m[:repo]::AbstractString, tree_hash; auth)
         else
             @debug "Falling back to full clone"
             tmp = mktempdir()
