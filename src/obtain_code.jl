@@ -110,18 +110,30 @@ end
 
 function download_tree_hash(dest, repo; tree_hash, auth=github_auth())
     isdir(dest) || mkpath(dest)
+    # First, try to use the github API
     reachable = try
         m = match(r"github.com/(?<user>.*)/(?<repo>.*)\.git", repo)
         if m !== nothing
             @debug "Downloading code via github api"
             # These extra `AbstractString` type assertions make JET happy.
             github_extract_code!(dest, m[:user]::AbstractString, m[:repo]::AbstractString, tree_hash; auth)
+            true
         else
-            @debug "Falling back to full clone"
-            tmp = mktempdir()
-            run(pipeline(detach(`$(git()) clone -q $(repo) $(tmp)`); stdin=devnull, stderr=devnull))
-            Tar.extract(Cmd(`git archive $tree_hash`; dir=tmp), dest)
+            # We can't, doesn't look like a git repo
+            false
         end
+    catch e
+        @debug "Error; maybe unreachable" exception = e
+        # The repository may be unreachable
+        false
+    end
+    reachable && return reachable
+    # OK, that didn't work, let's try cloning.
+    reachable = try
+        @debug "Falling back to full clone"
+        tmp = mktempdir()
+        run(pipeline(detach(`$(git()) clone -q $(repo) $(tmp)`); stdin=devnull, stderr=devnull))
+        Tar.extract(Cmd(`git archive $tree_hash`; dir=tmp), dest)
         true
     catch e
         @debug "Error; maybe unreachable" exception = e
