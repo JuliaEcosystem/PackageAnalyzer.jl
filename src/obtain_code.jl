@@ -9,7 +9,7 @@ function obtain_code(dev::Dev; root=mktempdir(), auth=github_auth())
     # anyway, since we are asking for latest release.
     dest = joinpath(root, mktempdir())
     
-    reachable = obtain_latest_code(dest, dev.repo_url)
+    reachable = download_latest_code(dest, dev.repo_url)
     return (dest, reachable, nothing)
 end
 
@@ -34,13 +34,10 @@ function obtain_code(added::Added; root=mktempdir(), auth=github_auth())
     return (dest, reachable, nothing)
 end
 
+
 function obtain_code(release::Release; root=mktempdir(), auth=github_auth())
     info = registry_info(release.entry)
-    if release.version === nothing
-        version = maximum(keys(info.version_info))
-    else
-        version = release.version
-    end
+    version = release.version
     tree_sha = info.version_info[version].git_tree_sha1
 
     tree_hash = bytes2hex(tree_sha.bytes)
@@ -86,6 +83,7 @@ function download_latest_code(dest::AbstractString, repo::AbstractString)
         # We need to use `detach` to make closing STDIN effective, suggested by
         # @staticfloat.
         run(pipeline(detach(`$(git()) clone -q --depth 1 $(repo) $(dest)`); stdin=devnull, stderr=devnull))
+        true
     catch e
         @debug "Error; maybe unreachable" exception = e
         # The repository may be unreachable

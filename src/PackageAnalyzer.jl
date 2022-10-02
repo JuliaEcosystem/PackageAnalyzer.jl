@@ -13,10 +13,10 @@ using Downloads
 using Tar
 using CodecZlib
 
-export general_registry, find_package, find_packages, find_packages_in_manifest
-export analyze, analyze!, analyze_manifest
-
-const AbstractVersion = Union{VersionNumber,Symbol}
+# Ways to find packages
+export find_package, find_packages, find_packages_in_manifest
+# Ways to analyze them
+export analyze, analyze_manifest
 
 # borrowed from <https://github.com/JuliaRegistries/RegistryTools.jl/blob/841a56d8274e2857e3fd5ea993ba698cdbf51849/src/builtin_pkgs.jl>
 const stdlibs = isdefined(Pkg.Types, :stdlib) ? Pkg.Types.stdlib : Pkg.Types.stdlibs
@@ -189,7 +189,11 @@ abstract type PkgSource end
 
 struct Release <: PkgSource
     entry::PkgEntry
-    version::Union{VersionNumber, Nothing} # nothing means latest?
+    version::VersionNumber
+end
+
+function Base.show(io::IO, r::Release)
+    print(io, "Release(", r.entry.name, ", ", r.version, ")")
 end
 
 Base.@kwdef struct Added <: PkgSource
@@ -202,6 +206,10 @@ Base.@kwdef struct Added <: PkgSource
     subdir::String = ""
 end
 
+function Base.show(io::IO, a::Added)
+    print(io, "Added(", a.name, ", \"", a.tree_hash, "\")")
+end
+
 Base.@kwdef struct Dev <: PkgSource
     name::String = ""
     uuid::UUID = UUID(0)
@@ -210,54 +218,29 @@ Base.@kwdef struct Dev <: PkgSource
     repo_url::String = ""
 end
 
-include("find_packages.jl")
-include("obtain_code.jl")
-include("analyze.jl")
-include("parallel.jl")
-include("utilities.jl")
-include("count_loc.jl")
-
-"""
-    analyze(package::PkgEntry; auth::GitHub.Authorization=github_auth(), sleep=0, version::AbstractVersion=:dev) -> Package
-    analyze(packages::AbstractVector{<:PkgEntry}; auth::GitHub.Authorization=github_auth(), sleep=0, version::AbstractVersion=:dev) -> Vector{Package}
-
-Analyzes a package or list of packages using the information in their directory
-in a registry by creating a temporary directory and calling `analyze!`,
-cleaning up the temporary directory afterwards.
-
-If the GitHub authentication is non-anonymous and the repository is on GitHub,
-the list of contributors to the repository is also collected after waiting for
-`sleep` seconds (useful to avoid getting rate-limited by GitHub).  Only the
-number of contributors will be shown in the summary.  See
-[`PackageAnalyzer.github_auth`](@ref) to obtain a GitHub authentication.
-
-## Example
-```julia
-julia> analyze(find_package("BinaryBuilder"))
-Package BinaryBuilder:
-  * repo: https://github.com/JuliaPackaging/BinaryBuilder.jl.git
-  * uuid: 12aac903-9f7c-5d81-afc2-d9565ea332ae
-  * version: dev
-  * is reachable: true
-  * tree hash: 13335f33356c8df9899472634e02552fd6f99ce4
-  * Julia code in `src`: 4994 lines
-  * Julia code in `test`: 1795 lines (26.4% of `test` + `src`)
-  * documention in `docs`: 1129 lines (18.4% of `docs` + `src`)
-  * documention in README: 22 lines
-  * has license(s) in file: MIT
-    * filename: LICENSE.md
-    * OSI approved: true
-  * has `docs/make.jl`: true
-  * has `test/runtests.jl`: true
-  * has continuous integration: true
-    * GitHub Actions
-    * Azure Pipelines
-
-```
-"""
-function analyze(p; auth::GitHub.Authorization=github_auth(), sleep=0, version::AbstractVersion=:dev)
-    root = mktempdir()
-    analyze!(root, p; auth, sleep, version)
+function Base.show(io::IO, d::Dev)
+    non_empty = isempty(d.path) ? d.repo_url : d.path
+    print(io, "Dev(", d.name, ", \"", non_empty, "\")")
 end
+
+# Provides methods to obtain a `PkgSource`
+include("find_packages.jl")
+
+# `PkgSource` -> code directory
+include("obtain_code.jl")
+
+# `analyze_code`: `code directory -> `Package`
+# `analyze`: `PkgSource` -> code directory -> `Package`
+# `analyze`: input -> `PkgSource` -> code directory -> `Package`
+include("analyze.jl")
+
+# Collection of `PkgSource` -> `Vector{Package}`
+include("parallel.jl")
+
+# github, parsing
+include("utilities.jl")
+
+# tokei, counting
+include("count_loc.jl")
 
 end # module

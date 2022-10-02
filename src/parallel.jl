@@ -2,13 +2,10 @@
     analyze_packages(pkg_entries; auth::GitHub.Authorization=github_auth(), sleep=0, root=mktempdir()) -> Vector{Package}
 
 
-Analyze all packages in the iterable `pkg_entries`, using threads, cloning them to `root`
-if a directory with their `uuid` does not already exist.  Returns a
-`Vector{Package}`.
+Analyze all packages in the iterable `pkg_entries`, using threads, storing their code in `root`
+if it needs to be downloaded.  Returns a `Vector{Package}`.
 
-Optionally, use pairs `(PkgEntry, $AbstractVersion)` to specify the version numbers, or pass a keyword argument `version`.
-The version number may be a `VersionNumber`, or `:dev`, or `:stable`. When pairs are passed, the
-keyword argument `version` will be ignored.
+Each element of `pkg_entries` should be a valid input to [`analyze`](@ref).
 
 If the GitHub authentication is non-anonymous and the repository is on GitHub,
 the list of contributors to the repositories is also collected, after waiting

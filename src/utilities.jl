@@ -1,22 +1,3 @@
-const GENERAL_REGISTRY_UUID = UUID("23338594-aafe-5451-b93e-139f81909106")
-
-
-"""
-    general_registry() -> RegistryInstance
-
-Return the `RegistryInstance` associated to the General registry.
-"""
-function general_registry()
-    registries = reachable_registries()
-    idx = findfirst(r -> r.uuid == GENERAL_REGISTRY_UUID, registries)
-    if idx === nothing
-        throw(ArgumentError("Could not find General registry! Is it installed?"))
-    else
-        return registries[idx]
-    end
-end
-
-
 #####
 ##### GitHub things
 #####
@@ -94,4 +75,3 @@ function parse_contributions(c)
         return (; contrib.login, contrib.id, name=missing, type=contrib.typ, contributions=c["contributions"])
     end
 end
-

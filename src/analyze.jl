@@ -67,24 +67,24 @@ Package Pluto:
 
 ```
 """
-function analyze(name_or_dir_or_url::AbstractString; repo="", subdir="", registries=reachable_registries(), auth::GitHub.Authorization=github_auth(), sleep=0, version=nothing)
+function analyze(name_or_dir_or_url::AbstractString; registries=reachable_registries(), auth::GitHub.Authorization=github_auth(), sleep=0, version=nothing, root=mktempdir())
     if Base.isidentifier(name_or_dir_or_url)
         # The argument looks like a package name rather than a directory: find
         # the package in `registry` and analyze it
         release = find_package(name_or_dir_or_url; registries, version)
-        return analyze(release; auth, sleep)
+        return analyze(release; auth, sleep, root)
     elseif isdir(name_or_dir_or_url)
         # Local directory
         if version !== nothing
-            error("")
+            error("Passing a `version` is unsupported for local directories.")
         end
-        return analyze(Dev(; path=name_or_dir_or_url); repo, subdir, auth, sleep)
+        return analyze(Dev(; path=name_or_dir_or_url); auth, sleep, root)
     else
         # Remote URL
         if version !== nothing
-            error("Not supported")
+            error("Passing a `version` is unsupported for remote URLs.")
         end
-        return analyze(Dev(; repo_url=name_or_dir_or_url); subdir, auth, sleep)
+        return analyze(Dev(; repo_url=name_or_dir_or_url); auth, sleep, root)
     end
 end
 
@@ -178,6 +178,7 @@ end
 #####
 
 # Here we analyze a local directory.
+# This is an internal function.
 
 """
     analyze_code(dir::AbstractString; repo = "", reachable=true, subdir="", auth::GitHub.Authorization=github_auth(), sleep=0, only_subdir=false, version=nothing) -> Package
