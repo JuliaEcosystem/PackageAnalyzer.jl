@@ -14,13 +14,14 @@ function obtain_code(dev::Dev; root=mktempdir(), auth=github_auth())
 end
 
 function obtain_code(added::Added; root=mktempdir(), auth=github_auth())
+    tree_hash = added.tree_hash
     # use either path OR repo url + tree-hash
-    sha = Base.SHA1(hex2bytes(added.tree_hash))
+    sha = Base.SHA1(hex2bytes(tree_hash))
     vs = Base.version_slug(added.uuid, sha)
     dest = joinpath(root, added.name, vs)
 
     if !isempty(added.repo_url)
-        reachable = download_tree_hash(dest, added.repo_url; added.tree_hash, auth)
+        reachable = download_tree_hash(dest, added.repo_url; tree_hash, auth)
     else
         # Extract from local git repo
         reachable = try
@@ -30,6 +31,11 @@ function obtain_code(added::Added; root=mktempdir(), auth=github_auth())
             @debug "Error extracting archive from local git repo" exception=e
             false
         end
+    end
+
+    if reachable && get_tree_hash(dest) != tree_hash
+        @debug "Must be download corruption; tree hash of download does not match expected" get_tree_hash(dest) tree_hash
+        reachable = false
     end
     return (dest, reachable, nothing)
 end
@@ -49,7 +55,7 @@ function obtain_code(release::Release; root=mktempdir(), auth=github_auth())
     for d in Pkg.depots()
         path = joinpath(d, "packages", tail)
         isdir(path) || continue
-        path_tree_hash = bytes2hex(Pkg.GitTools.tree_hash(path))
+        path_tree_hash = get_tree_hash(path)
         if path_tree_hash == tree_hash
             @debug "Found installed path at $(path)! Using that"
             return (path, true, version)
@@ -59,7 +65,7 @@ function obtain_code(release::Release; root=mktempdir(), auth=github_auth())
     # Check if we can skip the download
     dest = joinpath(root, tail)
     if isdir(dest)
-        dest_tree_hash = bytes2hex(Pkg.GitTools.tree_hash(dest))
+        dest_tree_hash = get_tree_hash(dest)
         if dest_tree_hash == tree_hash
             @debug "Found existing download at $(dest)!"
             return (dest, true, version)
@@ -69,6 +75,11 @@ function obtain_code(release::Release; root=mktempdir(), auth=github_auth())
     tree_hash = bytes2hex(tree_sha.bytes)
     info = registry_info(release.entry)
     reachable = download_tree_hash(dest, info.repo_url; tree_hash, auth)
+
+    if reachable && get_tree_hash(dest) != tree_hash
+        @debug "Must be download corruption; tree hash of download does not match expected" get_tree_hash(dest) tree_hash
+        reachable = false
+    end
     return (dest, reachable, version)
 end
 

@@ -228,11 +228,11 @@ function analyze_code(dir::AbstractString; repo="", reachable=true, subdir="", a
     end
     # if `only_subdir` is true, and we are indeed in a subdirectory, we'll get the paths wrong here.
     # However, we'll find them w/ correct paths in the next check.
-    license_files = only_subdir && !isempty(subdir) ? LicenseTableEltype[] : find_licenses(dir)
+    license_files = only_subdir && !isempty(subdir) ? LicenseTableEltype[] : _find_licenses(dir)
     if isdir(pkgdir)
         if !isempty(subdir)
             # Look for licenses at top-level and in the subdirectory
-            subdir_licenses_files = [(; license_filename=joinpath(subdir, row.license_filename), row.licenses_found, row.license_file_percent_covered) for row in find_licenses(pkgdir)]
+            subdir_licenses_files = [(; license_filename=joinpath(subdir, row.license_filename), row.licenses_found, row.license_file_percent_covered) for row in _find_licenses(pkgdir)]
             license_files = [subdir_licenses_files; license_files]
         end
         lines_of_code = count_loc(pkgdir)
@@ -242,7 +242,7 @@ function analyze_code(dir::AbstractString; repo="", reachable=true, subdir="", a
     end
 
     if isdir(pkgdir)
-        tree_hash = bytes2hex(Pkg.GitTools.tree_hash(pkgdir))
+        tree_hash = get_tree_hash(pkgdir)
     else
         tree_hash = ""
     end

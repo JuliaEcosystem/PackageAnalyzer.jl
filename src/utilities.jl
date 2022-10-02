@@ -75,3 +75,17 @@ function parse_contributions(c)
         return (; contrib.login, contrib.id, name=missing, type=contrib.typ, contributions=c["contributions"])
     end
 end
+
+# Don't error if licensecheck isn't working, just log it
+function _find_licenses(dir)
+    try
+        find_licenses(dir)
+    catch e
+        @error "Error finding licenses in $dir" exception=e maxlog=2
+        LicenseTableEltype[]
+    end
+end
+
+function get_tree_hash(dir)
+    return bytes2hex(Pkg.GitTools.tree_hash(dir))
+end

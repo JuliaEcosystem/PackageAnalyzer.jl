@@ -39,10 +39,16 @@ function get_uuids(name::AbstractString, registry)
 end
 
 """
-    find_package(pkg; registries=reachable_registries(), version::Union{VersionNumber, Nothing}=nothing) -> PkgSource
+    find_package(name_or_uuid::Union{AbstractString, UUID}; registries=reachable_registries(), version::Union{VersionNumber,Nothing}=nothing, strict=true, warn=true) -> PkgSource
 
 Returns the [PkgSource](@ref) for the package `pkg`.
-The singular version of [`find_packages`](@ref).
+
+* registries: a collection of `RegistryInstance` to look in
+* `version`: if `nothing`, finds the maximum registered version in any registry. Otherwise looks for that version number.
+* If `strict` is true, errors if the package cannot be found. Otherwise, returns `nothing`.
+* If `warn` is true, warns if the package cannot be found. 
+
+See also:  [`find_packages`](@ref).
 """
 function find_package(name_or_uuid::Union{AbstractString, UUID}; registries=reachable_registries(), version::Union{VersionNumber, Nothing}=nothing, strict=true, warn=true)
     local_entries = PkgEntry[]
@@ -90,9 +96,6 @@ function find_package(name_or_uuid::Union{AbstractString, UUID}; registries=reac
     end
 end
 
-function max_version(entry::PkgEntry)
-    return maximum(keys(registry_info(entry).version_info))
-end
 
 # The UUID of the "julia" pseudo-package in the General registry
 const JULIA_UUID = UUID("1222c4b2-2114-5bfd-aeef-88e4692bbb3e")
@@ -111,12 +114,29 @@ function find_packages(; registries=reachable_registries(),
     return results
 end
 
+
+function max_version(entry::PkgEntry)
+    return maximum(keys(registry_info(entry).version_info))
+end
+
 function find_packages_in_manifest(; kw...)
     manifest_path = joinpath(dirname(Base.active_project()), "Manifest.toml")
     return find_packages_in_manifest(manifest_path; kw...)
 end
 
-function find_packages_in_manifest(path_to_manifest; registries=reachable_registries())
+"""
+    find_packages_in_manifest([path_to_manifest]; registries=reachable_registries(),
+                              strict=true, warn=true)) -> Vector{PkgSource}
+
+Returns `Vector{PkgSource}` associated to all of the package/version combinations stored in a Manifest.toml.
+
+* `path_to_manifest` defaults to `joinpath(dirname(Base.active_project()), "Manifest.toml")`
+* registries: a collection of `RegistryInstance` to look in
+* `strict` and `warn` have the same meaning as in [`find_package`](@ref).
+* Standard libraries are always skipped, without warning or errors.
+
+"""
+function find_packages_in_manifest(path_to_manifest; registries=reachable_registries(), strict=true, warn=true)
     manifest = TOML.parsefile(path_to_manifest)
     format = parse(VersionNumber, get(manifest, "manifest_format", "1.0"))
     if format.major == 2
@@ -161,9 +181,8 @@ function find_packages_in_manifest(path_to_manifest; registries=reachable_regist
             end
 
             # Option 3: Release package
-
             version = VersionNumber(manifest_entry["version"]::String)
-            pkg = find_package(uuid; version, registries, strict=false)            
+            pkg = find_package(uuid; version, registries, strict, warn)            
             if pkg === nothing
                 continue
             end
@@ -171,9 +190,8 @@ function find_packages_in_manifest(path_to_manifest; registries=reachable_regist
             lookup = registry_info(pkg.entry).version_info[version]
             tree_hash_from_registry = bytes2hex(lookup.git_tree_sha1.bytes)
             if tree_hash_from_registry != manifest_tree_hash
-                error()
+                error("Somehow `tree_hash_from_registry`=$(tree_hash_from_registry) does not match `manifest_tree_hash`=$(manifest_tree_hash)")
             end
-            
             push!(results, pkg)
         end
     end

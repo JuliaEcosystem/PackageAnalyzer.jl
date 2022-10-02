@@ -4,7 +4,7 @@ function count_loc(dir)
     json = try
         JSON3.read(read(Cmd(`$(tokei()) --output json .`; dir)))
     catch e
-        @error "`tokei` error: " e
+        @error "`tokei` error: " exception=e maxlog=2
         missing
     end
     return make_loc_table(json)
