@@ -8,7 +8,7 @@ function obtain_code(trunk::Trunk; root=mktempdir(), auth=nothing)
     # Clone from URL and store in root
     # We always store in a tempdir bc we will need to reclone
     # anyway, since we are asking for latest release.
-    dest = joinpath(root, mktempdir())
+    dest = mktempdir(root)
     reachable = download_latest_code(dest, trunk.repo_url)
     return (dest, reachable, nothing, trunk.subdir)
 end
@@ -90,6 +90,7 @@ end
 
 function download_latest_code(dest::AbstractString, repo::AbstractString)
     isdir(dest) || mkpath(dest)
+    @debug "Downloading code from $repo to $dest"
     reachable = try
         # Clone only latest commit on the default branch.  Note: some
         # repositories aren't reachable because the author made them private or

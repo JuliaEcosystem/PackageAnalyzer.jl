@@ -38,6 +38,9 @@ function get_uuids(name::AbstractString, registry)
     return uuids_from_name(registry, name)
 end
 
+is_stdlib(name::AbstractString)  = name in values(STDLIBS)
+is_stdlib(uuid::UUID)  = uuid in keys(STDLIBS)
+
 """
     find_package(name_or_uuid::Union{AbstractString, UUID}; registries=reachable_registries(), version::Union{VersionNumber,Nothing}=nothing, strict=true, warn=true) -> PkgSource
 
@@ -56,22 +59,21 @@ function find_package(name_or_uuid::Union{AbstractString, UUID}; registries=reac
             error("Unrecognized version $version. Either pass a `VersionNumber` or `:stable` or `:dev`.")
         end
     end
-    no_version_msg = "Could not find version $version for package $name_or_uuid"
-
+    description = is_stdlib(name_or_uuid) ? "standard library" : "package"
     local_entries = PkgEntry[]
     for registry in registries
         uuids = get_uuids(name_or_uuid, registry)
         if length(uuids) > 1
-            error("There are more than one packages with name $(name_or_uuid)! These have UUIDs $uuids")
+            error("There are more than one $(description)s with name $(name_or_uuid)! These have UUIDs $uuids")
         elseif length(uuids) == 1
             entry = registry.pkgs[only(uuids)]
             push!(local_entries, entry)
         end
     end
     if isempty(local_entries)
-        msg = "Could not find package $(name_or_uuid) in any registry!"
+        msg = "Could not find $description $(name_or_uuid) in any registry!"
         if strict
-            error(msg)
+            throw(ArgumentError(msg))
         elseif warn
             @error(msg)
         end
@@ -93,7 +95,7 @@ function find_package(name_or_uuid::Union{AbstractString, UUID}; registries=reac
                 entry = local_entries[idx]
                 info = registry_info(entry)
                 if info.repo === nothing
-                    error("Package $(name_or_uuid) has no repository URL stored in registry at $(entry.registry_path)!")
+                    throw(ArgumentError("$(uppercasefirst(description)) $(name_or_uuid) has no repository URL stored in registry at $(entry.registry_path)!"))
                 end
                 return Trunk(; repo_url=info.repo::String, subdir=something(info.subdir, ""))
             end
@@ -101,12 +103,13 @@ function find_package(name_or_uuid::Union{AbstractString, UUID}; registries=reac
             infos = registry_info.(local_entries)
             idx = findfirst(info -> haskey(info.version_info, version), infos)
             if idx === nothing
-                strict && error(no_version_msg)
-                warn && @error(no_version_msg) 
+                msg = "Could not find version $version for $description $name_or_uuid"
+                strict && throw(ArgumentError(msg))
+                warn && @error(msg) 
                 return nothing
             end
             entry = local_entries[idx]
-            info = registry_info(info)
+            info = registry_info(entry)
             return Release(entry, version)
         end
     end

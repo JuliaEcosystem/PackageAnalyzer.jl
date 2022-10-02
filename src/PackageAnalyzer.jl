@@ -16,7 +16,7 @@ using CodecZlib
 # Ways to find packages
 export find_package, find_packages, find_packages_in_manifest
 # Ways to analyze them
-export analyze, analyze_manifest
+export analyze, analyze_manifest, analyze_packages
 
 # borrowed from <https://github.com/JuliaRegistries/RegistryTools.jl/blob/841a56d8274e2857e3fd5ea993ba698cdbf51849/src/builtin_pkgs.jl>
 const stdlibs = isdefined(Pkg.Types, :stdlib) ? Pkg.Types.stdlib : Pkg.Types.stdlibs
@@ -194,7 +194,11 @@ struct Release <: PkgSource
 end
 
 function Base.show(io::IO, r::Release)
-    print(io, "Release(", r.entry.name, ", ", r.version, ")")
+    print(io, "Release(")
+    show(io, r.entry.name)
+    print(io, ", ")
+    show(io, r.version)
+    print(io, ")")
 end
 
 # Represents a `Pkg.add`'d package (non-release)
@@ -209,7 +213,11 @@ Base.@kwdef struct Added <: PkgSource
 end
 
 function Base.show(io::IO, a::Added)
-    print(io, "Added(", a.name, ", \"", a.tree_hash, "\")")
+    print(io, "Added(")
+    show(io, a.name)
+    print(io, ", ")
+    show(io, a.tree_hash)
+    print(io, ")")
 end
 
 # Represents a Pkg.dev'd package
@@ -220,8 +228,13 @@ Base.@kwdef struct Dev <: PkgSource
 end
 
 function Base.show(io::IO, d::Dev)
-    print(io, "Dev(", d.name, ", \"", d.path, "\")")
+    print(io, "Dev(")
+    show(io, d.name)
+    print(io, ", ")
+    show(io, d.path)
+    print(io, ")")
 end
+
 
 # Represents the latest state of the trunk branch
 # of a repo
@@ -231,11 +244,13 @@ Base.@kwdef struct Trunk <: PkgSource
 end
 
 function Base.show(io::IO, d::Trunk)
-    print(io, "Trunk(\"", d.repo_url)
+    print(io, "Trunk(")
+    url = d.repo_url
     if !isempty(d.subdir)
-        print(io, ":", d.subdir)
+        url *= ":" * d.subdir
     end
-    print(io, "\")")
+    show(io, url)
+    print(io, ")")
 end
 
 # Provides methods to obtain a `PkgSource`
