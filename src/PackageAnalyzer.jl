@@ -7,7 +7,7 @@ using LicenseCheck # for `find_license` and `is_osi_approved`
 using JSON3 # for interfacing with `tokei` to count lines of code
 using Tokei_jll # count lines of code
 using GitHub # Use GitHub API to get extra information about the repo
-using Git
+using Git: Git
 using RegistryInstances
 using Downloads
 using Tar

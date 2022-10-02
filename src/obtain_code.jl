@@ -25,7 +25,7 @@ function obtain_code(added::Added; root=mktempdir(), auth=github_auth())
     else
         # Extract from local git repo
         reachable = try
-            Tar.extract(Cmd(`git archive $tree_hash`; dir=added.path), dest)
+            Tar.extract(Cmd(`$(git()) archive $tree_hash`; dir=added.path), dest)
             true
         catch e
             @debug "Error extracting archive from local git repo" exception=e
@@ -133,7 +133,7 @@ function download_tree_hash(dest, repo; tree_hash, auth=github_auth())
         @debug "Falling back to full clone"
         tmp = mktempdir()
         run(pipeline(detach(`$(git()) clone -q $(repo) $(tmp)`); stdin=devnull, stderr=devnull))
-        Tar.extract(Cmd(`git archive $tree_hash`; dir=tmp), dest)
+        Tar.extract(Cmd(`$(git()) archive $tree_hash`; dir=tmp), dest)
         true
     catch e
         @debug "Error; maybe unreachable" exception = e

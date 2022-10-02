@@ -89,3 +89,12 @@ end
 function get_tree_hash(dir::AbstractString)
     return bytes2hex(Pkg.GitTools.tree_hash(dir))
 end
+
+function git()
+    # Git.jl has issues on MacOS, so if we have a local git there, use it
+    if Sys.isapple() && Sys.which("git") !== nothing
+        return `git`
+    else
+        Git.git()
+    end
+end
