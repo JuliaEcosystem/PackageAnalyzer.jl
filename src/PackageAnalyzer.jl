@@ -14,7 +14,7 @@ using Tar
 using CodecZlib
 
 export general_registry, find_package, find_packages, find_packages_in_manifest
-export analyze, analyze!
+export analyze, analyze!, analyze_manifest
 
 const AbstractVersion = Union{VersionNumber,Symbol}
 
@@ -339,6 +339,20 @@ function analyze!(root, pkg::PkgEntry; auth::GitHub.Authorization=github_auth(),
         end
     end
 
+    if version !== :dev
+        # We have another chance to avoid the download: we can check inside the user's
+        # package directory. Great for analyzing manifests where all versions
+        # should be already installed!
+        for d in Pkg.depots()
+            path = joinpath(d, "packages", name, vs)
+            isdir(path) || continue
+            path_tree_hash = bytes2hex(Pkg.GitTools.tree_hash(path))
+            if path_tree_hash == tree_hash
+                @debug "Found installed path at $(path)! Using that"
+                return analyze_path(path; repo, subdir, auth, sleep, only_subdir=true, version)
+            end
+        end
+    end
     return analyze_path!(dest, repo; name, uuid, subdir, auth, sleep, tree_hash, version)
 end
 
@@ -509,6 +523,21 @@ function parse_project(dir)
     end
     return (; name=project["name"]::String, uuid, licenses_in_project)
 end
+
+"""
+    analyze_manifest([path_to_manifest]; registries=reachable_registries(),
+                     auth=github_auth(), sleep=0)
+
+Convienence function to run [`find_packages_in_manifest`](@ref) then [`analyze`](@ref) on the results. Positional argument `path_to_manifest` defaults to `joinpath(dirname(Base.active_project()), "Manifest.toml")`.
+"""
+function analyze_manifest(path_to_manifest; registries=reachable_registries(),
+                          auth=github_auth(), sleep=0)
+    pkgs = find_packages_in_manifest(path_to_manifest; registries)
+    return analyze(pkgs; auth, sleep)
+end
+
+analyze_manifest(; kw...) = analyze_manifest(joinpath(dirname(Base.active_project()), "Manifest.toml"); kw...)
+
 
 """
     analyze(name_or_dir_or_url::AbstractString; repo = "", reachable=true, subdir="", registry=general_registry(), auth::GitHub.Authorization=github_auth(), version::AbstractVersion=:dev)
