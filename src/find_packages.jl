@@ -133,7 +133,6 @@ function find_packages(; registries=reachable_registries(),
     return results
 end
 
-
 function max_version(entry::PkgEntry)
     return maximum(keys(registry_info(entry).version_info))
 end

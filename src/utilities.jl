@@ -23,6 +23,10 @@ function github_auth(token::String="")
 end
 
 function github_extract_code!(dest::AbstractString, user::AbstractString, repo::AbstractString, tree_hash::AbstractString; auth)
+    # GitHub allows one to directly HTTP GET a URL like:
+    # https://github.com/$(user)/$(repo)/archive/tarball/$(tree_hash)
+    # But we go through `GitHub.gh_get` so we can easily use our auth token `auth`,
+    # in particular to support private packages.
     path = "/repos/$(user)/$(repo)/tarball/$(tree_hash)"
     resp = GitHub.gh_get(GitHub.DEFAULT_API, path; auth)
     tmp = mktempdir()
@@ -91,8 +95,10 @@ function get_tree_hash(dir::AbstractString)
 end
 
 function git()
-    # Git.jl has issues on MacOS, so if we have a local git there, use it
-    if Sys.isapple() && Sys.which("git") !== nothing
+    use_local_env = parse(Bool, get(ENV,"USE_LOCAL_GIT", "false"))
+    # Git.jl has issues on MacOS, so if we have a local git there, use it,
+    # Also allow ENV-based opt-out. Why? Not sure about private packages.
+    if use_local_env || (Sys.isapple() && Sys.which("git") !== nothing)
         return `git`
     else
         Git.git()
