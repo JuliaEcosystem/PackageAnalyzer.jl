@@ -13,6 +13,7 @@ const auth = GitHub.AnonymousAuth()
 
 const PACKAGE_ANALYZER_UUID = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c")
 const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.jl"
+
 @testset "PackageAnalyzer" begin
     @testset "Basic" begin
         # Test some properties of the `Measurements` package.  NOTE: they may change
@@ -351,16 +352,37 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
     end
 
     @testset "Multi-registry `find_package`" begin
+        # First, we need to set up 2 registries
         r = first(reachable_registries())
-        pkg = r.pkgs[PACKAGE_ANALYZER_UUID]
-        # fill in some lazily initialized fields
-        registry_info(pkg)
-        uuids_from_name(pkg, "PackageAnalyzer")
-        # Now copy it
+        
+        # Our second registry will be a copy of the first...
         r2 = deepcopy(r)
-        empty!(r2.pkgs)
-        registry_info(pkg).version_info
 
+        # Except we will mess with the package analyzer entry:
+        pkg_copy = r2.pkgs[PACKAGE_ANALYZER_UUID]
+
+        real_unregistered_tree_hash = "ceef6d82cf6df70a44cc20a7683990d789690263"
+        fake_version_info = RegistryInstances.VersionInfo(Base.SHA1(hex2bytes(real_unregistered_tree_hash)), false, RegistryInstances.uninit)
+
+        push!(registry_info(pkg_copy).version_info, v"0.0.1" => fake_version_info)
+        
+        registries = (r, r2)
+        found = find_package("PackageAnalyzer"; registries)
+        @test found.version > v"0.0.1" # we should get the highest version by default!
+
+        # But we can find the old version in this other registry
+        found = find_package("PackageAnalyzer"; registries, version=v"0.0.1")
+        @test found.version == v"0.0.1"
+        # And since we put a real tree hash, we can even download it:
+        result = analyze(found; auth)
+        @test result.tree_hash == real_unregistered_tree_hash
+        @test !isempty(result.lines_of_code)
+
+        # Now let's try a high version number, and check it gets found by default
+        high_version = v"10000000.0.0"
+        push!(registry_info(pkg_copy).version_info, high_version => fake_version_info)
+        found2 = find_package("PackageAnalyzer"; registries)
+        @test found2.version == high_version
     end
 
     @testset "Thread-safety" begin
