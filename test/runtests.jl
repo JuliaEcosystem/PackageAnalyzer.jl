@@ -323,7 +323,7 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
 
                 pkgs = find_packages_in_manifest()
                 pkgs2 = find_packages_in_manifest(joinpath(tmp, "Manifest.toml"))
-                @show joinpath(dirname(Base.active_project), "Manifest.toml")
+                @show joinpath(dirname(Base.active_project()), "Manifest.toml")
                 @show joinpath(tmp, "Manifest.toml") 
                 diff = symdiff(pkgs, pkgs2)
                 @test isempty(diff)
