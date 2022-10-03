@@ -91,7 +91,7 @@ end
 const REGISTRY_UUID_LOCK = ReentrantLock()
 
 function get_uuids(name::AbstractString, registry)
-    return @lock REGISTRY_UUID_LOCK begin
+    return Base.@lock REGISTRY_UUID_LOCK begin
         RegistryInstances.uuids_from_name(registry, name)
     end
 end
@@ -103,7 +103,7 @@ end
 const REGISTRY_INFO_LOCK = ReentrantLock()
 
 function registry_info(pkg::PkgEntry)
-    return @lock REGISTRY_INFO_LOCK begin
+    return Base.@lock REGISTRY_INFO_LOCK begin
         RegistryInstances.registry_info(pkg)
     end
 end
