@@ -30,11 +30,8 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
         @test !isempty(measurements.lines_of_code)
         packages = find_packages("Cuba", "PolynomialRoots")
         # Test results of a couple of packages.  Same caveat as above
-        # We compare by UUID + version, since other fields may be initialized or not
-        fields = [(p.uuid, p.version) for p in packages]
-        fields2 = [(p.uuid, p.version) for p in find_packages(["Cuba", "PolynomialRoots"])]
-        @test issetequal(fields, fields2)
-        @test first.(fields) ⊆ [x.uuid for x in find_packages()]
+        @test packages == find_packages(["Cuba", "PolynomialRoots"])
+        @test packages ⊆ find_packages()
         results = analyze_packages(packages; auth)
         cuba, polyroots = results
         @test length(filter(p -> p.reachable, results)) == 2
@@ -316,7 +313,9 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
                 # Add by path
                 Pkg.add(; path=pkgdir(PackageAnalyzer), io=devnull)
                 pkgs = find_packages_in_manifest()
-
+                pkgs2 = find_packages_in_manifest(joinpath(tmp, "Manifest.toml"))
+                @test pkgs == pkgs2
+                
                 added_by_path = only(filter(pkgs) do pkg
                     pkg isa Added || return false
                     pkg.name == "PackageAnalyzer"
