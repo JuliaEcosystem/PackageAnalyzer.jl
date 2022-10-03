@@ -312,6 +312,44 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
         end
     end
 
+    @testset "`find_packages_in_manifest`: advanced" begin
+        # Check that we can find packages added by path, added by url, and dev'd.
+        tmp = mktempdir()
+        withenv("JULIA_PKG_PRECOMPILE_AUTO" => "0") do
+            Pkg.activate(tmp) do
+                # Add by path
+                Pkg.add(; path=pkgdir(PackageAnalyzer), io=devnull)
+
+                pkgs = find_packages_in_manifest()
+                @test pkgs == find_packages_in_manifest(joinpath(tmp, "Manifest.toml"))
+
+                added_by_path = only(filter(pkgs) do pkg
+                    pkg isa Added || return false
+                    pkg.name == "PackageAnalyzer"
+                end)
+                @test added_by_path.uuid == PACKAGE_ANALYZER_UUID
+
+                # Add by URL
+                Pkg.add(; url="https://github.com/ericphanson/LicenseCheck.jl", rev="v0.2.1", io=devnull)
+                pkgs = find_packages_in_manifest()
+                added_by_url = only(filter(pkgs) do pkg
+                    pkg isa Added || return false
+                    pkg.name == "LicenseCheck"
+                end)
+                @test added_by_url.tree_hash == "a50bfb26428ac4ccb763f6aa8c9e4ecbbcc58255"
+
+                # Dev'd
+                Pkg.develop(; path=pkgdir(PackageAnalyzer), io=devnull)
+                pkgs = find_packages_in_manifest()
+                devved = only(filter(pkgs) do pkg
+                    pkg isa Dev || return false
+                    pkg.name == "PackageAnalyzer"
+                end)
+                @test devved.uuid == PACKAGE_ANALYZER_UUID
+            end
+        end
+    end
+
     @testset "Thread-safety" begin
         # Make sure none of the above commands leaks LD_LIBRARY_PATH.  This test
         # should be executed at the very end of the test suite.
