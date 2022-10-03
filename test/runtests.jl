@@ -328,7 +328,7 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
                 diff = symdiff(pkgs, pkgs2)
                 @test isempty(diff)
                 println.(enumerate(pkgs))
-                println.(enumeraet(pkgs2))
+                println.(enumerate(pkgs2))
 
                 added_by_path = only(filter(pkgs) do pkg
                     pkg isa Added || return false
