@@ -350,6 +350,19 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
         end
     end
 
+    @testset "Multi-registry `find_package`" begin
+        r = first(reachable_registries())
+        pkg = r.pkgs[PACKAGE_ANALYZER_UUID]
+        # fill in some lazily initialized fields
+        registry_info(pkg)
+        uuids_from_name(pkg, "PackageAnalyzer")
+        # Now copy it
+        r2 = deepcopy(r)
+        empty!(r2.pkgs)
+        registry_info(pkg).version_info
+
+    end
+
     @testset "Thread-safety" begin
         # Make sure none of the above commands leaks LD_LIBRARY_PATH.  This test
         # should be executed at the very end of the test suite.
