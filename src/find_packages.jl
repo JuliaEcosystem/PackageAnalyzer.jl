@@ -30,14 +30,6 @@ function find_packages(names; registries=reachable_registries(), version::Union{
     return entries
 end
 
-function get_uuids(uuid::UUID, registry)
-    return haskey(registry.pkgs, uuid) ? [uuid] : UUID[]
-end
-
-function get_uuids(name::AbstractString, registry)
-    return uuids_from_name(registry, name)
-end
-
 is_stdlib(name::AbstractString)  = name in values(STDLIBS)
 is_stdlib(uuid::UUID)  = uuid in keys(STDLIBS)
 

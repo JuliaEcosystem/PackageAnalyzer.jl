@@ -81,6 +81,38 @@ function parse_contributions(c)
     end
 end
 
+#####
+##### RegistryInstances thread safety
+#####
+
+# RegistryInstances uses LazilyInitializedFields, and if we try to initialize a field
+# from two different threads, we have a data-race. We'll add a lock for these.
+
+const REGISTRY_UUID_LOCK = ReentrantLock()
+
+function get_uuids(name::AbstractString, registry)
+    return @lock REGISTRY_UUID_LOCK begin
+        RegistryInstances.uuids_from_name(registry, name)
+    end
+end
+
+function get_uuids(uuid::UUID, registry)
+    return haskey(registry.pkgs, uuid) ? [uuid] : UUID[]
+end
+
+const REGISTRY_INFO_LOCK = ReentrantLock()
+
+function registry_info(pkg::PkgEntry)
+    return @lock REGISTRY_INFO_LOCK begin
+        RegistryInstances.registry_info(pkg)
+    end
+end
+
+
+#####
+##### Other
+#####
+
 # Don't error if licensecheck isn't working, just log it
 function _find_licenses(dir)
     try
