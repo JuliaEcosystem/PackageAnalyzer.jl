@@ -154,11 +154,10 @@ end
 
 function analyze(pkg::Release; root=mktempdir(), auth=github_auth(), sleep=0)
     local_dir, reachable, version, _ = obtain_code(pkg; root, auth)
-    info = registry_info(pkg.entry)
-    repo = something(info.repo, "")
-    subdir = something(info.subdir, "")
+    repo = pkg.repo
+    subdir = pkg.subdir
     if !reachable
-        return Package(pkg.entry.name, pkg.entry.uuid, repo; reachable, subdir, version)
+        return Package(pkg.name, pkg.uuid, repo; reachable, subdir, version)
     end
     only_subdir = true
     return analyze_code(local_dir; auth, subdir, reachable, only_subdir, repo, sleep, version)

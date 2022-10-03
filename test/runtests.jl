@@ -31,10 +31,10 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
         packages = find_packages("Cuba", "PolynomialRoots")
         # Test results of a couple of packages.  Same caveat as above
         # We compare by UUID + version, since other fields may be initialized or not
-        fields = [(p.entry.uuid, p.version) for p in packages]
-        fields2 = [(p.entry.uuid, p.version) for p in find_packages(["Cuba", "PolynomialRoots"])]
+        fields = [(p.uuid, p.version) for p in packages]
+        fields2 = [(p.uuid, p.version) for p in find_packages(["Cuba", "PolynomialRoots"])]
         @test issetequal(fields, fields2)
-        @test first.(fields) ⊆ [x.entry.uuid for x in find_packages()]
+        @test first.(fields) ⊆ [x.uuid for x in find_packages()]
         results = analyze_packages(packages; auth)
         cuba, polyroots = results
         @test length(filter(p -> p.reachable, results)) == 2
@@ -254,12 +254,7 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
         @test occursin("* uuid: $(PACKAGE_ANALYZER_UUID)", str)
         @test occursin("* OSI approved: true", str)
 
-        r = first(reachable_registries())
-        pkg = r.pkgs[PACKAGE_ANALYZER_UUID]
-        str = sprint(show, Release(pkg, v"0"))
-        @test str == "Release(\"PackageAnalyzer\", v\"0.0.0\")"
-
-        str = sprint(show, Release(pkg, v"0"))
+        str = sprint(show, Release(; name="PackageAnalyzer", version=v"0"))
         @test str == "Release(\"PackageAnalyzer\", v\"0.0.0\")"
 
         str = sprint(show, Added(; name="hi", tree_hash="bye"))

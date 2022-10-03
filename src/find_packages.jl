@@ -201,8 +201,7 @@ function find_packages_in_manifest(path_to_manifest; registries=reachable_regist
                 continue
             end
 
-            lookup = registry_info(pkg.entry).version_info[version]
-            tree_hash_from_registry = bytes2hex(lookup.git_tree_sha1.bytes)
+            tree_hash_from_registry = pkg.tree_hash
             if tree_hash_from_registry != manifest_tree_hash
                 error("Somehow `tree_hash_from_registry`=$(tree_hash_from_registry) does not match `manifest_tree_hash`=$(manifest_tree_hash)")
             end

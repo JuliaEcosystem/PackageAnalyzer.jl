@@ -190,14 +190,30 @@ end
 abstract type PkgSource end
 
 # Represents the released version of a package
-struct Release <: PkgSource
-    entry::PkgEntry
-    version::VersionNumber
+# Contains the fields we need from the registry
+Base.@kwdef struct Release <: PkgSource
+    name::String = ""
+    uuid::UUID = UUID(0)
+    repo::String = ""
+    subdir::String = ""
+    tree_hash::String = ""
+    version::VersionNumber = v"0"
+end
+
+# Helper to extract needed fields from a `PkgEntry`, with a version number
+function Release(entry::PkgEntry, version::VersionNumber)
+    info = registry_info(entry)
+    tree_hash = bytes2hex(info.version_info[version].git_tree_sha1.bytes)
+    name = entry.name
+    uuid = entry.uuid
+    repo = something(info.repo, "")
+    subdir = something(info.subdir, "")
+    return Release(; tree_hash, name, uuid, repo, subdir, version)
 end
 
 function Base.show(io::IO, r::Release)
     print(io, "Release(")
-    show(io, r.entry.name)
+    show(io, r.name)
     print(io, ", ")
     show(io, r.version)
     print(io, ")")

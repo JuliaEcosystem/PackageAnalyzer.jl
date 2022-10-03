@@ -42,13 +42,11 @@ end
 
 
 function obtain_code(release::Release; root=mktempdir(), auth=github_auth())
-    info = registry_info(release.entry)
     version = release.version
-    tree_sha = info.version_info[version].git_tree_sha1
+    tree_hash = release.tree_hash
 
-    tree_hash = bytes2hex(tree_sha.bytes)
-    vs = Base.version_slug(release.entry.uuid, tree_sha)
-    tail = joinpath(release.entry.name, vs)
+    vs = Base.version_slug(release.uuid, Base.SHA1(hex2bytes(tree_hash)))
+    tail = joinpath(release.name, vs)
 
     # Since it's a release, the user may have it installed already
     # Since we have hashes, we can verify it's the right code
@@ -72,11 +70,9 @@ function obtain_code(release::Release; root=mktempdir(), auth=github_auth())
         end
     end
 
-    tree_hash = bytes2hex(tree_sha.bytes)
-    info = registry_info(release.entry)
-    repo = info.repo
+    repo = release.repo
     if repo === nothing
-        error("Package $(release.entry.name) does not have assocaiated repo URL in registry at $(release.entry.registry_path)")
+        error("Package $(release.name) does not have assocaiated repo URL in registry at $(release.registry_path)")
     end
     reachable = download_tree_hash(dest, repo; tree_hash, auth)
 
