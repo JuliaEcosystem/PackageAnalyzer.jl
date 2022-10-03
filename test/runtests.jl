@@ -4,12 +4,15 @@ using PackageAnalyzer: parse_project, Release, Added, Dev, Trunk, PkgSource
 using JLLWrappers
 using GitHub: GitHub
 using RegistryInstances
+using Pkg
 
 get_libpath() = get(ENV, JLLWrappers.LIBPATH_env, nothing)
 const orig_libpath = get_libpath()
 
 const auth = GitHub.AnonymousAuth()
 
+const PACKAGE_ANALYZER_UUID = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c")
+const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.jl"
 @testset "PackageAnalyzer" begin
     @testset "Basic" begin
         # Test some properties of the `Measurements` package.  NOTE: they may change
@@ -74,7 +77,7 @@ const auth = GitHub.AnonymousAuth()
     @testset "`analyze`" begin
         # `dev` analysis:
         for pkg in (analyze(PackageAnalyzer; auth), analyze("https://github.com/giordano/PackageAnalyzer.jl"; auth), analyze(joinpath(@__DIR__, ".."); auth))
-            @test pkg.uuid == UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c")
+            @test pkg.uuid == PACKAGE_ANALYZER_UUID
             @test pkg.reachable == true # default
             @test pkg.docs == true
             @test pkg.runtests == true # here we are!
@@ -93,6 +96,10 @@ const auth = GitHub.AnonymousAuth()
             @test idx !== nothing
             @test pkg.lines_of_code[idx].code > 200
         end
+
+        # Cannot pass `subdir` for these
+        @test_throws ArgumentError analyze("Pluto"; subdir="test")
+        @test_throws ArgumentError analyze(pkgdir(PackageAnalyzer); subdir="test")
 
         # the tests folder isn't a package!
         # But this helps catch issues in error paths for when things go wrong
@@ -228,23 +235,68 @@ const auth = GitHub.AnonymousAuth()
         @test parse_project("rstratarstra") == bad_project
 
         # proper Project.toml
-        this_project = (; name = "PackageAnalyzer", uuid = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c"), licenses_in_project = String[])
+        this_project = (; name = "PackageAnalyzer", uuid = PACKAGE_ANALYZER_UUID, licenses_in_project = String[])
         @test parse_project(joinpath(@__DIR__, "..")) == this_project
 
         # has `license = "MIT"`
-        project_1 = (; name = "PackageAnalyzer", uuid = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c"), licenses_in_project=["MIT"])
+        project_1 = (; name = "PackageAnalyzer", uuid = PACKAGE_ANALYZER_UUID, licenses_in_project=["MIT"])
         @test parse_project(joinpath(@__DIR__, "license_in_project")) == project_1
 
         # has `license = ["MIT", "GPL"]`
-        project_2 = (; name = "PackageAnalyzer", uuid = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c"), licenses_in_project=["MIT", "GPL"])
+        project_2 = (; name = "PackageAnalyzer", uuid = PACKAGE_ANALYZER_UUID, licenses_in_project=["MIT", "GPL"])
         @test parse_project(joinpath(@__DIR__, "licenses_in_project")) == project_2
     end
 
     @testset "`show`" begin
         # this is mostly to test that `show` doesn't error
         str = sprint(show, analyze(pkgdir(PackageAnalyzer); auth))
-        @test occursin("* uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c", str)
+        @test occursin("* uuid: $(PACKAGE_ANALYZER_UUID)", str)
         @test occursin("* OSI approved: true", str)
+
+        r = first(reachable_registries())
+        pkg = r.pkgs[PACKAGE_ANALYZER_UUID]
+        str = sprint(show, Release(pkg, v"0"))
+        @test str == "Release(\"PackageAnalyzer\", v\"0.0.0\")"
+
+        str = sprint(show, Release(pkg, v"0"))
+        @test str == "Release(\"PackageAnalyzer\", v\"0.0.0\")"
+
+        str = sprint(show, Added(; name="hi", tree_hash="bye"))
+        @test str == "Added(\"hi\", \"bye\")"
+
+        str = sprint(show, Dev(; name="hi", path="bye"))
+        @test str == "Dev(\"hi\", \"bye\")"
+
+        str = sprint(show, Trunk(; repo_url = "github.com"))
+        @test str == "Trunk(\"github.com\")"
+
+        str = sprint(show, Trunk(; repo_url = "github.com", subdir="subdir"))
+        @test str == "Trunk(\"github.com:subdir\")"
+    end
+
+    @testset "analyze from `Added`" begin
+        our_v0p1_tree_hash = "a4cb0648ddcbeb6bc161f87906a0c17c456a27dc"
+        v0p1_url = analyze(Added(; repo_url=PACKAGE_ANALYZER_URL, tree_hash=our_v0p1_tree_hash); auth)
+        @test v0p1_url.reachable
+        v0p1_path = analyze(Added(; path=pkgdir(PackageAnalyzer), tree_hash=our_v0p1_tree_hash); auth)
+        @test v0p1_path.reachable
+        v0p1_release = analyze("PackageAnalyzer"; auth, version=v"0.1")
+        @test v0p1_release.reachable
+        @test v0p1_url.tree_hash == v0p1_path.tree_hash == v0p1_release.tree_hash == our_v0p1_tree_hash
+    end
+
+    @testset "analyze from `Dev`" begin
+        dev = analyze(Dev(; path=pkgdir(PackageAnalyzer)); auth)
+        @test dev.name == "PackageAnalyzer"
+        @test dev.uuid == PACKAGE_ANALYZER_UUID
+        @test dev.reachable
+        @test !isempty(dev.license_files)
+    end
+
+    @testset "0-arg analyze" begin
+        r = Pkg.activate(analyze, pkgdir(PackageAnalyzer))
+        @test r.uuid == PACKAGE_ANALYZER_UUID
+        @test r.tree_hash == analyze(PackageAnalyzer).tree_hash
     end
 
     @testset "Contributors" begin

@@ -58,7 +58,7 @@ Package Pluto:
 function analyze(name_or_dir_or_url::AbstractString; registries=reachable_registries(), auth::GitHub.Authorization=github_auth(), sleep=0, version=nothing, root=mktempdir(), subdir="")
     if Base.isidentifier(name_or_dir_or_url)
         if !isempty(subdir)
-            error()
+            throw(ArgumentError("Cannot pass `subdir` when analyzing a package name."))
         end
         # The argument looks like a package name rather than a directory: find
         # the package in `registry` and analyze it
@@ -67,17 +67,17 @@ function analyze(name_or_dir_or_url::AbstractString; registries=reachable_regist
         return analyze(release; auth, sleep, root)
     elseif isdir(name_or_dir_or_url)
         if !isempty(subdir)
-            error()
+            throw(ArgumentError("Cannot pass `subdir` when analyzing a path (the path should be all the way to the package)."))
         end
         # Local directory
         if version !== nothing
-            error("Passing a `version` is unsupported for local directories.")
+            throw(ArgumentError("Passing a `version` is unsupported for local directories."))
         end
         return analyze(Dev(; path=name_or_dir_or_url); auth, sleep, root)
     else
         # Remote URL
         if version !== nothing
-            error("Passing a `version` is unsupported for remote URLs.")
+            throw(ArgumentError("Passing a `version` is unsupported for remote URLs."))
         end
         return analyze(Trunk(; repo_url=name_or_dir_or_url, subdir); auth, sleep, root)
     end
