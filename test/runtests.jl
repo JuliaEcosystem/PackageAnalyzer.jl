@@ -320,23 +320,7 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
             Pkg.activate(tmp) do
                 # Add by path
                 Pkg.add(; path=pkgdir(PackageAnalyzer), io=devnull)
-
                 pkgs = find_packages_in_manifest()
-                pkgs2 = find_packages_in_manifest(joinpath(tmp, "Manifest.toml"))
-                @show joinpath(dirname(Base.active_project()), "Manifest.toml")
-                @show joinpath(tmp, "Manifest.toml") 
-                for i in 1:length(pkgs)
-                    if pkgs[i] != pkgs2[i]
-                        println(i)
-                        dump(pkgs[i])
-                        dump(pkgs2[i])
-                    end
-                end
-
-                end
-                diff = symdiff(pkgs, pkgs2)
-                @test isempty(diff)
-
 
                 added_by_path = only(filter(pkgs) do pkg
                     pkg isa Added || return false
