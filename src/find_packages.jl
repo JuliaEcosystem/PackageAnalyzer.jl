@@ -30,9 +30,6 @@ function find_packages(names; registries=reachable_registries(), version::Union{
     return entries
 end
 
-is_stdlib(name::AbstractString)  = name in values(STDLIBS)
-is_stdlib(uuid::UUID)  = uuid in keys(STDLIBS)
-
 """
     find_package(name_or_uuid::Union{AbstractString, UUID}; registries=reachable_registries(), version::Union{VersionNumber,Nothing}=nothing, strict=true, warn=true) -> PkgSource
 

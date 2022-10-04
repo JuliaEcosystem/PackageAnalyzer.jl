@@ -201,7 +201,7 @@ end
 #####
 
 # Here we analyze a local directory.
-# This is an internal function.
+# This is an internal function. `analyze(path)` provides API access to this functionality.
 
 """
     analyze_code(dir::AbstractString; repo = "", reachable=true, subdir="", auth::GitHub.Authorization=github_auth(), sleep=0, only_subdir=false, version=nothing) -> Package
@@ -249,9 +249,11 @@ function analyze_code(dir::AbstractString; repo="", reachable=true, subdir="", a
     else
         github_actions = false
     end
-    # if `only_subdir` is true, and we are indeed in a subdirectory, we'll get the paths wrong here.
-    # However, we'll find them w/ correct paths in the next check.
+
+    # if `only_subdir` is true, and we are indeed in a subdirectory, we would get the paths wrong here.
+    # So we will skip it here, and get them with the correct paths in the next block.
     license_files = only_subdir && !isempty(subdir) ? LicenseTableEltype[] : _find_licenses(dir)
+
     if isdir(pkgdir)
         if !isempty(subdir)
             # Look for licenses at top-level and in the subdirectory

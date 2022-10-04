@@ -26,6 +26,8 @@ const stdlibs = isdefined(Pkg.Types, :stdlib) ? Pkg.Types.stdlib : Pkg.Types.std
 get_stdlib_name(s::AbstractString) = s
 get_stdlib_name(s::Tuple) = first(s)
 const STDLIBS = Dict(k => get_stdlib_name(v) for (k, v) in stdlibs())
+is_stdlib(name::AbstractString) = name in values(STDLIBS)
+is_stdlib(uuid::UUID) = uuid in keys(STDLIBS)
 
 const LicenseTableEltype = @NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}
 const ContributionTableElType = @NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int}
