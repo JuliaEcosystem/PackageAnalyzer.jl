@@ -113,8 +113,8 @@ function Base.show(io::IO, p::Package)
             body *= """
                   * Julia code in `src`: $(l_src) lines
                   * Julia code in `test`: $(l_test) lines ($(p_test)% of `test` + `src`)
-                  * documention in `docs`: $(l_docs) lines ($(p_docs)% of `docs` + `src`)
-                  * documention in README: $(l_readme) lines
+                  * documentation in `docs`: $(l_docs) lines ($(p_docs)% of `docs` + `src`)
+                  * documentation in README: $(l_readme) lines
                 """
         end
         if isempty(p.license_files)
@@ -375,8 +375,8 @@ Package BinaryBuilder:
   * is reachable: true
   * Julia code in `src`: 4758 lines
   * Julia code in `test`: 1566 lines (24.8% of `test` + `src`)
-  * documention in `docs`: 998 lines (17.3% of `docs` + `src`)
-  * documention in README: 22 lines
+  * documentation in `docs`: 998 lines (17.3% of `docs` + `src`)
+  * documentation in README: 22 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
@@ -452,8 +452,8 @@ Package Pluto:
   * is reachable: true
   * Julia code in `src`: 6896 lines
   * Julia code in `test`: 3682 lines (34.8% of `test` + `src`)
-  * documention in `docs`: 0 lines (0.0% of `docs` + `src`)
-  * documention in README: 110 lines
+  * documentation in `docs`: 0 lines (0.0% of `docs` + `src`)
+  * documentation in README: 110 lines
   * has license(s) in file: MIT
     * filename: LICENSE
     * OSI approved: true
@@ -497,8 +497,8 @@ Package DataFrames:
   * is reachable: true
   * Julia code in `src`: 15809 lines
   * Julia code in `test`: 17512 lines (52.6% of `test` + `src`)
-  * documention in `docs`: 3885 lines (19.7% of `docs` + `src`)
-  * documention in README: 21 lines
+  * documentation in `docs`: 3885 lines (19.7% of `docs` + `src`)
+  * documentation in README: 21 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
