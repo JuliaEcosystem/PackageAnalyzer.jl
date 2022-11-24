@@ -5,10 +5,13 @@ on:
     branches: "main"
     tags: ["*"]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   release:
 
 jobs:
   test:
+    # Run on push's or non-draft PRs
+    if: (github.event_name == 'push') || (github.event.pull_request.draft == false) || (github.event_name == 'workflow_dispatch')
     name: Julia ${{ matrix.julia-version }} - ${{ matrix.os }} - ${{ matrix.julia-arch }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -24,7 +27,9 @@ jobs:
         julia-arch:
           - x64
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - uses: julia-actions/setup-julia@v1
         with:
           version: ${{ matrix.julia-version }}

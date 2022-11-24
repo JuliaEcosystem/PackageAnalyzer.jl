@@ -5,7 +5,7 @@ to save the results as a table. For example,
 
 ```@repl 1
 using DataFrames, Arrow, PackageAnalyzer
-results = analyze(find_packages("DataFrames", "Flux"));
+results = analyze_packages(find_packages("DataFrames", "Flux"));
 Arrow.write("packages.arrow", results)
 roundtripped_results = DataFrame(Arrow.Table("packages.arrow"))
 rm("packages.arrow") # hide

@@ -9,16 +9,16 @@ julia> analyze("Flux")
 Package Flux:
   * repo: https://github.com/FluxML/Flux.jl.git
   * uuid: 587475ba-b771-5e3f-ad9e-33799f191a9c
+  * version: 0.13.6
   * is reachable: true
-  * Julia code in `src`: 5496 lines
-  * Julia code in `test`: 2432 lines (30.7% of `test` + `src`)
-  * documentation in `docs`: 1533 lines (21.8% of `docs` + `src`)
-  * documentation in README: 10 lines
+  * tree hash: 76ca02c7c0cb7b8337f7d2d0eadb46ed03c1e843
+  * Julia code in `src`: 5299 lines
+  * Julia code in `test`: 3030 lines (36.4% of `test` + `src`)
+  * documentation in `docs`: 1856 lines (25.9% of `docs` + `src`)
+  * documentation in README: 14 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
-  * number of contributors: 159 (and 7 anonymous contributors)
-  * number of commits: 3794
   * has `docs/make.jl`: true
   * has `test/runtests.jl`: true
   * has continuous integration: true
@@ -26,33 +26,30 @@ Package Flux:
     * Buildkite
 ```
 
-The argument is a string pointing towards a local path or the name of
-a package in a locally-installed registry (the General registry is checked by default).
+The argument is a string, which can be the name of a package, a local path or a URL.
 
-*NOTE*: the Git repository of the package will be cloned, in order to inspect
+*NOTE*: the Git repository of the package may be cloned, in order to inspect
 its content.
 
-You can also pass a [`PkgEntry`](@ref) from RegistryInstances.jl. 
-The function [`find_package`](@ref) gives you the
-[`PkgEntry`](@ref) of a package in your local copy of any registry, by
-default the [General registry](https://github.com/JuliaRegistries/General).
-`find_package` is invoked automatically when you pass the name of a package.
+You can also pass the output of [`find_package`](@ref) which is used under-the-hood
+to look up package names in any installed registries. `find_package` also allows one to specify
+a package by `UUID`.
 
 ```julia
-julia> analyze(find_package("JuMP"))
+julia> analyze(find_package("JuMP"; version=v"1"))
 Package JuMP:
   * repo: https://github.com/jump-dev/JuMP.jl.git
   * uuid: 4076af6c-e467-56ae-b986-b466b2749572
+  * version: 1.0.0
   * is reachable: true
-  * Julia code in `src`: 16418 lines
-  * Julia code in `test`: 11388 lines (41.0% of `test` + `src`)
-  * documentation in `docs`: 10970 lines (40.1% of `docs` + `src`)
-  * documentation in README: 78 lines
+  * tree hash: 936e7ebf6c84f0c0202b83bb22461f4ebc5c9969
+  * Julia code in `src`: 16906 lines
+  * Julia code in `test`: 12777 lines (43.0% of `test` + `src`)
+  * documentation in `docs`: 15978 lines (48.6% of `docs` + `src`)
+  * documentation in README: 79 lines
   * has license(s) in file: MPL-2.0
     * filename: LICENSE.md
     * OSI approved: true
-  * number of contributors: 106 (and 4 anonymous contributors)
-  * number of commits: 4128
   * has `docs/make.jl`: true
   * has `test/runtests.jl`: true
   * has continuous integration: true
@@ -68,11 +65,13 @@ julia> analyze(PackageAnalyzer)
 Package PackageAnalyzer:
   * repo: 
   * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
+  * version: nothing
   * is reachable: true
-  * Julia code in `src`: 574 lines
-  * Julia code in `test`: 142 lines (19.8% of `test` + `src`)
-  * documentation in `docs`: 267 lines (31.7% of `docs` + `src`)
-  * documentation in README: 41 lines
+  * tree hash: 7bfd2ab7049d92809eb18eed1b0548c7e07ec150
+  * Julia code in `src`: 912 lines
+  * Julia code in `test`: 276 lines (23.2% of `test` + `src`)
+  * documentation in `docs`: 263 lines (22.4% of `docs` + `src`)
+  * documentation in README: 44 lines
   * has license(s) in file: MIT
     * filename: LICENSE
     * OSI approved: true
@@ -81,9 +80,6 @@ Package PackageAnalyzer:
   * has continuous integration: true
     * GitHub Actions
 ```
-
-You use the inplace version [`analyze!`](@ref), e.g. as `analyze!(root, find_package("Flux"))` to clone
-the package to a particular directory `root` which is not cleaned up afterwards, and likewise can pass a vector of paths instead of a single path employ use a threaded loop to analyze each package.
 
 You can also directly analyze the source code of a package via [`analyze`](@ref)
 by passing in the path to it, for example with the `pkgdir` function:
@@ -95,10 +91,12 @@ julia> analyze(pkgdir(DataFrames))
 Package DataFrames:
   * repo: 
   * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
+  * version: 0.0.0
   * is reachable: true
-  * Julia code in `src`: 15809 lines
-  * Julia code in `test`: 17512 lines (52.6% of `test` + `src`)
-  * documentation in `docs`: 3885 lines (19.7% of `docs` + `src`)
+  * tree hash: db2a9cb664fcea7836da4b414c3278d71dd602d2
+  * Julia code in `src`: 15628 lines
+  * Julia code in `test`: 21089 lines (57.4% of `test` + `src`)
+  * documentation in `docs`: 6270 lines (28.6% of `docs` + `src`)
   * documentation in README: 21 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
@@ -108,6 +106,8 @@ Package DataFrames:
   * has continuous integration: true
     * GitHub Actions
 ```
+
+You can pass the keyword argument `root` to specify a directory to store downloaded code.
 
 ## The `Package` struct
 
@@ -135,39 +135,45 @@ struct Package
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
     lines_of_code::Vector{@NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int}} # table of lines of code
     contributors::Vector{@NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int}} # table of contributor data
-    tree_hash::String # `git_tree_sha1` hash of the analyzed code
+    version::Union{VersionNumber, Nothing} # the version number, if a release was analyzed
+    tree_hash::String # the tree hash of the code that was analyzed
 end
 ```
+
+Adding additional fields to `Package` is *not* considered breaking, and may occur in feature releases of PackageAnalyzer.jl.
+
+Removing or altering the meaning of existing fields *is* considered breaking and will only occur in major releases of PackageAnalyzer.jl
 
 
 ## Analyzing multiple packages
 
 To run the analysis for multiple packages you can either use broadcasting
 ```julia
-analyze.(registry_entries)
+analyze.(pkg_entries)
 ```
-or use the method `analyze(pkg_entries::AbstractVector{<:PkgEntry})` which
-runs the analysis with multiple threads.
+or use the function `analyze_packages(pkg_entries)` which
+runs the analysis with multiple threads. Here, `pkg_entries` may be any valid input to `analyze`.
 
 You can use the function [`find_packages`](@ref) to find all packages in a given
 registry:
 
 ```julia
-julia> find_packages(; registry=general_registry())
-4632-element Vector{PackageAnalyzer.RegistryEntry}:
- PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/C/CitableImage")
- PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/T/Trixi2Img")
- PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/I/ImPlot")
- PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/S/StableDQMC")
- PackageAnalyzer.RegistryEntry("/Users/eph/.julia/registries/General/S/Strapping")
-[...]
+julia> result = find_packages(; registry=general_registry());
+
+julia> summary(result)
+"7213-element Vector{PkgSource}"
 ```
-Do not abuse this function! Consider using the in-place function `analyze!(root, registry_entries)` to avoid re-cloning packages if you might run the analysis more than once.
+
+Do not abuse this function!
 
 !!! warning
     Cloning all the repos in General will take more than 20 GB of disk space and can take up to a few hours to complete.
 
-You can use RegistryInstance's `reachable_registries()` function to find other `RegistryInstance` objects to use for the `registry` keyword argument.
+
+You can also use `find_packages_in_manifest` to use a Manifest.toml to lookup
+packages and their versions. Besides handling release dependencies, this should also correctly handle
+dev'd dependencies, and non-released `Pkg.add`'d dependencies. The helper `analyze_manifest` is provided
+as a convenience to composing `find_packages_in_manifest` and `analyze_packages`.
 
 ## License information
 
