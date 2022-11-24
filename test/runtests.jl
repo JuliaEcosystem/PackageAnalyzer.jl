@@ -74,7 +74,7 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
 
     @testset "`analyze`" begin
         # `dev` analysis:
-        for pkg in (analyze(PackageAnalyzer; auth), analyze("https://github.com/giordano/PackageAnalyzer.jl"; auth), analyze(joinpath(@__DIR__, ".."); auth))
+        for pkg in (analyze(PackageAnalyzer; auth), analyze("https://github.com/JuliaEcosystem/PackageAnalyzer.jl"; auth), analyze(joinpath(@__DIR__, ".."); auth))
             @test pkg.uuid == PACKAGE_ANALYZER_UUID
             @test pkg.reachable == true # default
             @test pkg.docs == true
