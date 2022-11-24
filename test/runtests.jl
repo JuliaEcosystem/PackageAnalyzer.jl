@@ -2,7 +2,7 @@ using Test, UUIDs
 using PackageAnalyzer
 using PackageAnalyzer: parse_project, Release, Added, Dev, Trunk, PkgSource
 using JLLWrappers
-using GitHub: GitHub
+import GitHub
 using RegistryInstances
 using Pkg
 
