@@ -127,8 +127,8 @@ function Base.show(io::IO, p::Package)
             body *= """
                   * Julia code in `src`: $(l_src) lines
                   * Julia code in `test`: $(l_test) lines ($(p_test)% of `test` + `src`)
-                  * documention in `docs`: $(l_docs) lines ($(p_docs)% of `docs` + `src`)
-                  * documention in README: $(l_readme) lines
+                  * documentation in `docs`: $(l_docs) lines ($(p_docs)% of `docs` + `src`)
+                  * documentation in README: $(l_readme) lines
                 """
         end
         if isempty(p.license_files)

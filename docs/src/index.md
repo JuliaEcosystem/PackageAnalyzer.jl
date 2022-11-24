@@ -14,8 +14,8 @@ Package Flux:
   * tree hash: 76ca02c7c0cb7b8337f7d2d0eadb46ed03c1e843
   * Julia code in `src`: 5299 lines
   * Julia code in `test`: 3030 lines (36.4% of `test` + `src`)
-  * documention in `docs`: 1856 lines (25.9% of `docs` + `src`)
-  * documention in README: 14 lines
+  * documentation in `docs`: 1856 lines (25.9% of `docs` + `src`)
+  * documentation in README: 14 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
@@ -45,8 +45,8 @@ Package JuMP:
   * tree hash: 936e7ebf6c84f0c0202b83bb22461f4ebc5c9969
   * Julia code in `src`: 16906 lines
   * Julia code in `test`: 12777 lines (43.0% of `test` + `src`)
-  * documention in `docs`: 15978 lines (48.6% of `docs` + `src`)
-  * documention in README: 79 lines
+  * documentation in `docs`: 15978 lines (48.6% of `docs` + `src`)
+  * documentation in README: 79 lines
   * has license(s) in file: MPL-2.0
     * filename: LICENSE.md
     * OSI approved: true
@@ -70,8 +70,8 @@ Package PackageAnalyzer:
   * tree hash: 7bfd2ab7049d92809eb18eed1b0548c7e07ec150
   * Julia code in `src`: 912 lines
   * Julia code in `test`: 276 lines (23.2% of `test` + `src`)
-  * documention in `docs`: 263 lines (22.4% of `docs` + `src`)
-  * documention in README: 44 lines
+  * documentation in `docs`: 263 lines (22.4% of `docs` + `src`)
+  * documentation in README: 44 lines
   * has license(s) in file: MIT
     * filename: LICENSE
     * OSI approved: true
@@ -96,8 +96,8 @@ Package DataFrames:
   * tree hash: db2a9cb664fcea7836da4b414c3278d71dd602d2
   * Julia code in `src`: 15628 lines
   * Julia code in `test`: 21089 lines (57.4% of `test` + `src`)
-  * documention in `docs`: 6270 lines (28.6% of `docs` + `src`)
-  * documention in README: 21 lines
+  * documentation in `docs`: 6270 lines (28.6% of `docs` + `src`)
+  * documentation in README: 21 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
