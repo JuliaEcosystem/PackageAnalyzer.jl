@@ -12,8 +12,8 @@ Package Flux:
   * is reachable: true
   * Julia code in `src`: 5496 lines
   * Julia code in `test`: 2432 lines (30.7% of `test` + `src`)
-  * documention in `docs`: 1533 lines (21.8% of `docs` + `src`)
-  * documention in README: 10 lines
+  * documentation in `docs`: 1533 lines (21.8% of `docs` + `src`)
+  * documentation in README: 10 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
@@ -46,8 +46,8 @@ Package JuMP:
   * is reachable: true
   * Julia code in `src`: 16418 lines
   * Julia code in `test`: 11388 lines (41.0% of `test` + `src`)
-  * documention in `docs`: 10970 lines (40.1% of `docs` + `src`)
-  * documention in README: 78 lines
+  * documentation in `docs`: 10970 lines (40.1% of `docs` + `src`)
+  * documentation in README: 78 lines
   * has license(s) in file: MPL-2.0
     * filename: LICENSE.md
     * OSI approved: true
@@ -71,8 +71,8 @@ Package PackageAnalyzer:
   * is reachable: true
   * Julia code in `src`: 574 lines
   * Julia code in `test`: 142 lines (19.8% of `test` + `src`)
-  * documention in `docs`: 267 lines (31.7% of `docs` + `src`)
-  * documention in README: 41 lines
+  * documentation in `docs`: 267 lines (31.7% of `docs` + `src`)
+  * documentation in README: 41 lines
   * has license(s) in file: MIT
     * filename: LICENSE
     * OSI approved: true
@@ -98,8 +98,8 @@ Package DataFrames:
   * is reachable: true
   * Julia code in `src`: 15809 lines
   * Julia code in `test`: 17512 lines (52.6% of `test` + `src`)
-  * documention in `docs`: 3885 lines (19.7% of `docs` + `src`)
-  * documention in README: 21 lines
+  * documentation in `docs`: 3885 lines (19.7% of `docs` + `src`)
+  * documentation in README: 21 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true

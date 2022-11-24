@@ -36,8 +36,8 @@ Package Flux:
   * is reachable: true
   * Julia code in `src`: 5496 lines
   * Julia code in `test`: 2432 lines (30.7% of `test` + `src`)
-  * documention in `docs`: 1533 lines (21.8% of `docs` + `src`)
-  * documention in README: 10 lines
+  * documentation in `docs`: 1533 lines (21.8% of `docs` + `src`)
+  * documentation in README: 10 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
