@@ -1,6 +1,8 @@
-using JuliaSyntax: @K_str, kind
-
 export analyze_syntax
+
+#####
+##### SyntaxTrees
+#####
 
 # Avoid piracy by defining AbstractTrees definitions on a wrapper
 struct SyntaxNodeWrapper
@@ -14,6 +16,7 @@ end
 #####
 ##### Parsing files, traversing literal include statements
 #####
+
 function parse_syntax_one(file_path)
     file = read(file_path, String)
     parsed = JuliaSyntax.parse(JuliaSyntax.SyntaxNode, file)
@@ -69,34 +72,86 @@ end
 ##### Do stuff with the parsed files
 #####
 
+using JuliaSyntax
+using JuliaSyntax: head
 function count_interesting_things(tree::SyntaxNodeWrapper)
     counts = Dict{String, Int}()
+
+    # In case one does `using X: a` then `using X: b`, we want to count `X` only once,
+    # so we keep track of the ones we've seen so far.
+    # TODO: check all forms of `using` syntax and import as, etc.
+    usings = Set{String}()
+    imports = Set{String}()
     items = PostOrderDFS(tree)
     foreach(items) do wrapper
         k = kind(wrapper.node.raw)
-        
-        if k in [K"function", K"struct", K"call"]
+        if k == K"="
+            # 1-line function definitions like f() = abc...
+            # Show up as an `=` with the first argument being a call
+            # and the second argument being the function body.
+            # We handle those here.
+            # We do not handle anonymous functions like `f = () -> 1`
+            kids = JuliaSyntax.children(wrapper.node)
+            length(kids) == 2 || return
+            kind(kids[1].raw) == K"call" || return
+            key = "method"
+            counts[key] = get(counts, key, 0) + 1
+        elseif k == K"function"
+            # This is a function like function f() 1+1 end
+            key = "method"
+            counts[key] = get(counts, key, 0) + 1
+        elseif k == K"struct"
+            # These we increment once
             key = string(k)
             counts[key] = get(counts, key, 0) + 1
-        elseif k in [K"export", K"using", K"import"]
-            # println(k, ": ", JuliaSyntax.children(wrapper.node))
-            key = string(k, "s")
+        elseif k == K"using"
+            # Hm... not quite right.
+            union!(usings, map(x -> string(first(x.val)), JuliaSyntax.children(wrapper.node)))
+        elseif k == K"import"
+            union!(imports, map(x -> string(x.val), JuliaSyntax.children(wrapper.node)))
+        elseif k  == K"export"
+            # These we count by the number of their children, since that's the number of exports/packages
+            # being handled by that invocation of the keyword
+            key = string(k)
             counts[key] = get(counts, key, 0) + length(JuliaSyntax.children(wrapper.node))
-
         end
     end
+
+    counts["using"] = length(usings)
+    counts["import"] = length(imports)
+
     return counts
 end
 
+function print_syntax_counts_summary(io::IO, counts, indent=0)
+    total_count = item -> sum(row.count for row in counts if row.item == item; init=0)
+    n_struct = total_count("struct")
+    n_method = total_count("method")
+    n_export = total_count("export")
+    n_using = total_count("using")
+    n_import = total_count("import")
+    n = maximum(ndigits(x) for x in (n_struct, n_method, n_export, n_using, n_import))
+    _print = (num, name) -> println(io, " "^indent, "* ", rpad(num, n), " ", name)
+    _print(n_export, "exports")
+    _print(n_using, "packages or modules loaded by `using`")
+    _print(n_import, "packages or modules loaded by `import`")
+    _print(n_struct, "struct definitions")
+    _print(n_method, "method definitions")
+    return nothing
+end
 
-# Entrypoint
+#####
+##### Entrypoint
+#####
+
 function analyze_syntax(arg)
-    counts = Dict{String, Int}()
+    table = ParsedCountsEltype[]
     file_tree_pairs = parse_syntax_recursive(arg)
-    # Do we want to track of which file has which things? Probably not that useful...
-    for (file, tree) in file_tree_pairs
+    for (file_name, tree) in file_tree_pairs
         file_counts = count_interesting_things(tree)
-        mergewith!(+, counts, file_counts)
+        for (item, count) in file_counts
+            push!(table, (; file_name, item, count))
+        end
     end
-    return counts
+    return table
 end

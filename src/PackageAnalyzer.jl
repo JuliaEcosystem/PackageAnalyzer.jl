@@ -13,7 +13,7 @@ using Tar
 using CodecZlib
 using AbstractTrees
 using JuliaSyntax
-import JSON3
+using JuliaSyntax: @K_str, kind
 
 # We wrap `registry_info` for thread-safety, so we don't want to pull into the namespace here
 using RegistryInstances: RegistryInstances, reachable_registries, PkgEntry
@@ -35,6 +35,7 @@ is_stdlib(uuid::UUID) = uuid in keys(STDLIBS)
 const LicenseTableEltype = @NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}
 const ContributionTableElType = @NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int}
 const LoCTableEltype = @NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int}
+const ParsedCountsEltype = @NamedTuple{file_name::String, item::String, count::Int}
 
 struct Package
     name::String # name of the package
@@ -59,6 +60,7 @@ struct Package
     contributors::Vector{ContributionTableElType} # table of contributor data
     version::Union{VersionNumber, Nothing} # the version number, if a release was analyzed
     tree_hash::String # the tree hash of the code that was analyzed
+    parsed_counts::Vector{ParsedCountsEltype}
 end
 function Package(name, uuid, repo;
                  subdir="",
@@ -79,11 +81,13 @@ function Package(name, uuid, repo;
                  lines_of_code=LoCTableEltype[],
                  contributors=ContributionTableElType[],
                  version=nothing,
-                 tree_hash=""
+                 tree_hash="",
+                 parsed_counts=ParsedCountsEltype[]
                  )
     return Package(name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
-                   license_files, licenses_in_project, lines_of_code, contributors, version, tree_hash)
+                   license_files, licenses_in_project, lines_of_code, contributors, version,
+                   tree_hash, parsed_counts)
 end
 
 # define `isequal`, `==`, and `hash` just in terms of the fields
@@ -176,6 +180,10 @@ function Base.show(io::IO, p::Package)
             end
         else
             body *= "  * has continuous integration: false\n"
+        end
+        if !isempty(p.parsed_counts)
+            body *= "  * source code contains:\n"
+            body *= sprint(print_syntax_counts_summary, p.parsed_counts, 4)
         end
     end
     print(io, strip(body))

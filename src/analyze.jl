@@ -282,7 +282,20 @@ function analyze_code(dir::AbstractString; repo="", reachable=true, subdir="", a
         ContributionTableElType[]
     end
 
+    pkg_entrypoint = joinpath(pkgdir, "src", name * ".jl")
+    if isfile(pkg_entrypoint)
+        parsed_counts = try
+            analyze_syntax(pkg_entrypoint)
+        catch e
+            @debug "Caught error in `analyze_syntax`" exception=(e, catch_backtrace())
+            ParsedCountsEltype[]
+        end
+    else
+        parsed_counts = ParsedCountsEltype[]
+    end
+
     Package(name, uuid, repo; subdir, reachable, docs, runtests, travis, appveyor, cirrus,
             circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
-            license_files, licenses_in_project, lines_of_code, contributors, version, tree_hash)
+            license_files, licenses_in_project, lines_of_code, contributors, version,
+            tree_hash, parsed_counts)
 end
