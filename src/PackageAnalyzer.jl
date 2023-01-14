@@ -11,6 +11,8 @@ using Git: Git
 using Downloads
 using Tar
 using CodecZlib
+using AbstractTrees
+using JuliaSyntax
 
 # We wrap `registry_info` for thread-safety, so we don't want to pull into the namespace here
 using RegistryInstances: RegistryInstances, reachable_registries, PkgEntry
@@ -292,5 +294,9 @@ include("utilities.jl")
 
 # tokei, counting
 include("count_loc.jl")
+
+# Syntax analysis
+include("parser.jl")
+include("syntax.jl")
 
 end # module
