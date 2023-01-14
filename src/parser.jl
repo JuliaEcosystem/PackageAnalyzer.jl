@@ -3,11 +3,15 @@ import JuliaSyntax: build_tree, span, sourcetext, first_byte, haschildren, child
 
 # Copied from JuliaSyntax/syntax_tree.jl
 
-"""
-Design options:
-* rust-analyzer treats their version of an untyped syntax node as a cursor into
-  the green tree. They deallocate aggressively.
-"""
+struct Marked
+    raw::Any
+end
+
+Base.show(io::IO, m::Marked) = print(io, "Marked (", kind(m), ")")
+Base.show(io::IO, ::MIME"text/plain", m::Marked) = print(io, "Marked (", kind(m), ")")
+
+JuliaSyntax.kind(m::Marked) = kind(m.raw)
+
 mutable struct SyntaxNode
     source::SourceFile
     raw::GreenNode{SyntaxHead}
@@ -23,8 +27,19 @@ end
 
 Base.show(io::IO, ::ErrorVal) = printstyled(io, "✘", color=:light_red)
 
+kinds_encountered = Set()
+
 function SyntaxNode(source::SourceFile, raw::GreenNode{SyntaxHead}, position::Integer=1)
-    if !haschildren(raw) && !(is_syntax_kind(raw) || is_keyword(raw))
+
+    # [K"kw", K"string", K"struct", K"tuple", K"inert", K"<:", K".", K"braces", K":", K"call", K"quote", K"using", K"*=", K"if", K"||", K"return", K"->", K"macrocall", K"block", K"=", K"generator", K"ref", K"module", K"?", K"for", K"parameters", K"function", K"$", K"export", K"curly", K"::", K"const", K"abstract"]
+    k = kind(raw)
+
+    count_as_leaf = !haschildren(raw) && !(is_syntax_kind(raw) || is_keyword(raw))
+
+    count_as_leaf |= k in [K"function", K"struct", K"export", K"using"]
+
+
+    if count_as_leaf
         # Leaf node
         k = kind(raw)
         val_range = position:position + span(raw) - 1
@@ -55,9 +70,9 @@ function SyntaxNode(source::SourceFile, raw::GreenNode{SyntaxHead}, position::In
             else
                 Symbol(normalize_identifier(val_str))
             end
-        elseif is_keyword(k)
-            # This should only happen for tokens nested inside errors
-            Symbol(val_str)
+        # elseif is_keyword(k)
+        #     # This should only happen for tokens nested inside errors
+        #     Symbol(val_str)
         elseif k in KSet"String CmdString"
             is_cmd = k == K"CmdString"
             is_raw = has_flags(head(raw), RAW_STRING_FLAG)
@@ -91,10 +106,11 @@ function SyntaxNode(source::SourceFile, raw::GreenNode{SyntaxHead}, position::In
         elseif is_syntax_kind(raw)
             nothing
         else
-            # FIXME: this allows us to recover from trivia is_error nodes
-            # that we insert below
-            @debug "Leaf node of kind $k unknown to SyntaxNode"
-            ErrorVal()
+            # # FIXME: this allows us to recover from trivia is_error nodes
+            # # that we insert below
+            # @debug "Leaf node of kind $k unknown to SyntaxNode"
+            # ErrorVal()
+            Marked(raw)
         end
         return SyntaxNode(source, raw, position, nothing, true, val)
     else
@@ -103,13 +119,20 @@ function SyntaxNode(source::SourceFile, raw::GreenNode{SyntaxHead}, position::In
         for (i,rawchild) in enumerate(children(raw))
             # FIXME: Allowing trivia is_error nodes here corrupts the tree layout.
             if !is_trivia(rawchild) || is_error(rawchild)
-                push!(cs, SyntaxNode(source, rawchild, pos))
+                child_node = SyntaxNode(source, rawchild, pos)
+                push!(cs, child_node)
             end
             pos += rawchild.span
         end
         node = SyntaxNode(source, raw, position, nothing, false, cs)
         for c in cs
             c.parent = node
+        end
+
+        if k == K"call"
+
+            println(node, ": ", child(node, 1))
+            
         end
         return node
     end
