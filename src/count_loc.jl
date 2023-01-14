@@ -4,14 +4,11 @@ function count_loc(dir)
     json = try
         JSON3.read(read(Cmd(`$(tokei()) --output json .`; dir)))
     catch e
-        @error "`tokei` error: " e
+        @error "`tokei` error: " exception=e maxlog=2
         missing
     end
     return make_loc_table(json)
 end
-
-
-const LoCTableEltype = @NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int}
 
 function make_loc_table(json)
     table = LoCTableEltype[]
@@ -50,3 +47,27 @@ function loc_update!(d, key, new)
     d[key] = (; files = prev.files + 1, code = prev.code + new.code, comments = prev.comments + new.comments, blanks = prev.blanks + new.blanks )
 end
 
+
+#####
+##### Counting helpers
+#####
+
+count_commits(table) = sum(row.contributions for row in table; init=0)
+count_commits(pkg::Package) = count_commits(pkg.contributors)
+
+count_contributors(table; type="User") = count(row.type == type for row in table)
+count_contributors(pkg::Package; kwargs...) = count_contributors(pkg.contributors; kwargs...)
+
+
+count_julia_loc(table, dir) = sum(row.code for row in table if row.directory == dir && row.language == :Julia; init=0)
+
+function count_docs(table, dirs=("docs", "doc"))
+    rm_langs = (:TOML, :SVG, :CSS, :Javascript)
+    sum(row.code + row.comments for row in table if lowercase(row.directory) in dirs && row.language ∉ rm_langs && row.sublanguage ∉ rm_langs; init=0)
+end
+
+count_readme(table) = count_docs(table, ("readme", "readme.md"))
+
+count_julia_loc(pkg::Package, args...) = count_julia_loc(pkg.lines_of_code, args...)
+count_docs(pkg::Package, args...) = count_docs(pkg.lines_of_code, args...)
+count_readme(pkg::Package, args...) = count_readme(pkg.lines_of_code, args...)
