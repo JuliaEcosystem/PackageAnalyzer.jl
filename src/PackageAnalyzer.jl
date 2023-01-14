@@ -13,6 +13,7 @@ using Tar
 using CodecZlib
 using AbstractTrees
 using JuliaSyntax
+import JSON3
 
 # We wrap `registry_info` for thread-safety, so we don't want to pull into the namespace here
 using RegistryInstances: RegistryInstances, reachable_registries, PkgEntry
@@ -296,7 +297,6 @@ include("utilities.jl")
 include("count_loc.jl")
 
 # Syntax analysis
-include("parser.jl")
 include("syntax.jl")
 
 end # module
