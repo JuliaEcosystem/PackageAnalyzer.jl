@@ -1,6 +1,7 @@
 #####
 ##### Entrypoint & helpers
 #####
+using JuliaSyntax: SourceFile
 
 # Entrypoint
 function count_loc(dir)
@@ -83,7 +84,6 @@ count_julia_loc(pkg::Package, args...) = count_julia_loc(pkg.lines_of_code, args
 count_docs(pkg::Package, args...) = count_docs(pkg.lines_of_code, args...)
 count_readme(pkg::Package, args...) = count_readme(pkg.lines_of_code, args...)
 
-
 #####
 ##### Custom Julia line counting
 #####
@@ -113,9 +113,18 @@ module CategorizeLines
 
 using JuliaSyntax: GreenNode, is_trivia, haschildren, is_error, children, span, SourceFile, source_location
 
+struct NodeSummary
+    starting_line::Int
+    ending_line::Int
+    summary::String
+end
+
+# Based on the recursive printing code for GreenNode's
+# Here, instead of printing, we collect all of the objects
+# that start on a given line.
 function categorize_lines!(d, node, source, nesting=0, pos=1)
-    starting_line_number, _ = source_location(source, pos)
-    v = get!(Vector{Any}, d, starting_line_number)
+    starting_line, _ = source_location(source, pos)
+    v = get!(Vector{NodeSummary}, d, starting_line)
 
     is_leaf = !haschildren(node)
     if !is_leaf
@@ -125,15 +134,17 @@ function categorize_lines!(d, node, source, nesting=0, pos=1)
             categorize_lines!(d, x, source, new_nesting, p)
             p += x.span
         end
-        ending_line_number, _ = source_location(source, p)
+        ending_line, _ = source_location(source, p)
     else
-        ending_line_number = starting_line_number
+        ending_line = starting_line
     end
-    push!(v, (; starting_line_number, ending_line_number, summary=summary(node),
+    push!(v, NodeSummary(starting_line, ending_line, summary(node),
     # is_error=is_error(node), is_leaf, is_trivia=is_trivia(node), nesting
     ))
     return nothing
 end
+
+export NodeSummary
 end
 
 using .CategorizeLines
@@ -145,47 +156,58 @@ using .CategorizeLines
 # Can there be multiple string nodes on the same line as a docstring?
 
 function identify_lines!(d, v)
-    line_number = v[1].starting_line_number
+    line_number = v[1].starting_line
     if v[1].summary == "Comment"
         d[line_number] = "Comment"
     elseif v[1].summary == "NewlineWs"
         d[line_number] = "Blank"
     elseif v[1].summary == "core_@doc"
             idx = findfirst(x -> x.summary == "string", v)
-            for line in line_number:v[idx].ending_line_number
+            for line in line_number:v[idx].ending_line
                 d[line] = "Docstring"
             end
     else
         # Don't overwrite e.g. docstrings
         if !haskey(d, line_number)
             str = join((x.summary for x in v), ", ")
-            d[line_number] = "Code ($str)"
+            d[line_number] = "Code"
         end
     end
 end
 
 struct LineCategories
+    source::SourceFile
     dict::Dict{Int, String}
 end
-LineCategories() = LineCategories(Dict{Int, String}())
+
+LineCategories(source::SourceFile) = LineCategories(source, Dict{Int, String}())
 
 LineCategories(path::AbstractString; kw...) = LineCategories(parse_green_one(path); kw...)
 
 function LineCategories(node::GreenNodeWrapper)
-    NT = @NamedTuple{starting_line_number::Int, ending_line_number::Int, summary::String}
-    per_line_list = Dict{Int, Vector{NT}}()
+    per_line_list = Dict{Int, Vector{NodeSummary}}()
     CategorizeLines.categorize_lines!(per_line_list, node.node, node.source)
-
-    per_line_category = LineCategories()
+    per_line_category = LineCategories(node.source)
     for idx in sort!(collect(keys(per_line_list)))
         identify_lines!(per_line_category.dict, per_line_list[idx])
     end
     return per_line_category
 end
 
+# Print back out the source, but with line categories
 function Base.show(io::IO, ::MIME"text/plain", per_line_category::LineCategories)
+    source = per_line_category.source
+    f = true
     for idx in sort!(collect(keys(per_line_category.dict)))
-        println(io, rpad(idx, 5), "| ", per_line_category.dict[idx])
+        f || println(io)
+        f = false
+        line_start = source.line_starts[idx]
+        # `prevind` since this is the start of the next line, not the end of the previous one
+        line_end = min(prevind(source.code, source.line_starts[idx+1]), lastindex(source.code))
+
+        # One more prevind to chop the last line ending
+        line = SubString(source.code, line_start:prevind(source.code, line_end))
+        print(io, rpad(idx, 5), "| ", rpad(per_line_category.dict[idx], 7), " | ", line)
     end
     return nothing
 end
@@ -205,6 +227,7 @@ end
 function count_julia_loc(dir)
     table = LoCTableEltype[]
     for path in readdir(dir; join=true)
+        n_files = 0
         counts = Dict{String, Int}("Comment" => 0,
                                    "Blank" => 0,
                                    "Code" => 0,
@@ -213,9 +236,8 @@ function count_julia_loc(dir)
             endswith(path, ".jl") || continue
             node = parse_green_one(path)
             _count_lines!(counts, node)
-            n_files = 1
+            n_files += 1
         else
-            n_files = 0
             for (root, dirs, files) in walkdir(path)
                 for file_name in files
                     if endswith(file_name, ".jl")
@@ -226,11 +248,13 @@ function count_julia_loc(dir)
                 end
             end
         end
-        push!(table, (; directory=dir, language=:Julia,
+        if n_files > 0
+            push!(table, (; directory=basename(path), language=:Julia,
                         sublanguage=nothing, files=n_files,
                         code=counts["Code"],
                         comments=counts["Comment"] + counts["Docstring"],
                         blanks=counts["Blank"]))
+        end
     end
     return table
 end
