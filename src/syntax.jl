@@ -130,9 +130,9 @@ end
 ##### Entrypoint
 #####
 
-function analyze_syntax(arg)
+function analyze_syntax(module_or_file)
     table = ParsedCountsEltype[]
-    file_tree_pairs = parse_syntax_recursive(arg)
+    file_tree_pairs = parse_syntax_recursive(module_or_file)
     for (file_name, tree) in file_tree_pairs
         file_counts = count_interesting_things(tree)
         for (item, count) in file_counts
