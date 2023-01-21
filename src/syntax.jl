@@ -76,12 +76,6 @@ using JuliaSyntax
 using JuliaSyntax: head
 function count_interesting_things(tree::SyntaxNodeWrapper)
     counts = Dict{String, Int}()
-
-    # In case one does `using X: a` then `using X: b`, we want to count `X` only once,
-    # so we keep track of the ones we've seen so far.
-    # TODO: check all forms of `using` syntax and import as, etc.
-    usings = Set{String}()
-    imports = Set{String}()
     items = PostOrderDFS(tree)
     foreach(items) do wrapper
         k = kind(wrapper.node.raw)
@@ -104,11 +98,6 @@ function count_interesting_things(tree::SyntaxNodeWrapper)
             # These we increment once
             key = string(k)
             counts[key] = get(counts, key, 0) + 1
-        elseif k == K"using"
-            # Hm... not quite right.
-            union!(usings, map(x -> string(first(x.val)), JuliaSyntax.children(wrapper.node)))
-        elseif k == K"import"
-            union!(imports, map(x -> string(x.val), JuliaSyntax.children(wrapper.node)))
         elseif k  == K"export"
             # These we count by the number of their children, since that's the number of exports/packages
             # being handled by that invocation of the keyword
@@ -116,10 +105,6 @@ function count_interesting_things(tree::SyntaxNodeWrapper)
             counts[key] = get(counts, key, 0) + length(JuliaSyntax.children(wrapper.node))
         end
     end
-
-    counts["using"] = length(usings)
-    counts["import"] = length(imports)
-
     return counts
 end
 
@@ -128,13 +113,9 @@ function print_syntax_counts_summary(io::IO, counts, indent=0)
     n_struct = total_count("struct")
     n_method = total_count("method")
     n_export = total_count("export")
-    n_using = total_count("using")
-    n_import = total_count("import")
-    n = maximum(ndigits(x) for x in (n_struct, n_method, n_export, n_using, n_import))
+    n = maximum(ndigits(x) for x in (n_struct, n_method, n_export))
     _print = (num, name) -> println(io, " "^indent, "* ", rpad(num, n), " ", name)
     _print(n_export, "exports")
-    # _print(n_using, "packages or modules loaded by `using`")
-    # _print(n_import, "packages or modules loaded by `import`")
     _print(n_struct, "struct definitions")
     _print(n_method, "method definitions")
     return nothing
