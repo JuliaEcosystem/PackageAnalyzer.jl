@@ -27,7 +27,7 @@ function make_loc_table(json)
     ismissing(json) && return table
     for (language, language_loc) in pairs(json)
         # we want to count lines of code per toplevel directory, per language, and per sublanguage (e.g. for Julia inside of Markdown)
-        counts = Dict{@NamedTuple{directory::String, sublanguage::Union{Nothing, Symbol}}, @NamedTuple{files::Int, code::Int, comments::Int, blanks::Int}}()
+        counts = Dict{@NamedTuple{directory::String, sublanguage::Union{Nothing, Symbol}}, @NamedTuple{files::Int, code::Int, comments::Int, docstrings::Int, blanks::Int}}()
         language == :Total && continue # skip the fake `Total` language
         language_loc.inaccurate && continue # skip if it's marked `inaccurate` (not sure when that happens?)
         for report in language_loc.reports
@@ -39,7 +39,7 @@ function make_loc_table(json)
             end
         end
         for ((directory, sublanguage), count) in pairs(counts)
-            push!(table, (; directory, language, sublanguage, count.files, count.code, count.comments, count.blanks))
+            push!(table, (; directory, language, sublanguage, count.files, count.code, count.comments, docstrings=0, count.blanks))
         end
     end
     d_count = counts_by_col(table, :directory)
@@ -55,8 +55,8 @@ function counts_by_col(table, col)
 end
 
 function loc_update!(d, key, new)
-    prev = get!(d, key, (; files=0, code=0, comments=0, blanks=0))
-    d[key] = (; files = prev.files + 1, code = prev.code + new.code, comments = prev.comments + new.comments, blanks = prev.blanks + new.blanks )
+    prev = get!(d, key, (; files=0, code=0, comments=0, docstrings=0, blanks=0))
+    d[key] = (; files = prev.files + 1, code = prev.code + new.code, comments = prev.comments + new.comments, docstrings=0, blanks = prev.blanks + new.blanks )
 end
 
 
@@ -73,6 +73,8 @@ count_contributors(pkg::Package; kwargs...) = count_contributors(pkg.contributor
 
 count_julia_loc(table, dir) = sum(row.code for row in table if row.directory == dir && row.language == :Julia; init=0)
 
+count_docstrings(table, dir) = sum(row.docstrings for row in table if row.directory == dir && row.language == :Julia; init=0)
+
 function count_docs(table, dirs=("docs", "doc"))
     rm_langs = (:TOML, :SVG, :CSS, :Javascript)
     sum(row.code + row.comments for row in table if lowercase(row.directory) in dirs && row.language ∉ rm_langs && row.sublanguage ∉ rm_langs; init=0)
@@ -81,6 +83,7 @@ end
 count_readme(table) = count_docs(table, ("readme", "readme.md"))
 
 count_julia_loc(pkg::Package, args...) = count_julia_loc(pkg.lines_of_code, args...)
+count_docstrings(pkg::Package, args...) = count_docstrings(pkg.lines_of_code, args...)
 count_docs(pkg::Package, args...) = count_docs(pkg.lines_of_code, args...)
 count_readme(pkg::Package, args...) = count_readme(pkg.lines_of_code, args...)
 
@@ -252,7 +255,8 @@ function count_julia_loc(dir)
             push!(table, (; directory=basename(path), language=:Julia,
                         sublanguage=nothing, files=n_files,
                         code=counts["Code"],
-                        comments=counts["Comment"] + counts["Docstring"],
+                        comments=counts["Comment"],
+                        docstrings=counts["Docstring"],
                         blanks=counts["Blank"]))
         end
     end

@@ -34,7 +34,7 @@ is_stdlib(uuid::UUID) = uuid in keys(STDLIBS)
 
 const LicenseTableEltype = @NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}
 const ContributionTableElType = @NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int}
-const LoCTableEltype = @NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int}
+const LoCTableEltype = @NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, docstrings::Int, blanks::Int}
 const ParsedCountsEltype = @NamedTuple{file_name::String, item::String, count::Int}
 
 struct Package
@@ -129,13 +129,17 @@ function Base.show(io::IO, p::Package)
             l_docs = count_docs(p)
             l_readme = count_readme(p)
 
+            l_src_docstring = count_docstrings(p, "src")
             p_test = @sprintf("%.1f", 100 * l_test / (l_test + l_src))
             p_docs = @sprintf("%.1f", 100 * l_docs / (l_docs + l_src))
+
+            n = l_src_docstring + l_readme
+            p_docstrings = @sprintf("%.1f", 100 * n / (n + l_src))
             body *= """
                   * Julia code in `src`: $(l_src) lines
                   * Julia code in `test`: $(l_test) lines ($(p_test)% of `test` + `src`)
                   * documentation in `docs`: $(l_docs) lines ($(p_docs)% of `docs` + `src`)
-                  * documentation in README: $(l_readme) lines
+                  * documentation in README & docstrings: $(n) lines ($(p_docstrings)% of README + `src`)
                 """
         end
         if isempty(p.license_files)
