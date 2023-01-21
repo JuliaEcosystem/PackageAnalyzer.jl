@@ -185,6 +185,8 @@ end
 
 LineCategories(source::SourceFile) = LineCategories(source, Dict{Int, String}())
 
+# This can be used to easily see the categorization, e.g.
+# PackageAnalyzer.LineCategories(pathof(PackageAnalyzer))
 LineCategories(path::AbstractString; kw...) = LineCategories(parse_green_one(path); kw...)
 
 function LineCategories(node::GreenNodeWrapper)

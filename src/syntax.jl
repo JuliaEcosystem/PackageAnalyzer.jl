@@ -10,7 +10,12 @@ struct SyntaxNodeWrapper
 end
 
 function AbstractTrees.children(wrapper::SyntaxNodeWrapper)
-    return map(SyntaxNodeWrapper, JuliaSyntax.children(wrapper.node))
+    # Don't recurse into these, in order to try to count top-level objects only
+    if kind(wrapper.node.raw) in [ K"struct", K"call", K"quote", K"=", K"for", K"function"]
+        return ()
+    else
+        map(SyntaxNodeWrapper, JuliaSyntax.children(wrapper.node))
+    end
 end
 
 #####

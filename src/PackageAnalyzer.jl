@@ -186,7 +186,7 @@ function Base.show(io::IO, p::Package)
             body *= "  * has continuous integration: false\n"
         end
         if !isempty(p.parsed_counts)
-            body *= "  * source code contains:\n"
+            body *= "  * static analysis finds:\n"
             body *= sprint(print_syntax_counts_summary, p.parsed_counts, 4)
         end
     end
