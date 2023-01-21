@@ -161,7 +161,6 @@ end
 #####
 
 
-
 # We can't do this at the level of SyntaxNode's because we've lost whitespace & comments already
 
 # function count_lines(tree)
@@ -194,16 +193,17 @@ end
 
 function parse_green_one(file_path)
     file = read(file_path, String)
+    @debug(string("Parsing ", file_path))
     parsed = JuliaSyntax.parse(JuliaSyntax.GreenNode, file; ignore_trivia=false)
     return GreenNodeWrapper2(parsed[1], JuliaSyntax.SourceFile(file; filename=basename(file_path)))
 end
 
 # Module to make it easier w/r/t/ import clashes
-
 module CategorizeLines
+
 using JuliaSyntax: GreenNode, is_trivia, haschildren, is_error, children, span, SourceFile, source_location
 # Pretty printing
-function _categorize_lines!(d, node, source, nesting, pos)
+function categorize_lines!(d, node, source, nesting=0, pos=1)
     starting_line_number, col = source_location(source, pos)
     v = get!(Vector{Any}, d, starting_line_number)
 
@@ -212,7 +212,7 @@ function _categorize_lines!(d, node, source, nesting, pos)
         new_nesting = nesting + 1
         p = pos
         for x in children(node)
-            _categorize_lines!(d, x, source, new_nesting, p)
+            categorize_lines!(d, x, source, new_nesting, p)
             p += x.span
         end
         ending_line_number, _ = source_location(source, p)
@@ -222,15 +222,16 @@ function _categorize_lines!(d, node, source, nesting, pos)
     push!(v, (; starting_line_number, ending_line_number, is_error=is_error(node), is_leaf, is_trivia=is_trivia(node), nesting, summary=summary(node)))
     return nothing
 end
-
-
-function categorize_lines!(d, node::GreenNode, source::SourceFile)
-    _categorize_lines!(d, node, source, 0, 1)
-end
-
 end
 
 using .CategorizeLines
+
+
+# TODO:
+# Handle `@doc` calls?
+# What about inline comments #= comment =#?
+# Can a docstring not start at the beginning of a line?
+# Can there be multiple string nodes on the same line as a docstring?
 
 function identify_lines!(d2, v)
     if v[1].summary == "Comment"
@@ -251,6 +252,7 @@ function identify_lines!(d2, v)
     end
 end
 
+categorize_lines(path::AbstractString; kw...) = categorize_lines(parse_green_one(path); kw...)
 function categorize_lines(node::GreenNodeWrapper2; show=false)
     d = Dict{Int, Vector{Any}}()
     CategorizeLines.categorize_lines!(d, node.node, node.source)
@@ -268,23 +270,8 @@ function categorize_lines(node::GreenNodeWrapper2; show=false)
     return d2
 end
 
-function count_lines(dir)
-    vals = []
-    for (root, dirs, files) in walkdir(dir)
-        for file_name in files
-            if endswith(file_name, ".jl")
-                node = parse_green_one(joinpath(root, file_name))
-                append!(vals, count_lines(node; file_name))
-            end
-        end
-    end
-    return identity.(vals)
-end
-
-function count_lines(node::GreenNodeWrapper2; file_name="")
+function _count_lines!(counts, node::GreenNodeWrapper2)
     cats = categorize_lines(node; show=false)
-    counts = Dict{String, Int}("Comment" => 0, "Blank" => 0, "Code" => 0, "Docstring" => 0)
-
     for v in values(cats)
         if startswith(v, "Code")
             counts["Code"] += 1
@@ -292,11 +279,38 @@ function count_lines(node::GreenNodeWrapper2; file_name="")
             counts[v] += 1
         end
     end
-
-    return [ (; file_name, type, count ) for (type, count) in counts]
+    return nothing
 end
-# TODO:
-# Handle `@doc` calls?
-# What about inline comments #= comment =#?
-# Can a docstring not start at the beginning of a line?
-# Can there be multiple string nodes on the same line as a docstring?
+
+function count_julia_loc(dir)
+    table = LoCTableEltype[]
+    for path in readdir(dir; join=true)
+        counts = Dict{String, Int}("Comment" => 0,
+                                   "Blank" => 0,
+                                   "Code" => 0,
+                                   "Docstring" => 0)
+        if isfile(path)
+            endswith(path, ".jl") || continue
+            node = parse_green_one(path)
+            _count_lines!(counts, node)
+            n_files = 1
+        else
+            n_files = 0
+            for (root, dirs, files) in walkdir(path)
+                for file_name in files
+                    if endswith(file_name, ".jl")
+                        node = parse_green_one(joinpath(root, file_name))
+                        _count_lines!(counts, node)
+                        n_files += 1
+                    end
+                end
+            end
+        end
+        push!(table, (; directory=dir, language=:Julia,
+                        sublanguage=nothing, files=n_files,
+                        code=counts["Code"],
+                        comments=counts["Comment"] + counts["Docstring"],
+                        blanks=counts["Blank"]))
+    end
+    return table
+end

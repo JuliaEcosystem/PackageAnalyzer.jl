@@ -7,7 +7,13 @@ function count_loc(dir)
         @error "`tokei` error: " exception=e maxlog=2
         missing
     end
-    return make_loc_table(json)
+    table = make_loc_table(json)
+    # Filter out `Julia`, since we will parse that ourselves
+    filter!(table) do row
+        row.language !== :Julia
+    end
+    append!(table, count_julia_loc(dir))
+    return table
 end
 
 function make_loc_table(json)
