@@ -212,7 +212,7 @@ function Base.show(io::IO, ::MIME"text/plain", per_line_category::LineCategories
 
         # One more prevind to chop the last line ending
         line = SubString(source.code, line_start:prevind(source.code, line_end))
-        print(io, rpad(idx, 5), "| ", rpad(per_line_category.dict[idx], 7), " | ", line)
+        print(io, rpad(idx, 5), "| ", rpad(per_line_category.dict[idx], 9), " | ", line)
     end
     return nothing
 end
