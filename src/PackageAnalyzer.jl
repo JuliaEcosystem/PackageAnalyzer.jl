@@ -311,22 +311,5 @@ include("count_loc.jl")
 # Syntax analysis
 include("syntax.jl")
 
-"""
-doc
-"""
-function f end
-
-"g"
-function g end
-
-@doc "hi"
-f
-
-@doc "hihi" f
-
-@doc """
-abc
-"""
-g
 
 end # module
