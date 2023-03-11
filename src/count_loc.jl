@@ -96,7 +96,7 @@ count_readme(pkg::Package, args...) = count_readme(pkg.lines_of_code, args...)
 
 # Avoid piracy by defining AbstractTrees definitions on a wrapper
 struct GreenNodeWrapper
-    node::JuliaSyntax.GreenNode
+    node::JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}
     source::JuliaSyntax.SourceFile
 end
 
@@ -107,19 +107,25 @@ end
 function parse_green_one(file_path)
     file = read(file_path, String)
     @debug(string("Parsing ", file_path))
-    parsed = JuliaSyntax.parse(JuliaSyntax.GreenNode, file; ignore_trivia=false)
+    parsed = try
+        JuliaSyntax.parseall(JuliaSyntax.GreenNode, file; ignore_trivia=false)
+    catch e
+        @debug "Error during `JuliaSyntax.parse`" file_path exception=(e, catch_backtrace())
+        # Return dummy result
+        [JuliaSyntax.GreenNode("Error", ())]
+    end
     return GreenNodeWrapper(parsed[1], JuliaSyntax.SourceFile(file; filename=basename(file_path)))
 end
 
 # Module to make it easier w/r/t/ import clashes
 module CategorizeLines
 
-using JuliaSyntax: GreenNode, is_trivia, haschildren, is_error, children, span, SourceFile, source_location
+using JuliaSyntax: GreenNode, is_trivia, haschildren, is_error, children, span, SourceFile, source_location, Kind, kind
 
 struct NodeSummary
     starting_line::Int
     ending_line::Int
-    summary::String
+    kind::Kind
 end
 
 # Based on the recursive printing code for GreenNode's
@@ -141,9 +147,7 @@ function categorize_lines!(d, node, source, nesting=0, pos=1)
     else
         ending_line = starting_line
     end
-    push!(v, NodeSummary(starting_line, ending_line, summary(node),
-    # is_error=is_error(node), is_leaf, is_trivia=is_trivia(node), nesting
-    ))
+    push!(v, NodeSummary(starting_line, ending_line, kind(node)))
     return nothing
 end
 
@@ -160,22 +164,23 @@ using .CategorizeLines
 
 function identify_lines!(d, v)
     line_number = v[1].starting_line
-    if v[1].summary == "Comment"
+    kind = v[1].kind
+    if kind == K"Comment"
         d[line_number] = "Comment"
-    elseif v[1].summary == "NewlineWs"
+    elseif kind == K"NewlineWs"
         d[line_number] = "Blank"
-    elseif v[1].summary == "core_@doc"
-            idx = findfirst(x -> x.summary == "string", v)
+    elseif kind == K"core_@doc"
+            idx = findfirst(x -> x.kind == K"string", v)
             for line in line_number:v[idx].ending_line
                 d[line] = "Docstring"
             end
     else
         # Don't overwrite e.g. docstrings
         if !haskey(d, line_number)
-            str = join((x.summary for x in v), ", ")
             d[line_number] = "Code"
         end
     end
+    return nothing
 end
 
 struct LineCategories
