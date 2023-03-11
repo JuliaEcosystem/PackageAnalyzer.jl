@@ -1,5 +1,3 @@
-export analyze_syntax
-
 #####
 ##### SyntaxTrees
 #####
@@ -19,58 +17,13 @@ function AbstractTrees.children(wrapper::SyntaxNodeWrapper)
 end
 
 #####
-##### Parsing files, traversing literal include statements
+##### Parsing files
 #####
 
-function parse_syntax_one(file_path)
+function parse_file(file_path)
     file = read(file_path, String)
-    parsed = JuliaSyntax.parse(JuliaSyntax.SyntaxNode, file)
+    parsed = JuliaSyntax.parseall(JuliaSyntax.SyntaxNode, file)
     return SyntaxNodeWrapper(parsed[1])
-end
-
-
-function find_literal_includes(tree::SyntaxNodeWrapper)
-    items = PostOrderDFS(tree)
-
-    # Filter to includes
-    itr = Iterators.filter(items) do wrapper
-        # A literal include has kind `K"call"`, whose first children's value is the symbol `:include`,
-        # and whose second child is the thing being included, which we require to be a string literal
-        k = kind(wrapper.node.raw)
-        k == K"call" || return false
-        kids = JuliaSyntax.children(wrapper.node)
-        isempty(kids) && return false
-        if kids[1].val == Symbol(:include) && kind(kids[2].raw) == K"string"
-            return true
-        else
-            return false
-        end
-        return true
-    end
-
-    # Grab the filenames
-    return map(itr) do wrapper
-        kids = JuliaSyntax.children(wrapper.node)
-        return only(kids[2].val).val
-    end
-end
-
-function parse_syntax_recursive(file_path)
-    trees = Pair{String, SyntaxNodeWrapper}[]
-    tree = parse_syntax_one(file_path)
-    push!(trees, basename(file_path) => tree)
-    other_files = find_literal_includes(tree)
-    for file in other_files
-        full_path = joinpath(dirname(file_path), file)
-        more_trees = parse_syntax_recursive(full_path)
-        append!(trees, more_trees)
-    end
-    return trees
-end
-
-function parse_syntax_recursive(pkg::Module)
-    file_path = pathof(pkg)
-    return parse_syntax_recursive(file_path)
 end
 
 #####
@@ -130,13 +83,17 @@ end
 ##### Entrypoint
 #####
 
-function analyze_syntax(module_or_file)
+function analyze_syntax_dir(dir)
     table = ParsedCountsEltype[]
-    file_tree_pairs = parse_syntax_recursive(module_or_file)
-    for (file_name, tree) in file_tree_pairs
-        file_counts = count_interesting_things(tree)
-        for (item, count) in file_counts
-            push!(table, (; file_name, item, count))
+    for (root, dirs, files) in walkdir(dir)
+        filter!(endswith(".jl"), files)
+        for file_name in files
+            path = joinpath(root, file_name)
+            tree = parse_file(path)
+            file_counts = count_interesting_things(tree)
+            for (item, count) in file_counts
+                push!(table, (; file_name, item, count))
+            end
         end
     end
     return table

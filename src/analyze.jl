@@ -282,12 +282,12 @@ function analyze_code(dir::AbstractString; repo="", reachable=true, subdir="", a
         ContributionTableElType[]
     end
 
-    pkg_entrypoint = joinpath(pkgdir, "src", name * ".jl")
-    if isfile(pkg_entrypoint)
+    src_dir = joinpath(pkgdir, "src")
+    if isdir(src_dir)
         parsed_counts = try
-            analyze_syntax(pkg_entrypoint)
+            analyze_syntax_dir(src_dir)
         catch e
-            @debug "Caught error in `analyze_syntax`" exception=(e, catch_backtrace())
+            @debug "Caught error in `analyze_syntax_dir`" exception=(e, catch_backtrace())
             ParsedCountsEltype[]
         end
     else
