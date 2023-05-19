@@ -169,11 +169,11 @@ function identify_lines!(d, v)
         d[line_number] = "Comment"
     elseif kind == K"NewlineWs"
         d[line_number] = "Blank"
-    elseif kind == K"core_@doc"
-            idx = findfirst(x -> x.kind == K"string", v)
-            for line in line_number:v[idx].ending_line
-                d[line] = "Docstring"
-            end
+    elseif kind == K"doc"
+        idx = findfirst(x -> x.kind == K"string", v)
+        for line in line_number:v[idx].ending_line
+            d[line] = "Docstring"
+        end
     else
         # Don't overwrite e.g. docstrings
         if !haskey(d, line_number)
