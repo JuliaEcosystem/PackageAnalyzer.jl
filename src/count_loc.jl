@@ -10,7 +10,7 @@ function count_loc(dir)
     json = try
         JSON3.read(read(Cmd(`$(tokei()) --output json .`; dir)))
     catch e
-        @error "`tokei` error: " exception=e maxlog=2
+        @error "`tokei` error: " exception = e maxlog = 2
         missing
     end
     table = make_loc_table(json)
@@ -27,7 +27,7 @@ function make_loc_table(json)
     ismissing(json) && return table
     for (language, language_loc) in pairs(json)
         # we want to count lines of code per toplevel directory, per language, and per sublanguage (e.g. for Julia inside of Markdown)
-        counts = Dict{@NamedTuple{directory::String, sublanguage::Union{Nothing, Symbol}}, @NamedTuple{files::Int, code::Int, comments::Int, docstrings::Int, blanks::Int}}()
+        counts = Dict{@NamedTuple{directory::String, sublanguage::Union{Nothing,Symbol}},@NamedTuple{files::Int, code::Int, comments::Int, docstrings::Int, blanks::Int}}()
         language == :Total && continue # skip the fake `Total` language
         language_loc.inaccurate && continue # skip if it's marked `inaccurate` (not sure when that happens?)
         for report in language_loc.reports
@@ -35,7 +35,7 @@ function make_loc_table(json)
             directory = splitpath(report.name)[2]
             loc_update!(counts, (; directory, sublanguage=nothing), report.stats)
             for (sublanguage, sublanguage_loc) in report.stats.blobs
-                loc_update!(counts,  (; directory, sublanguage), sublanguage_loc)
+                loc_update!(counts, (; directory, sublanguage), sublanguage_loc)
             end
         end
         for ((directory, sublanguage), count) in pairs(counts)
@@ -45,18 +45,18 @@ function make_loc_table(json)
     d_count = counts_by_col(table, :directory)
     l_count = counts_by_col(table, :language)
     sl_count = counts_by_col(table, :sublanguage)
-    sort!(table, by = row->(d_count[row.directory], l_count[row.language], sl_count[row.sublanguage]), rev=true)
+    sort!(table, by=row -> (d_count[row.directory], l_count[row.language], sl_count[row.sublanguage]), rev=true)
     return table
 end
 
 function counts_by_col(table, col)
     vals = unique(getproperty(row, col) for row in table)
-    return Dict(val => sum(row.code for row in table if getproperty(row, col)==val) for val in vals)
+    return Dict(val => sum(row.code for row in table if getproperty(row, col) == val) for val in vals)
 end
 
 function loc_update!(d, key, new)
     prev = get!(d, key, (; files=0, code=0, comments=0, docstrings=0, blanks=0))
-    d[key] = (; files = prev.files + 1, code = prev.code + new.code, comments = prev.comments + new.comments, docstrings=0, blanks = prev.blanks + new.blanks )
+    d[key] = (; files=prev.files + 1, code=prev.code + new.code, comments=prev.comments + new.comments, docstrings=0, blanks=prev.blanks + new.blanks)
 end
 
 
@@ -110,7 +110,7 @@ function parse_green_one(file_path)
     parsed = try
         JuliaSyntax.parseall(JuliaSyntax.GreenNode, file; ignore_trivia=false)
     catch e
-        @debug "Error during `JuliaSyntax.parse`" file_path exception=(e, catch_backtrace())
+        @debug "Error during `JuliaSyntax.parse`" file_path exception = (e, catch_backtrace())
         # Return dummy result
         [JuliaSyntax.GreenNode("Error", ())]
     end
@@ -185,17 +185,17 @@ end
 
 struct LineCategories
     source::SourceFile
-    dict::Dict{Int, String}
+    dict::Dict{Int,String}
 end
 
-LineCategories(source::SourceFile) = LineCategories(source, Dict{Int, String}())
+LineCategories(source::SourceFile) = LineCategories(source, Dict{Int,String}())
 
 # This can be used to easily see the categorization, e.g.
 # PackageAnalyzer.LineCategories(pathof(PackageAnalyzer))
 LineCategories(path::AbstractString; kw...) = LineCategories(parse_green_one(path); kw...)
 
 function LineCategories(node::GreenNodeWrapper)
-    per_line_list = Dict{Int, Vector{NodeSummary}}()
+    per_line_list = Dict{Int,Vector{NodeSummary}}()
     CategorizeLines.categorize_lines!(per_line_list, node.node, node.source)
     per_line_category = LineCategories(node.source)
     for idx in sort!(collect(keys(per_line_list)))
@@ -238,10 +238,10 @@ function count_julia_loc(dir)
     table = LoCTableEltype[]
     for path in readdir(dir; join=true)
         n_files = 0
-        counts = Dict{String, Int}("Comment" => 0,
-                                   "Blank" => 0,
-                                   "Code" => 0,
-                                   "Docstring" => 0)
+        counts = Dict{String,Int}("Comment" => 0,
+            "Blank" => 0,
+            "Code" => 0,
+            "Docstring" => 0)
         if isfile(path)
             endswith(path, ".jl") || continue
             node = parse_green_one(path)
@@ -260,11 +260,11 @@ function count_julia_loc(dir)
         end
         if n_files > 0
             push!(table, (; directory=basename(path), language=:Julia,
-                        sublanguage=nothing, files=n_files,
-                        code=counts["Code"],
-                        comments=counts["Comment"],
-                        docstrings=counts["Docstring"],
-                        blanks=counts["Blank"]))
+                sublanguage=nothing, files=n_files,
+                code=counts["Code"],
+                comments=counts["Comment"],
+                docstrings=counts["Docstring"],
+                blanks=counts["Blank"]))
         end
     end
     return table

@@ -9,7 +9,7 @@ end
 
 function AbstractTrees.children(wrapper::SyntaxNodeWrapper)
     # Don't recurse into these, in order to try to count top-level objects only
-    if kind(wrapper.node.raw) in [ K"struct", K"call", K"quote", K"=", K"for", K"function"]
+    if kind(wrapper.node.raw) in [K"struct", K"call", K"quote", K"=", K"for", K"function"]
         return ()
     else
         map(SyntaxNodeWrapper, JuliaSyntax.children(wrapper.node))
@@ -33,7 +33,7 @@ end
 using JuliaSyntax
 using JuliaSyntax: head
 function count_interesting_things(tree::SyntaxNodeWrapper)
-    counts = Dict{String, Int}()
+    counts = Dict{String,Int}()
     items = PostOrderDFS(tree)
     foreach(items) do wrapper
         k = kind(wrapper.node.raw)
@@ -56,7 +56,7 @@ function count_interesting_things(tree::SyntaxNodeWrapper)
             # These we increment once
             key = string(k)
             counts[key] = get(counts, key, 0) + 1
-        elseif k  == K"export"
+        elseif k == K"export"
             # These we count by the number of their children, since that's the number of exports/packages
             # being handled by that invocation of the keyword
             key = string(k)
