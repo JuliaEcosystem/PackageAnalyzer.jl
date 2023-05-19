@@ -128,7 +128,7 @@ function get_tree_hash(dir::AbstractString)
 end
 
 function git()
-    use_local_env = parse(Bool, get(ENV,"USE_LOCAL_GIT", "false"))
+    use_local_env = Base.parse(Bool, get(ENV,"USE_LOCAL_GIT", "false"))
     # Git.jl has issues on MacOS, so if we have a local git there, use it,
     # Also allow ENV-based opt-out. Why? Not sure about private packages.
     if use_local_env || (Sys.isapple() && Sys.which("git") !== nothing)

@@ -23,7 +23,7 @@ end
 function parse_file(file_path)
     file = read(file_path, String)
     parsed = JuliaSyntax.parseall(JuliaSyntax.SyntaxNode, file)
-    return SyntaxNodeWrapper(parsed[1])
+    return SyntaxNodeWrapper(parsed)
 end
 
 #####

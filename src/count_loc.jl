@@ -112,9 +112,9 @@ function parse_green_one(file_path)
     catch e
         @debug "Error during `JuliaSyntax.parse`" file_path exception = (e, catch_backtrace())
         # Return dummy result
-        [JuliaSyntax.GreenNode("Error", ())]
+        [JuliaSyntax.GreenNode("Error", 0, ())]
     end
-    return GreenNodeWrapper(parsed[1], JuliaSyntax.SourceFile(file; filename=basename(file_path)))
+    return GreenNodeWrapper(parsed, JuliaSyntax.SourceFile(file; filename=basename(file_path)))
 end
 
 # Module to make it easier w/r/t/ import clashes
@@ -126,28 +126,27 @@ struct NodeSummary
     starting_line::Int
     ending_line::Int
     kind::Kind
+    parent_kind::Union{Kind,Nothing}
 end
 
 # Based on the recursive printing code for GreenNode's
 # Here, instead of printing, we collect all of the objects
 # that start on a given line.
-function categorize_lines!(d, node, source, nesting=0, pos=1)
+function categorize_lines!(v, node, source, nesting=0, pos=1, parent_kind=nothing)
     starting_line, _ = source_location(source, pos)
-    v = get!(Vector{NodeSummary}, d, starting_line)
-
     is_leaf = !haschildren(node)
     if !is_leaf
         new_nesting = nesting + 1
         p = pos
         for x in children(node)
-            categorize_lines!(d, x, source, new_nesting, p)
+            categorize_lines!(v, x, source, new_nesting, p, kind(node))
             p += x.span
         end
         ending_line, _ = source_location(source, p)
     else
         ending_line = starting_line
     end
-    push!(v, NodeSummary(starting_line, ending_line, kind(node)))
+    push!(v, NodeSummary(starting_line, ending_line, kind(node), parent_kind))
     return nothing
 end
 
@@ -156,51 +155,58 @@ end
 
 using .CategorizeLines
 
+
 # TODO:
 # Handle `@doc` calls?
 # What about inline comments #= comment =#?
 # Can a docstring not start at the beginning of a line?
 # Can there be multiple string nodes on the same line as a docstring?
 
-function identify_lines!(d, v)
-    line_number = v[1].starting_line
-    kind = v[1].kind
-    if kind == K"Comment"
-        d[line_number] = "Comment"
-    elseif kind == K"NewlineWs"
-        d[line_number] = "Blank"
-    elseif kind == K"doc"
-        idx = findfirst(x -> x.kind == K"string", v)
-        for line in line_number:v[idx].ending_line
-            d[line] = "Docstring"
+function identify_lines!(d, x)
+    for node in x
+        kind = node.kind
+        parent_kind = node.parent_kind
+        if kind == K"Comment"
+            line_category = Comment
+        elseif kind == K"NewlineWs"
+            line_category = Blank
+        elseif parent_kind == K"doc" && kind == K"string"
+            line_category = Docstring
+        else
+            line_category = Code
         end
-    else
-        # Don't overwrite e.g. docstrings
-        if !haskey(d, line_number)
-            d[line_number] = "Code"
-        end
+        upsert!(d, node.starting_line, node.ending_line, line_category)
     end
     return nothing
 end
 
+# Ordered by precedence
+# TODO- decide about order for Code vs Docstring
+@enum LineCategory Blank Comment Code Docstring
+
 struct LineCategories
     source::SourceFile
-    dict::Dict{Int,String}
+    dict::Dict{Int,LineCategory}
 end
 
-LineCategories(source::SourceFile) = LineCategories(source, Dict{Int,String}())
+LineCategories(source::SourceFile) = LineCategories(source, Dict{Int,LineCategory}())
 
 # This can be used to easily see the categorization, e.g.
 # PackageAnalyzer.LineCategories(pathof(PackageAnalyzer))
 LineCategories(path::AbstractString; kw...) = LineCategories(parse_green_one(path); kw...)
 
-function LineCategories(node::GreenNodeWrapper)
-    per_line_list = Dict{Int,Vector{NodeSummary}}()
-    CategorizeLines.categorize_lines!(per_line_list, node.node, node.source)
-    per_line_category = LineCategories(node.source)
-    for idx in sort!(collect(keys(per_line_list)))
-        identify_lines!(per_line_category.dict, per_line_list[idx])
+function upsert!(lc::LineCategories, starting_line::Int, ending_line::Int, value::LineCategory)
+    for line in starting_line:ending_line
+        current = get(lc.dict, line, Blank)
+        lc.dict[line] = max(current, value)
     end
+end
+
+function LineCategories(node::GreenNodeWrapper)
+    node_summaries = Vector{NodeSummary}()
+    CategorizeLines.categorize_lines!(node_summaries, node.node, node.source)
+    per_line_category = LineCategories(node.source)
+    identify_lines!(per_line_category, node_summaries)
     return per_line_category
 end
 
@@ -225,11 +231,7 @@ end
 function _count_lines!(counts, node::GreenNodeWrapper)
     cats = LineCategories(node)
     for v in values(cats.dict)
-        if startswith(v, "Code")
-            counts["Code"] += 1
-        else
-            counts[v] += 1
-        end
+        counts[v] += 1
     end
     return nothing
 end
@@ -238,10 +240,10 @@ function count_julia_loc(dir)
     table = LoCTableEltype[]
     for path in readdir(dir; join=true)
         n_files = 0
-        counts = Dict{String,Int}("Comment" => 0,
-            "Blank" => 0,
-            "Code" => 0,
-            "Docstring" => 0)
+        counts = Dict{LineCategory,Int}(Comment => 0,
+            Blank => 0,
+            Code => 0,
+            Docstring => 0)
         if isfile(path)
             endswith(path, ".jl") || continue
             node = parse_green_one(path)
@@ -261,10 +263,10 @@ function count_julia_loc(dir)
         if n_files > 0
             push!(table, (; directory=basename(path), language=:Julia,
                 sublanguage=nothing, files=n_files,
-                code=counts["Code"],
-                comments=counts["Comment"],
-                docstrings=counts["Docstring"],
-                blanks=counts["Blank"]))
+                code=counts[Code],
+                comments=counts[Comment],
+                docstrings=counts[Docstring],
+                blanks=counts[Blank]))
         end
     end
     return table
