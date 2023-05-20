@@ -32,24 +32,31 @@ end
 
 using JuliaSyntax
 using JuliaSyntax: head
+
+function is_method(node)
+    k = kind(node)
+    # This is a function like function f() 1+1 end
+    k == K"function" && return true
+    if k == K"="
+        # 1-line function definitions like f() = abc...
+        # Show up as an `=` with the first argument being a call
+        # and the second argument being the function body.
+        # We handle those here.
+        # We do not handle anonymous functions like `f = () -> 1`
+        kids = JuliaSyntax.children(node)
+        length(kids) == 2 || return false
+        kind(kids[1]) == K"call" || return false
+        return true
+    end
+    return false
+end
+
 function count_interesting_things(tree::SyntaxNodeWrapper)
     counts = Dict{String,Int}()
     items = PostOrderDFS(tree)
     foreach(items) do wrapper
         k = kind(wrapper.node.raw)
-        if k == K"="
-            # 1-line function definitions like f() = abc...
-            # Show up as an `=` with the first argument being a call
-            # and the second argument being the function body.
-            # We handle those here.
-            # We do not handle anonymous functions like `f = () -> 1`
-            kids = JuliaSyntax.children(wrapper.node)
-            length(kids) == 2 || return
-            kind(kids[1].raw) == K"call" || return
-            key = "method"
-            counts[key] = get(counts, key, 0) + 1
-        elseif k == K"function"
-            # This is a function like function f() 1+1 end
+        if is_method(wrapper.node)
             key = "method"
             counts[key] = get(counts, key, 0) + 1
         elseif k == K"struct"
@@ -61,6 +68,15 @@ function count_interesting_things(tree::SyntaxNodeWrapper)
             # being handled by that invocation of the keyword
             key = string(k)
             counts[key] = get(counts, key, 0) + length(JuliaSyntax.children(wrapper.node))
+        elseif k == K"doc"
+            kids = JuliaSyntax.children(wrapper.node)
+            # When does this happen?
+            kind(kids[1].raw) == K"string" || return
+            is_method(kids[2]) || return
+            key = "method docstring"
+            counts[key] = get(counts, key, 0) + 1
+        else
+            #@show k
         end
     end
     return counts
@@ -70,12 +86,14 @@ function print_syntax_counts_summary(io::IO, counts, indent=0)
     total_count = item -> sum(row.count for row in counts if row.item == item; init=0)
     n_struct = total_count("struct")
     n_method = total_count("method")
+    n_method_docstring = total_count("method docstring")
     n_export = total_count("export")
-    n = maximum(ndigits(x) for x in (n_struct, n_method, n_export))
+    n = maximum(ndigits(x) for x in (n_struct, n_method, n_export, n_method_docstring))
     _print = (num, name) -> println(io, " "^indent, "* ", rpad(num, n), " ", name)
     _print(n_export, "exports")
     _print(n_struct, "struct definitions")
     _print(n_method, "method definitions")
+    _print(n_method_docstring, "method docstrings")
     return nothing
 end
 
