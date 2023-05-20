@@ -6,7 +6,7 @@ using Pkg, TOML, UUIDs, Printf
 using LicenseCheck # for `find_license` and `is_osi_approved`
 using JSON3 # for interfacing with `tokei` to count lines of code
 using Tokei_jll # count lines of code
-using GitHub # Use GitHub API to get extra information about the repo
+using GitHub: GitHub # Use GitHub API to get extra information about the repo
 using Git: Git
 using Downloads
 using Tar
@@ -304,6 +304,9 @@ include("parallel.jl")
 
 # github, parsing
 include("utilities.jl")
+
+include("LineCategories.jl")
+using .CategorizeLines
 
 # tokei, counting
 include("count_loc.jl")

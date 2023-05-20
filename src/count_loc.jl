@@ -117,43 +117,16 @@ function parse_green_one(file_path)
     return GreenNodeWrapper(parsed, JuliaSyntax.SourceFile(file; filename=basename(file_path)))
 end
 
-# Module to make it easier w/r/t/ import clashes
-module CategorizeLines
 
-using JuliaSyntax: GreenNode, is_trivia, haschildren, is_error, children, span, SourceFile, source_location, Kind, kind
-
-struct NodeSummary
-    starting_line::Int
-    ending_line::Int
-    kind::Kind
-    parent_kind::Union{Kind,Nothing}
+function CategorizeLines.LineCategories(node::GreenNodeWrapper)
+    per_line_category = LineCategories(node.source, Dict{Int,LineCategory}())
+    categorize_lines!(per_line_category, node.node, node.source)
+    return per_line_category
 end
 
-# Based on the recursive printing code for GreenNode's
-# Here, instead of printing, we collect all of the objects
-# that start on a given line.
-function categorize_lines!(v, node, source, nesting=0, pos=1, parent_kind=nothing)
-    starting_line, _ = source_location(source, pos)
-    is_leaf = !haschildren(node)
-    if !is_leaf
-        new_nesting = nesting + 1
-        p = pos
-        for x in children(node)
-            categorize_lines!(v, x, source, new_nesting, p, kind(node))
-            p += x.span
-        end
-        ending_line, _ = source_location(source, p)
-    else
-        ending_line = starting_line
-    end
-    push!(v, NodeSummary(starting_line, ending_line, kind(node), parent_kind))
-    return nothing
-end
-
-export NodeSummary
-end
-
-using .CategorizeLines
+# This can be used to easily see the categorization, e.g.
+# PackageAnalyzer.LineCategories(pathof(PackageAnalyzer))
+CategorizeLines.LineCategories(path::AbstractString; kw...) = LineCategories(parse_green_one(path); kw...)
 
 
 # TODO:
@@ -176,54 +149,6 @@ function identify_lines!(d, x)
             line_category = Code
         end
         upsert!(d, node.starting_line, node.ending_line, line_category)
-    end
-    return nothing
-end
-
-# Ordered by precedence
-# TODO- decide about order for Code vs Docstring
-@enum LineCategory Blank Comment Code Docstring
-
-struct LineCategories
-    source::SourceFile
-    dict::Dict{Int,LineCategory}
-end
-
-LineCategories(source::SourceFile) = LineCategories(source, Dict{Int,LineCategory}())
-
-# This can be used to easily see the categorization, e.g.
-# PackageAnalyzer.LineCategories(pathof(PackageAnalyzer))
-LineCategories(path::AbstractString; kw...) = LineCategories(parse_green_one(path); kw...)
-
-function upsert!(lc::LineCategories, starting_line::Int, ending_line::Int, value::LineCategory)
-    for line in starting_line:ending_line
-        current = get(lc.dict, line, Blank)
-        lc.dict[line] = max(current, value)
-    end
-end
-
-function LineCategories(node::GreenNodeWrapper)
-    node_summaries = Vector{NodeSummary}()
-    CategorizeLines.categorize_lines!(node_summaries, node.node, node.source)
-    per_line_category = LineCategories(node.source)
-    identify_lines!(per_line_category, node_summaries)
-    return per_line_category
-end
-
-# Print back out the source, but with line categories
-function Base.show(io::IO, ::MIME"text/plain", per_line_category::LineCategories)
-    source = per_line_category.source
-    f = true
-    for idx in sort!(collect(keys(per_line_category.dict)))
-        f || println(io)
-        f = false
-        line_start = source.line_starts[idx]
-        # `prevind` since this is the start of the next line, not the end of the previous one
-        line_end = min(prevind(source.code, source.line_starts[idx+1]), lastindex(source.code))
-
-        # One more prevind to chop the last line ending
-        line = SubString(source.code, line_start:prevind(source.code, line_end))
-        print(io, rpad(idx, 5), "| ", rpad(per_line_category.dict[idx], 9), " | ", line)
     end
     return nothing
 end
