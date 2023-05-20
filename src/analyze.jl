@@ -95,7 +95,7 @@ julia> using DataFrames
 
 julia> analyze(DataFrames)
 Package DataFrames:
-  * repo: 
+  * repo:
   * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
   * version: 0.0.0
   * is reachable: true
@@ -287,7 +287,7 @@ function analyze_code(dir::AbstractString; repo="", reachable=true, subdir="", a
         parsed_counts = try
             analyze_syntax_dir(src_dir)
         catch e
-            @debug "Caught error in `analyze_syntax_dir`" exception=(e, catch_backtrace())
+            @debug "Caught error during `analyze_syntax_dir`" exception=(e, catch_backtrace())
             ParsedCountsEltype[]
         end
     else

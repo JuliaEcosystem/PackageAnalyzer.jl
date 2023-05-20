@@ -112,7 +112,7 @@ function parse_green_one(file_path)
     catch e
         @debug "Error during `JuliaSyntax.parse`" file_path exception = (e, catch_backtrace())
         # Return dummy result
-        [JuliaSyntax.GreenNode("Error", 0, ())]
+        JuliaSyntax.GreenNode(JuliaSyntax.SyntaxHead(K"toplevel", 0), 0, ())
     end
     return GreenNodeWrapper(parsed, JuliaSyntax.SourceFile(file; filename=basename(file_path)))
 end
