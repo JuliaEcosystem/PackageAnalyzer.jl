@@ -129,30 +129,6 @@ end
 CategorizeLines.LineCategories(path::AbstractString; kw...) = LineCategories(parse_green_one(path); kw...)
 
 
-# TODO:
-# Handle `@doc` calls?
-# What about inline comments #= comment =#?
-# Can a docstring not start at the beginning of a line?
-# Can there be multiple string nodes on the same line as a docstring?
-
-function identify_lines!(d, x)
-    for node in x
-        kind = node.kind
-        parent_kind = node.parent_kind
-        if kind == K"Comment"
-            line_category = Comment
-        elseif kind == K"NewlineWs"
-            line_category = Blank
-        elseif parent_kind == K"doc" && kind == K"string"
-            line_category = Docstring
-        else
-            line_category = Code
-        end
-        upsert!(d, node.starting_line, node.ending_line, line_category)
-    end
-    return nothing
-end
-
 function _count_lines!(counts, node::GreenNodeWrapper)
     cats = LineCategories(node)
     for v in values(cats.dict)
