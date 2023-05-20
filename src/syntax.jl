@@ -69,7 +69,7 @@ function get_function_name_if_not_qualified(node) # assumes `is_method(node) == 
     if isnothing(f.children)
         return string(f)
     else
-        # Imported
+        # Qualified. TODO: handle not qualified but imported (since that isn't defined in the package either).
         return nothing
     end
 end
