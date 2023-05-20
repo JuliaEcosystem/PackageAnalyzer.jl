@@ -6,8 +6,8 @@ using Pkg, TOML, UUIDs, Printf
 using LicenseCheck # for `find_license` and `is_osi_approved`
 using JSON3 # for interfacing with `tokei` to count lines of code
 using Tokei_jll # count lines of code
-using GitHub: GitHub # Use GitHub API to get extra information about the repo
-using Git: Git
+import GitHub # Use GitHub API to get extra information about the repo
+import Git: Git
 using Downloads
 using Tar
 using CodecZlib

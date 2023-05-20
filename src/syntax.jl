@@ -69,15 +69,23 @@ function get_function_name_if_not_qualified(node) # assumes `is_method(node) == 
     if isnothing(f.children)
         return string(f)
     else
-        # Qualified. TODO: handle not qualified but imported (since that isn't defined in the package either).
+        # Qualified name; assumed to not be in this package.
+        # Could in fact be from a submodule; this case is not handled right now.
         return nothing
     end
 end
+
+function get_imported_names(node)
+    @assert kind(node) == K"import"
+    return string.(first.(JuliaSyntax.children.(JuliaSyntax.children(JuliaSyntax.children(node)[1])[2:end])))
+end
+
 
 function count_interesting_things(tree::SyntaxNodeWrapper)
     counts = Dict{String,Int}()
     functions = Dict{String,Int}()
     docstring_functions = Dict{String,Int}()
+    imported_names = Set{String}()
     items = PostOrderDFS(tree)
     foreach(items) do wrapper
         node = wrapper.node
@@ -100,7 +108,7 @@ function count_interesting_things(tree::SyntaxNodeWrapper)
             counts[key] = get(counts, key, 0) + length(JuliaSyntax.children(node))
         elseif k == K"doc"
             kids = JuliaSyntax.children(node)
-            # When does this happen?
+            # Is this ever not a string?
             kind(kids[1].raw) == K"string" || return
             is_method(kids[2]) || return
             key = "method docstring"
@@ -109,11 +117,13 @@ function count_interesting_things(tree::SyntaxNodeWrapper)
                 docstring_functions[function_name] = get(docstring_functions, function_name, 0) + 1
             end
             counts[key] = get(counts, key, 0) + 1
+        elseif k == K"import"
+            union!(imported_names, get_imported_names(node))
         else
-            #@show k
+            # @show k
         end
     end
-    return counts, functions, docstring_functions
+    return counts, functions, docstring_functions, imported_names
 end
 
 function print_syntax_counts_summary(io::IO, counts, indent=0)
@@ -145,14 +155,25 @@ function analyze_syntax_dir(dir)
         filter!(endswith(".jl"), files)
         functions = Dict{String,Int}()
         docstring_functions = Dict{String,Int}()
+        imported_names = Set{String}()
         for file_name in files
             path = joinpath(root, file_name)
             tree = parse_file(path)
-            file_counts, f, df = count_interesting_things(tree)
+            file_counts, f, df, in = count_interesting_things(tree)
             mergewith!(+, functions, f)
             mergewith!(+, docstring_functions, df)
+            union!(imported_names, in)
             for (item, count) in file_counts
                 push!(table, (; file_name, item, count))
+            end
+        end
+
+        for name in imported_names
+            if name in keys(functions)
+                delete!(functions, name)
+            end
+            if name in keys(docstring_functions)
+                delete!(docstring_functions, name)
             end
         end
         functions_in_package = length(functions)
