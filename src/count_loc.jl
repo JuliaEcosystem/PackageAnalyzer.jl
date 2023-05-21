@@ -7,12 +7,7 @@ using JuliaSyntax: SourceFile
 function count_loc(dir)
     # we pass `dir` to the command object so that we get relative paths in the `tokei` output.
     # This makes it easy to process later, since we have uniform filepaths
-    json = try
-        JSON3.read(read(Cmd(`$(tokei()) --output json .`; dir)))
-    catch e
-        @error "`tokei` error: " exception = e maxlog = 2
-        missing
-    end
+    json = @maybecatch(JSON3.read(read(Cmd(`$(tokei()) --output json .`; dir))), "`tokei` error", missing)
     table = make_loc_table(json)
     # Filter out `Julia`, since we will parse that ourselves
     filter!(table) do row
@@ -106,14 +101,10 @@ end
 
 function parse_green_one(file_path)
     file = read(file_path, String)
-    @debug(string("Parsing ", file_path))
-    parsed = try
-        JuliaSyntax.parseall(JuliaSyntax.GreenNode, file; ignore_trivia=false)
-    catch e
-        @debug "Error during `JuliaSyntax.parse`" file_path exception = (e, catch_backtrace())
-        # Return dummy result
-        JuliaSyntax.GreenNode(JuliaSyntax.SyntaxHead(K"toplevel", 0), 0, ())
-    end
+    # @debug(string("Parsing ", file_path))
+    parsed = @maybecatch(JuliaSyntax.parseall(JuliaSyntax.GreenNode, file; ignore_trivia=false),
+        "Error during `JuliaSyntax.parse`",
+        JuliaSyntax.GreenNode(JuliaSyntax.SyntaxHead(K"toplevel", 0), 0, ()))
     return GreenNodeWrapper(parsed, JuliaSyntax.SourceFile(file; filename=basename(file_path)))
 end
 

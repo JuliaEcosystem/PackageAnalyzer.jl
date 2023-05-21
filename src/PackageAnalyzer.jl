@@ -23,6 +23,37 @@ export find_package, find_packages, find_packages_in_manifest
 # Ways to analyze them
 export analyze, analyze_manifest, analyze_packages
 
+##
+# Borrowed from
+# https://github.com/beacon-biosignals/SlackThreads.jl/blob/74351c2863ec9a1cf22732873d4d2816aa9c140d/src/SlackThreads.jl#L27-L49
+const CATCH_EXCEPTIONS = Ref(true)
+
+# We turn off exception handling for our tests, to ensure we aren't throwing exceptions
+# that we're missing. But we have it on by default, since in ordinary usage we want to
+# be sure we are catching all exceptions.
+# We wrap all public API methods in this, which should make it very difficult to throw
+# an exception.
+macro maybecatch(expr, log_str, ret=nothing)
+    quote
+        if CATCH_EXCEPTIONS[]
+            try
+                $(esc(expr))
+            catch e
+                @debug $(log_str) exception = (e, catch_backtrace())
+                $(esc(ret))
+            end
+        else
+            let # introduce a local scope like `try` does
+                $(esc(expr))
+            end
+        end
+    end
+end
+#
+##
+
+
+
 # borrowed from <https://github.com/JuliaRegistries/RegistryTools.jl/blob/841a56d8274e2857e3fd5ea993ba698cdbf51849/src/builtin_pkgs.jl>
 const stdlibs = isdefined(Pkg.Types, :stdlib) ? Pkg.Types.stdlib : Pkg.Types.stdlibs
 # Julia 1.8 changed from `name` to `(name, version)`.

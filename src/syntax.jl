@@ -56,16 +56,14 @@ function get_function_name_if_not_qualified(node) # assumes `is_method(node) == 
 
     local f
     # TODO- write this code correctly instead of using try-catch
-    try
+    @maybecatch begin
         if k == K"function"
             f = node.children[1].children[1]
         else
             kids = JuliaSyntax.children(node)
             f = kids[1].children[1]
         end
-    catch
-        return nothing
-    end
+    end "" nothing
     if isnothing(f.children)
         return string(f)
     else
@@ -75,10 +73,21 @@ function get_function_name_if_not_qualified(node) # assumes `is_method(node) == 
     end
 end
 
-function get_imported_names(node)
-    @assert kind(node) == K"import"
-    return string.(first.(JuliaSyntax.children.(JuliaSyntax.children(JuliaSyntax.children(node)[1])[2:end])))
+function get_leaves!(leaves, node)
+    children = JuliaSyntax.children(node)
+    if !isempty(children)
+        foreach(c -> get_leaves!(leaves, c), children)
+    else
+        push!(leaves, node)
+    end
+    return leaves
 end
+
+function get_leaves(node)
+    leaves = JuliaSyntax.SyntaxNode[]
+    return get_leaves!(leaves, node)
+end
+
 
 
 function count_interesting_things(tree::SyntaxNodeWrapper)
@@ -108,8 +117,7 @@ function count_interesting_things(tree::SyntaxNodeWrapper)
             counts[key] = get(counts, key, 0) + length(JuliaSyntax.children(node))
         elseif k == K"doc"
             kids = JuliaSyntax.children(node)
-            # Is this ever not a string?
-            kind(kids[1].raw) == K"string" || return
+            @maybecatch(@assert(kind(kids[1].raw) == K"string"), "Doc kind issue", return)
             is_method(kids[2]) || return
             key = "method docstring"
             function_name = get_function_name_if_not_qualified(kids[2])
@@ -118,7 +126,8 @@ function count_interesting_things(tree::SyntaxNodeWrapper)
             end
             counts[key] = get(counts, key, 0) + 1
         elseif k == K"import"
-            union!(imported_names, get_imported_names(node))
+            found_names = string.(get_leaves(node))
+            union!(imported_names, found_names)
         else
             # @show k
         end
