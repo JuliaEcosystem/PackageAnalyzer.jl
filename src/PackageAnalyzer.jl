@@ -38,8 +38,14 @@ macro maybecatch(expr, log_str, ret=nothing)
         try
             $(esc(expr))
         catch e
-            @debug $(esc(log_str)) exception = (e, catch_backtrace())
-            $(CATCH_EXCEPTIONS)[] ? $(esc(ret)) : rethrow()
+            if $(CATCH_EXCEPTIONS)[]
+                @debug $(esc(log_str)) exception = (e, catch_backtrace())
+                $(esc(ret))
+            else
+                # No stacktrace, because we'll get one anyway
+                @debug $(esc(log_str)) exception = e
+                rethrow()
+            end
         end
     end
 end
