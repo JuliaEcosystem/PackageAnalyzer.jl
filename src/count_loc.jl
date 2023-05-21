@@ -102,12 +102,11 @@ end
 function parse_green_one(file_path)
     file = read(file_path, String)
     # @debug(string("Parsing ", file_path))
-    parsed = @maybecatch(JuliaSyntax.parseall(JuliaSyntax.GreenNode, file; ignore_trivia=false),
-        "Error during `JuliaSyntax.parse`",
+    parsed = @maybecatch(JuliaSyntax.parseall(JuliaSyntax.GreenNode, file; ignore_trivia=false, filename=file_path),
+        "Error during `JuliaSyntax.parseall` of $(file_path)",
         JuliaSyntax.GreenNode(JuliaSyntax.SyntaxHead(K"toplevel", 0), 0, ()))
-    return GreenNodeWrapper(parsed, JuliaSyntax.SourceFile(file; filename=basename(file_path)))
+    return GreenNodeWrapper(parsed, JuliaSyntax.SourceFile(file; filename=file_path))
 end
-
 
 function CategorizeLines.LineCategories(node::GreenNodeWrapper)
     per_line_category = LineCategories(node.source, Dict{Int,LineCategory}())

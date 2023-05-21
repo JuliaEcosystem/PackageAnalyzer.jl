@@ -8,6 +8,7 @@ struct SyntaxNodeWrapper
 end
 
 function AbstractTrees.children(wrapper::SyntaxNodeWrapper)
+    isnothing(wrapper.node.data) && return ()
     # Don't recurse into these, in order to try to count top-level objects only
     if kind(wrapper.node.raw) in [K"struct", K"call", K"quote", K"=", K"for", K"function"]
         return ()
@@ -22,7 +23,9 @@ end
 
 function parse_file(file_path)
     file = read(file_path, String)
-    parsed = JuliaSyntax.parseall(JuliaSyntax.SyntaxNode, file)
+    parsed = @maybecatch begin
+        JuliaSyntax.parseall(JuliaSyntax.SyntaxNode, file; filename=file_path)
+    end "Error during syntax parsing of $file_path" JuliaSyntax.SyntaxNode(nothing, nothing, nothing)
     return SyntaxNodeWrapper(parsed)
 end
 
@@ -58,13 +61,19 @@ function get_function_name_if_not_qualified(node) # assumes `is_method(node) == 
     # TODO- write this code correctly instead of using try-catch
     @maybecatch begin
         if k == K"function"
-            f = node.children[1].children[1]
+            kids = JuliaSyntax.children(node)
+            kkids = JuliaSyntax.children(kids[1])
+            if isempty(kkids)
+                f = nothing
+            else
+                f = kkids[1]
+            end
         else
             kids = JuliaSyntax.children(node)
-            f = kids[1].children[1]
+            f = JuliaSyntax.children(kids[1])[1]
         end
-    end "" nothing
-    if isnothing(f.children)
+    end "$node" return
+    if !isnothing(f) && isempty(JuliaSyntax.children(f))
         return string(f)
     else
         # Qualified name; assumed to not be in this package.
@@ -88,8 +97,6 @@ function get_leaves(node)
     return get_leaves!(leaves, node)
 end
 
-
-
 function count_interesting_things(tree::SyntaxNodeWrapper)
     counts = Dict{String,Int}()
     functions = Dict{String,Int}()
@@ -98,6 +105,7 @@ function count_interesting_things(tree::SyntaxNodeWrapper)
     items = PostOrderDFS(tree)
     foreach(items) do wrapper
         node = wrapper.node
+        isnothing(node.data) && return
         k = kind(node.raw)
         if is_method(node)
             key = "method"
