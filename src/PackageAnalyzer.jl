@@ -35,17 +35,11 @@ const CATCH_EXCEPTIONS = Ref(true)
 # an exception.
 macro maybecatch(expr, log_str, ret=nothing)
     quote
-        if CATCH_EXCEPTIONS[]
-            try
-                $(esc(expr))
-            catch e
-                @debug $(log_str) exception = (e, catch_backtrace())
-                $(esc(ret))
-            end
-        else
-            let # introduce a local scope like `try` does
-                $(esc(expr))
-            end
+        try
+            $(esc(expr))
+        catch e
+            @debug $(esc(log_str)) exception = (e, catch_backtrace())
+            $(CATCH_EXCEPTIONS)[] ? $(esc(ret)) : rethrow()
         end
     end
 end
