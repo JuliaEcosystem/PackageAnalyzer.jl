@@ -89,7 +89,7 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
             @test isempty(pkg.licenses_in_project)
             @test !isempty(pkg.lines_of_code)
             @test pkg.lines_of_code isa Vector{<:NamedTuple}
-            @test keys(pkg.lines_of_code[1]) == (:directory, :language, :sublanguage, :files, :code, :comments, :blanks)
+            @test keys(pkg.lines_of_code[1]) == (:directory, :language, :sublanguage, :files, :code, :comments, :docstrings, :blanks)
             idx = findfirst(row -> row.directory=="src" && row.language==:Julia && row.sublanguage===nothing, pkg.lines_of_code)
             @test idx !== nothing
             @test pkg.lines_of_code[idx].code > 200
@@ -127,7 +127,7 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
         @test old.docs == true
         @test old.subdir == ""
         # This shouln't change, unless we change *how* we count LoC, since the code is fixed:
-        @test PackageAnalyzer.count_julia_loc(old.lines_of_code, "src") == 549
+        @test PackageAnalyzer.count_julia_loc(old.lines_of_code, "src") == 326
 
         root = mktempdir()
         old2 = analyze(find_package("PackageAnalyzer"; version=v"0.1"); auth, root)
@@ -154,7 +154,7 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
         # DataFrames currently has 16k LoC; Flux has 5k. Let's check that they aren't mixed up
         # due to some kind of race condition.
         @test results[1].name == "DataFrames"
-        @test PackageAnalyzer.count_julia_loc(results[1], "src") > 14000
+        @test PackageAnalyzer.count_julia_loc(results[1], "src") > 10000
         @test PackageAnalyzer.count_docs(results[1]) > 5000
         @test PackageAnalyzer.count_readme(results[1]) > 5
 

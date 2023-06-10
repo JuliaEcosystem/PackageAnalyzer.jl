@@ -21,7 +21,7 @@ using RegistryInstances: RegistryInstances, reachable_registries, PkgEntry
 # Ways to find packages
 export find_package, find_packages, find_packages_in_manifest
 # Ways to analyze them
-export analyze, analyze_manifest, analyze_packages
+export analyze, analyze_manifest, analyze_packages, LineCategories
 
 ##
 # Borrowed from
@@ -52,8 +52,6 @@ end
 #
 ##
 
-
-
 # borrowed from <https://github.com/JuliaRegistries/RegistryTools.jl/blob/841a56d8274e2857e3fd5ea993ba698cdbf51849/src/builtin_pkgs.jl>
 const stdlibs = isdefined(Pkg.Types, :stdlib) ? Pkg.Types.stdlib : Pkg.Types.stdlibs
 # Julia 1.8 changed from `name` to `(name, version)`.
@@ -66,7 +64,6 @@ is_stdlib(uuid::UUID) = uuid in keys(STDLIBS)
 const LicenseTableEltype = @NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}
 const ContributionTableElType = @NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int}
 const LoCTableEltype = @NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, docstrings::Int, blanks::Int}
-const ParsedCountsEltype = @NamedTuple{file_name::String, item::String, count::Int}
 
 struct Package
     name::String # name of the package
@@ -91,8 +88,8 @@ struct Package
     contributors::Vector{ContributionTableElType} # table of contributor data
     version::Union{VersionNumber, Nothing} # the version number, if a release was analyzed
     tree_hash::String # the tree hash of the code that was analyzed
-    parsed_counts::Vector{ParsedCountsEltype}
 end
+
 function Package(name, uuid, repo;
                  subdir="",
                  reachable=false,
@@ -113,12 +110,11 @@ function Package(name, uuid, repo;
                  contributors=ContributionTableElType[],
                  version=nothing,
                  tree_hash="",
-                 parsed_counts=ParsedCountsEltype[]
                  )
     return Package(name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
                    license_files, licenses_in_project, lines_of_code, contributors, version,
-                   tree_hash, parsed_counts)
+                   tree_hash)
 end
 
 # define `isequal`, `==`, and `hash` just in terms of the fields
@@ -215,10 +211,6 @@ function Base.show(io::IO, p::Package)
             end
         else
             body *= "  * has continuous integration: false\n"
-        end
-        if !isempty(p.parsed_counts)
-            body *= "  * static analysis finds:\n"
-            body *= sprint(print_syntax_counts_summary, p.parsed_counts, 4)
         end
     end
     print(io, strip(body))
@@ -341,9 +333,6 @@ using .CategorizeLines
 
 # tokei, counting
 include("count_loc.jl")
-
-# Syntax analysis
-include("syntax.jl")
 
 
 end # module

@@ -20,10 +20,26 @@ using JuliaSyntax: GreenNode, is_trivia, haschildren, is_error, children, span, 
 # Then comment, then docstring, so comments inside of docstrings count as docstrings.
 # In the implementation, we treat code as only applying to the first and last line,
 # while the rest apply to all intermediate lines.
+"""
+    LineCategory
+
+An `enum` corresponding to the possible categorization of a line of Julia source code.
+Currently:
+* `Blank`
+* `Code`
+* `Comment`
+* `Docstring`
+"""
 @enum LineCategory Blank Code Comment Docstring
 
 # We will store the categories assigned to each line in a file with the following structure.
 # This keeps the `SourceFile` to facillitate printing.
+"""
+    LineCategories(path)
+
+Categorize each line in a file as a [`PackageAnalyzer.LineCategory`](@ref).
+Every line is assigned a single category.
+"""
 struct LineCategories
     source::SourceFile
     dict::Dict{Int,LineCategory}

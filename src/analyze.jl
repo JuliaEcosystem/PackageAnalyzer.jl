@@ -282,15 +282,9 @@ function analyze_code(dir::AbstractString; repo="", reachable=true, subdir="", a
         ContributionTableElType[]
     end
 
-    src_dir = joinpath(pkgdir, "src")
-    if isdir(src_dir)
-        parsed_counts = @maybecatch(analyze_syntax_dir(src_dir), "Caught error during `analyze_syntax_dir`", ParsedCountsEltype[])
-    else
-        parsed_counts = ParsedCountsEltype[]
-    end
 
     Package(name, uuid, repo; subdir, reachable, docs, runtests, travis, appveyor, cirrus,
         circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
         license_files, licenses_in_project, lines_of_code, contributors, version,
-        tree_hash, parsed_counts)
+        tree_hash)
 end
