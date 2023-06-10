@@ -99,8 +99,11 @@ end
 
 function count_interesting_things(tree::SyntaxNodeWrapper)
     counts = Dict{String,Int}()
+    # These map function names to number of methods that we've found
     functions = Dict{String,Int}()
     docstring_functions = Dict{String,Int}()
+    # These are just sets of names
+    exported_names = Set{String}()
     imported_names = Set{String}()
     items = PostOrderDFS(tree)
     foreach(items) do wrapper
@@ -121,8 +124,10 @@ function count_interesting_things(tree::SyntaxNodeWrapper)
         elseif k == K"export"
             # These we count by the number of their children, since that's the number of exports/packages
             # being handled by that invocation of the keyword
-            key = string(k)
-            counts[key] = get(counts, key, 0) + length(JuliaSyntax.children(node))
+            # key = string(k)
+            found_names = string.(get_leaves(node))
+            union!(exported_names, found_names)
+            # counts[key] = get(counts, key, 0) + length(JuliaSyntax.children(node))
         elseif k == K"doc"
             kids = JuliaSyntax.children(node)
             @maybecatch(@assert(kind(kids[1].raw) == K"string"), "Doc kind issue", return)
@@ -140,7 +145,7 @@ function count_interesting_things(tree::SyntaxNodeWrapper)
             # @show k
         end
     end
-    return counts, functions, docstring_functions, imported_names
+    return counts, functions, docstring_functions, imported_names, exported_names
 end
 
 function print_syntax_counts_summary(io::IO, counts, indent=0)
@@ -159,6 +164,10 @@ function print_syntax_counts_summary(io::IO, counts, indent=0)
     _print(n_method_docstring, "method docstrings")
     _print(n_function, "functions defined in package")
     _print(n_function_with_docstring, "functions defined in package with docstrings")
+
+    _print(total_count("exported functions in package"), "exported functions defined in package")
+    _print(total_count("exported functions in package with docstrings"), "exported functions defined in package with docstrings")
+
     return nothing
 end
 
@@ -173,13 +182,15 @@ function analyze_syntax_dir(dir)
         functions = Dict{String,Int}()
         docstring_functions = Dict{String,Int}()
         imported_names = Set{String}()
+        exported_names = Set{String}()
         for file_name in files
             path = joinpath(root, file_name)
             tree = parse_file(path)
-            file_counts, f, df, in = count_interesting_things(tree)
+            file_counts, f, df, in, out = count_interesting_things(tree)
             mergewith!(+, functions, f)
             mergewith!(+, docstring_functions, df)
             union!(imported_names, in)
+            union!(exported_names, out)
             for (item, count) in file_counts
                 push!(table, (; file_name, item, count))
             end
@@ -193,10 +204,16 @@ function analyze_syntax_dir(dir)
                 delete!(docstring_functions, name)
             end
         end
+
         functions_in_package = length(functions)
         functions_in_package_with_docstrings = length(docstring_functions)
         push!(table, (; file_name="", item="functions in package", count=functions_in_package))
         push!(table, (; file_name="", item="functions in package with docstrings", count=functions_in_package_with_docstrings))
+        push!(table, (; file_name="", item="export", count=length(exported_names)))
+
+        push!(table, (; file_name="", item="exported functions in package", count=length(intersect(keys(functions), exported_names))))
+        push!(table, (; file_name="", item="exported functions in package with docstrings", count=length(intersect(keys(docstring_functions), exported_names))))
+
     end
     return table
 end

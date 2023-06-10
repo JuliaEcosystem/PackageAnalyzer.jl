@@ -1,3 +1,4 @@
+# Here, we assign a category to every line of a file, with help from JuliaSyntax
 # Module to make it easier w/r/t/ import clashes
 module CategorizeLines
 export LineCategories, LineCategory, Blank, Code, Docstring, Comment, categorize_lines!

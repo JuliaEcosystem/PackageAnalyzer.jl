@@ -86,8 +86,7 @@ count_readme(pkg::Package, args...) = count_readme(pkg.lines_of_code, args...)
 ##### Custom Julia line counting
 #####
 
-# We can't do this at the level of SyntaxNode's because we've lost whitespace & comments already
-# So we will go to GreenNode's
+# We will do this using GreenNode's for convenience
 
 # Avoid piracy by defining AbstractTrees definitions on a wrapper
 struct GreenNodeWrapper
@@ -101,7 +100,6 @@ end
 
 function parse_green_one(file_path)
     file = read(file_path, String)
-    # @debug(string("Parsing ", file_path))
     parsed = @maybecatch(JuliaSyntax.parseall(JuliaSyntax.GreenNode, file; ignore_trivia=false, filename=file_path),
         "Error during `JuliaSyntax.parseall` of $(file_path)",
         JuliaSyntax.GreenNode(JuliaSyntax.SyntaxHead(K"toplevel", 0), 0, ()))
@@ -118,7 +116,6 @@ end
 # PackageAnalyzer.LineCategories(pathof(PackageAnalyzer))
 CategorizeLines.LineCategories(path::AbstractString; kw...) = LineCategories(parse_green_one(path); kw...)
 
-
 function _count_lines!(counts, node::GreenNodeWrapper)
     cats = LineCategories(node)
     for v in values(cats.dict)
@@ -131,6 +128,8 @@ function count_julia_loc(dir)
     table = LoCTableEltype[]
     for path in readdir(dir; join=true)
         n_files = 0
+        # Could be a LittleDict for efficency, but that would require
+        # a dependency on OrderedCollections.jl
         counts = Dict{LineCategory,Int}(Comment => 0,
             Blank => 0,
             Code => 0,
@@ -152,7 +151,10 @@ function count_julia_loc(dir)
             end
         end
         if n_files > 0
-            push!(table, (; directory=basename(path), language=:Julia,
+            # Here we are using the same format we get from `tokei`, except
+            # with the addition of `docstrings`.
+            push!(table, (; directory=basename(path),
+                language=:Julia,
                 sublanguage=nothing, files=n_files,
                 code=counts[Code],
                 comments=counts[Comment],
