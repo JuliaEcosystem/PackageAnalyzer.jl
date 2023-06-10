@@ -38,7 +38,7 @@ Returns the [PkgSource](@ref) for the package `pkg`.
 * registries: a collection of `RegistryInstance` to look in
 * `version`: if `nothing`, finds the maximum registered version in any registry. Otherwise looks for that version number.
 * If `strict` is true, errors if the package cannot be found. Otherwise, returns `nothing`.
-* If `warn` is true, warns if the package cannot be found. 
+* If `warn` is true, warns if the package cannot be found.
 
 See also:  [`find_packages`](@ref).
 """
@@ -94,7 +94,7 @@ function find_package(name_or_uuid::Union{AbstractString, UUID}; registries=reac
             if idx === nothing
                 msg = "Could not find version $version for $description $name_or_uuid"
                 strict && throw(ArgumentError(msg))
-                warn && @error(msg) 
+                warn && @error(msg)
                 return nothing
             end
             entry = local_entries[idx]
@@ -149,7 +149,7 @@ Returns `Vector{PkgSource}` associated to all of the package/version combination
 """
 function find_packages_in_manifest(path_to_manifest; registries=reachable_registries(), strict=true, warn=true)
     manifest = TOML.parsefile(path_to_manifest)
-    format = parse(VersionNumber, get(manifest, "manifest_format", "1.0"))
+    format = Base.parse(VersionNumber, get(manifest, "manifest_format", "1.0"))
     if format.major == 2
         pkgs = manifest["deps"]
     elseif format.major == 1
@@ -193,7 +193,7 @@ function find_packages_in_manifest(path_to_manifest; registries=reachable_regist
 
             # Option 3: Release package
             version = VersionNumber(manifest_entry["version"]::String)
-            pkg = find_package(uuid; version, registries, strict, warn)            
+            pkg = find_package(uuid; version, registries, strict, warn)
             if pkg === nothing
                 continue
             end

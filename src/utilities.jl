@@ -64,12 +64,9 @@ end
 
 
 function contribution_table(repo_name; auth)
-    return try
+    return @maybecatch begin
         parse_contributions.(GitHub.contributors(GitHub.Repo(repo_name); auth, params=Dict("anon" => "true"))[1])
-    catch e
-        @error "Could not obtain contributors for $(repo_name)" exception = (e, catch_backtrace())
-        ContributionTableElType[]
-    end
+    end "Could not obtain contributors for $(repo_name)" ContributionTableElType[]
 end
 
 function parse_contributions(c)
@@ -115,12 +112,7 @@ end
 
 # Don't error if licensecheck isn't working, just log it
 function _find_licenses(dir)
-    try
-        find_licenses(dir)
-    catch e
-        @error "Error finding licenses in $dir" exception=e maxlog=2
-        LicenseTableEltype[]
-    end
+    @maybecatch(find_licenses(dir), "Error finding licenses in $dir", LicenseTableEltype[])
 end
 
 function get_tree_hash(dir::AbstractString)
@@ -128,7 +120,7 @@ function get_tree_hash(dir::AbstractString)
 end
 
 function git()
-    use_local_env = parse(Bool, get(ENV,"USE_LOCAL_GIT", "false"))
+    use_local_env = Base.parse(Bool, get(ENV,"USE_LOCAL_GIT", "false"))
     # Git.jl has issues on MacOS, so if we have a local git there, use it,
     # Also allow ENV-based opt-out. Why? Not sure about private packages.
     if use_local_env || (Sys.isapple() && Sys.which("git") !== nothing)

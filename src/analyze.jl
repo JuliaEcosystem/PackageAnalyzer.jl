@@ -95,7 +95,7 @@ julia> using DataFrames
 
 julia> analyze(DataFrames)
 Package DataFrames:
-  * repo: 
+  * repo:
   * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
   * version: 0.0.0
   * is reachable: true
@@ -141,7 +141,7 @@ end
 Convienence function to run [`find_packages_in_manifest`](@ref) then [`analyze`](@ref) on the results. Positional argument `path_to_manifest` defaults to `joinpath(dirname(Base.active_project()), "Manifest.toml")`.
 """
 function analyze_manifest(args...; registries=reachable_registries(),
-                          auth=github_auth(), sleep=0)
+    auth=github_auth(), sleep=0)
     pkgs = find_packages_in_manifest(args...; registries)
     return analyze_packages(pkgs; auth, sleep)
 end
@@ -282,7 +282,15 @@ function analyze_code(dir::AbstractString; repo="", reachable=true, subdir="", a
         ContributionTableElType[]
     end
 
+    src_dir = joinpath(pkgdir, "src")
+    if isdir(src_dir)
+        parsed_counts = @maybecatch(analyze_syntax_dir(src_dir), "Caught error during `analyze_syntax_dir`", ParsedCountsEltype[])
+    else
+        parsed_counts = ParsedCountsEltype[]
+    end
+
     Package(name, uuid, repo; subdir, reachable, docs, runtests, travis, appveyor, cirrus,
-            circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
-            license_files, licenses_in_project, lines_of_code, contributors, version, tree_hash)
+        circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
+        license_files, licenses_in_project, lines_of_code, contributors, version,
+        tree_hash, parsed_counts)
 end

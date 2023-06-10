@@ -6,11 +6,14 @@ using Pkg, TOML, UUIDs, Printf
 using LicenseCheck # for `find_license` and `is_osi_approved`
 using JSON3 # for interfacing with `tokei` to count lines of code
 using Tokei_jll # count lines of code
-using GitHub # Use GitHub API to get extra information about the repo
-using Git: Git
+import GitHub # Use GitHub API to get extra information about the repo
+import Git: Git
 using Downloads
 using Tar
 using CodecZlib
+using AbstractTrees
+using JuliaSyntax
+using JuliaSyntax: @K_str, kind
 
 # We wrap `registry_info` for thread-safety, so we don't want to pull into the namespace here
 using RegistryInstances: RegistryInstances, reachable_registries, PkgEntry
@@ -19,6 +22,37 @@ using RegistryInstances: RegistryInstances, reachable_registries, PkgEntry
 export find_package, find_packages, find_packages_in_manifest
 # Ways to analyze them
 export analyze, analyze_manifest, analyze_packages
+
+##
+# Borrowed from
+# https://github.com/beacon-biosignals/SlackThreads.jl/blob/74351c2863ec9a1cf22732873d4d2816aa9c140d/src/SlackThreads.jl#L27-L49
+const CATCH_EXCEPTIONS = Ref(true)
+
+# We turn off exception handling for our tests, to ensure we aren't throwing exceptions
+# that we're missing. But we have it on by default, since in ordinary usage we want to
+# be sure we are catching all exceptions.
+# We wrap all public API methods in this, which should make it very difficult to throw
+# an exception.
+macro maybecatch(expr, log_str, ret=nothing)
+    quote
+        try
+            $(esc(expr))
+        catch e
+            if $(CATCH_EXCEPTIONS)[]
+                @debug $(esc(log_str)) exception = (e, catch_backtrace())
+                $(esc(ret))
+            else
+                # No stacktrace, because we'll get one anyway
+                @debug $(esc(log_str)) exception = e
+                rethrow()
+            end
+        end
+    end
+end
+#
+##
+
+
 
 # borrowed from <https://github.com/JuliaRegistries/RegistryTools.jl/blob/841a56d8274e2857e3fd5ea993ba698cdbf51849/src/builtin_pkgs.jl>
 const stdlibs = isdefined(Pkg.Types, :stdlib) ? Pkg.Types.stdlib : Pkg.Types.stdlibs
@@ -31,7 +65,8 @@ is_stdlib(uuid::UUID) = uuid in keys(STDLIBS)
 
 const LicenseTableEltype = @NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}
 const ContributionTableElType = @NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int}
-const LoCTableEltype = @NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int}
+const LoCTableEltype = @NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, docstrings::Int, blanks::Int}
+const ParsedCountsEltype = @NamedTuple{file_name::String, item::String, count::Int}
 
 struct Package
     name::String # name of the package
@@ -56,6 +91,7 @@ struct Package
     contributors::Vector{ContributionTableElType} # table of contributor data
     version::Union{VersionNumber, Nothing} # the version number, if a release was analyzed
     tree_hash::String # the tree hash of the code that was analyzed
+    parsed_counts::Vector{ParsedCountsEltype}
 end
 function Package(name, uuid, repo;
                  subdir="",
@@ -76,11 +112,13 @@ function Package(name, uuid, repo;
                  lines_of_code=LoCTableEltype[],
                  contributors=ContributionTableElType[],
                  version=nothing,
-                 tree_hash=""
+                 tree_hash="",
+                 parsed_counts=ParsedCountsEltype[]
                  )
     return Package(name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
-                   license_files, licenses_in_project, lines_of_code, contributors, version, tree_hash)
+                   license_files, licenses_in_project, lines_of_code, contributors, version,
+                   tree_hash, parsed_counts)
 end
 
 # define `isequal`, `==`, and `hash` just in terms of the fields
@@ -122,13 +160,17 @@ function Base.show(io::IO, p::Package)
             l_docs = count_docs(p)
             l_readme = count_readme(p)
 
+            l_src_docstring = count_docstrings(p, "src")
             p_test = @sprintf("%.1f", 100 * l_test / (l_test + l_src))
             p_docs = @sprintf("%.1f", 100 * l_docs / (l_docs + l_src))
+
+            n = l_src_docstring + l_readme
+            p_docstrings = @sprintf("%.1f", 100 * n / (n + l_src))
             body *= """
                   * Julia code in `src`: $(l_src) lines
                   * Julia code in `test`: $(l_test) lines ($(p_test)% of `test` + `src`)
                   * documentation in `docs`: $(l_docs) lines ($(p_docs)% of `docs` + `src`)
-                  * documentation in README: $(l_readme) lines
+                  * documentation in README & docstrings: $(n) lines ($(p_docstrings)% of README + `src`)
                 """
         end
         if isempty(p.license_files)
@@ -173,6 +215,10 @@ function Base.show(io::IO, p::Package)
             end
         else
             body *= "  * has continuous integration: false\n"
+        end
+        if !isempty(p.parsed_counts)
+            body *= "  * static analysis finds:\n"
+            body *= sprint(print_syntax_counts_summary, p.parsed_counts, 4)
         end
     end
     print(io, strip(body))
@@ -290,7 +336,14 @@ include("parallel.jl")
 # github, parsing
 include("utilities.jl")
 
+include("LineCategories.jl")
+using .CategorizeLines
+
 # tokei, counting
 include("count_loc.jl")
+
+# Syntax analysis
+include("syntax.jl")
+
 
 end # module

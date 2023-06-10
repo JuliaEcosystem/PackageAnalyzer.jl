@@ -315,7 +315,7 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
                 pkgs = find_packages_in_manifest()
                 pkgs2 = find_packages_in_manifest(joinpath(tmp, "Manifest.toml"))
                 @test pkgs == pkgs2
-                
+
                 added_by_path = only(filter(pkgs) do pkg
                     pkg isa Added || return false
                     pkg.name == "PackageAnalyzer"
@@ -346,7 +346,7 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
     @testset "Multi-registry `find_package`" begin
         # First, we need to set up 2 registries
         r = first(reachable_registries())
-        
+
         # Our second registry will be a copy of the first...
         r2 = deepcopy(r)
 
@@ -357,7 +357,7 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
         fake_version_info = RegistryInstances.VersionInfo(Base.SHA1(hex2bytes(real_unregistered_tree_hash)), false, RegistryInstances.uninit)
 
         push!(registry_info(pkg_copy).version_info, v"0.0.1" => fake_version_info)
-        
+
         registries = (r, r2)
         found = find_package("PackageAnalyzer"; registries)
         @test found.version > v"0.0.1" # we should get the highest version by default!
