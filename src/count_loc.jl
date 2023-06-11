@@ -11,7 +11,7 @@ function count_loc(dir)
 end
 
 function make_loc_table(json)
-    table = LoCTableEltype[]
+    table = LinesOfCodeV1[]
     ismissing(json) && return table
     for (language, language_loc) in pairs(json)
         # we want to count lines of code per toplevel directory, per language, and per sublanguage (e.g. for Julia inside of Markdown)
@@ -27,7 +27,7 @@ function make_loc_table(json)
             end
         end
         for ((directory, sublanguage), count) in pairs(counts)
-            push!(table, (; directory, language, sublanguage, count.files, count.code, count.comments, count.blanks))
+            push!(table, LinesOfCodeV1(; directory, language, sublanguage, count.files, count.code, count.comments, count.blanks))
         end
     end
     d_count = counts_by_col(table, :directory)
@@ -39,7 +39,7 @@ end
 
 function counts_by_col(table, col)
     vals = unique(getproperty(row, col) for row in table)
-    return Dict(val => sum(row.code for row in table if getproperty(row, col)==val) for val in vals)
+    return Dict(val => sum(row.code for row in table if getproperty(row, col) == val) for val in vals)
 end
 
 function loc_update!(d, key, new)
@@ -53,10 +53,10 @@ end
 #####
 
 count_commits(table) = sum(row.contributions for row in table; init=0)
-count_commits(pkg::Package) = count_commits(pkg.contributors)
+count_commits(pkg::PackageV1) = count_commits(pkg.contributors)
 
 count_contributors(table; type="User") = count(row.type == type for row in table)
-count_contributors(pkg::Package; kwargs...) = count_contributors(pkg.contributors; kwargs...)
+count_contributors(pkg::PackageV1; kwargs...) = count_contributors(pkg.contributors; kwargs...)
 
 
 count_julia_loc(table, dir) = sum(row.code for row in table if row.directory == dir && row.language == :Julia; init=0)
@@ -68,6 +68,6 @@ end
 
 count_readme(table) = count_docs(table, ("readme", "readme.md"))
 
-count_julia_loc(pkg::Package, args...) = count_julia_loc(pkg.lines_of_code, args...)
-count_docs(pkg::Package, args...) = count_docs(pkg.lines_of_code, args...)
-count_readme(pkg::Package, args...) = count_readme(pkg.lines_of_code, args...)
+count_julia_loc(pkg::PackageV1, args...) = count_julia_loc(pkg.lines_of_code, args...)
+count_docs(pkg::PackageV1, args...) = count_docs(pkg.lines_of_code, args...)
+count_readme(pkg::PackageV1, args...) = count_readme(pkg.lines_of_code, args...)

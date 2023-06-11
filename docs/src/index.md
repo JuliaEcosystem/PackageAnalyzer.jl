@@ -6,7 +6,7 @@ The main functionality of the package is the [`analyze`](@ref) function:
 julia> using PackageAnalyzer
 
 julia> analyze("Flux")
-Package Flux:
+PackageV1 Flux:
   * repo: https://github.com/FluxML/Flux.jl.git
   * uuid: 587475ba-b771-5e3f-ad9e-33799f191a9c
   * version: 0.13.6
@@ -37,7 +37,7 @@ a package by `UUID`.
 
 ```julia
 julia> analyze(find_package("JuMP"; version=v"1"))
-Package JuMP:
+PackageV1 JuMP:
   * repo: https://github.com/jump-dev/JuMP.jl.git
   * uuid: 4076af6c-e467-56ae-b986-b466b2749572
   * version: 1.0.0
@@ -62,8 +62,8 @@ Additionally, you can pass in the module itself:
 julia> using PackageAnalyzer
 
 julia> analyze(PackageAnalyzer)
-Package PackageAnalyzer:
-  * repo: 
+PackageV1 PackageAnalyzer:
+  * repo:
   * uuid: e713c705-17e4-4cec-abe0-95bf5bf3e10c
   * version: nothing
   * is reachable: true
@@ -88,8 +88,8 @@ by passing in the path to it, for example with the `pkgdir` function:
 julia> using PackageAnalyzer, DataFrames
 
 julia> analyze(pkgdir(DataFrames))
-Package DataFrames:
-  * repo: 
+PackageV1 DataFrames:
+  * repo:
   * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
   * version: 0.0.0
   * is reachable: true
@@ -109,12 +109,12 @@ Package DataFrames:
 
 You can pass the keyword argument `root` to specify a directory to store downloaded code.
 
-## The `Package` struct
+## The `PackageV1` struct
 
-The returned values from [`analyze`](@ref), and [`analyze!`](@ref) are objects of the type `Package`, which has the following fields:
+The returned values from [`analyze`](@ref), and [`analyze!`](@ref) are objects of the type `PackageV1`, which has the following fields:
 
 ```julia
-struct Package
+struct PackageV1
     name::String # name of the package
     uuid::UUID # uuid of the package
     repo::String # URL of the repository
@@ -131,18 +131,24 @@ struct Package
     buildkite::Bool # does it use Buildkite?
     azure_pipelines::Bool # does it use Azure Pipelines?
     gitlab_pipeline::Bool # does it use Gitlab Pipeline?
-    license_files::Vector{@NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}} # a table of all possible license files
+    license_files::Vector{LicenseV1}} # a table of all possible license files
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
-    lines_of_code::Vector{@NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int}} # table of lines of code
-    contributors::Vector{@NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int}} # table of contributor data
-    version::Union{VersionNumber, Nothing} # the version number, if a release was analyzed
+    lines_of_code::Vector{LinesOfCodeV1} # table of lines of code
+    contributors::Vector{ContributorsV1} # table of contributor data
+    version::Union{String, Missing} # the version number, if a release was analyzed
     tree_hash::String # the tree hash of the code that was analyzed
 end
 ```
 
-Adding additional fields to `Package` is *not* considered breaking, and may occur in feature releases of PackageAnalyzer.jl.
+where:
+* `LicenseV1` contains fields `license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64`,
+* `LinesOfCodeV1` contains fields `directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int`,
+* and `ContributorsV1` contains fields `login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int`.
 
-Removing or altering the meaning of existing fields *is* considered breaking and will only occur in major releases of PackageAnalyzer.jl
+
+Adding additional fields to `PackageV1` is *not* considered breaking, and may occur in feature releases of PackageAnalyzer.jl.
+
+Removing or altering the meaning of existing fields *is* considered breaking and will only occur in major releases of PackageAnalyzer.jl.
 
 
 ## Analyzing multiple packages
@@ -177,7 +183,7 @@ as a convenience to composing `find_packages_in_manifest` and `analyze_packages`
 
 ## License information
 
-The `license_files` field of the `Package` object is a [`Tables.jl`](https://github.com/JuliaData/Tables.jl) row table
+The `license_files` field of the `PackageV1` object is a [`Tables.jl`](https://github.com/JuliaData/Tables.jl) row table
 containing much more detailed information about any or all files containing
 licenses, identified by [`licensecheck`](https://github.com/google/licensecheck) via [LicenseCheck.jl](https://github.com/ericphanson/LicenseCheck.jl). For example, [RandomProjectionTree.jl](https://github.com/jean-pierreBoth/RandomProjectionTree.jl) is dual licensed under both Apache-2.0 and the MIT license, and provides two separate license files. Interestingly, the README is also identified as containing an Apache-2.0 license; I've filed an [issue](https://github.com/google/licensecheck/issues/40) to see if this is intentional.
 
@@ -200,7 +206,7 @@ Most packages contain a single file containing a license, and so have a single e
 
 ## Lines of code
 
-The `lines_of_code` field of the `Package` object is a Tables.jl row table
+The `lines_of_code` field of the `PackageV1` object is a Tables.jl row table
 containing much more detailed information about the lines of code count
 (thanks to `tokei`) and can e.g. be passed to a `DataFrame` for further analysis.
 
@@ -211,8 +217,8 @@ julia> result = analyze(pkgdir(DataFrames));
 
 julia> DataFrame(result.lines_of_code)
 15×7 DataFrame
- Row │ directory        language  sublanguage  files  code   comments  blanks 
-     │ String           Symbol    Union…       Int64  Int64  Int64     Int64  
+ Row │ directory        language  sublanguage  files  code   comments  blanks
+     │ String           Symbol    Union…       Int64  Int64  Int64     Int64
 ─────┼────────────────────────────────────────────────────────────────────────
    1 │ test             Julia                     29  17512       359    2264
    2 │ src              Julia                     31  15809       885    1253
@@ -235,7 +241,7 @@ julia> DataFrame(result.lines_of_code)
 
 If the package repository is hosted on GitHub and you can use [GitHub
 authentication](@ref), the list of contributors is added to the `contributors`
-field of the `Package` object.  This is a table which includes the GitHub username ("login") and
+field of the `PackageV1` object.  This is a table which includes the GitHub username ("login") and
 the GitHub ID ("id") for contributors identified as GitHub "users", and the "name" for contributors
 identified as "Anonymous" contributors, as well as the number of contributions provided by that user to
 the repository. This is the data returned from the GitHub API, and there may be people for which
@@ -251,8 +257,8 @@ julia> df = DataFrame(result.contributors);
 
 julia> sort!(df, :contributions, rev=true)
 189×5 DataFrame
- Row │ login                id        name           type       contributions 
-     │ String?              Int64?    String?        String     Int64         
+ Row │ login                id        name           type       contributions
+     │ String?              Int64?    String?        String     Int64
 ─────┼────────────────────────────────────────────────────────────────────────
    1 │ johnmyleswhite          22064  missing        User                 431
    2 │ bkamins               6187170  missing        User                 412

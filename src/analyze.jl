@@ -33,7 +33,7 @@ locally or not:
 
 ```julia
 julia> analyze("Pluto"; version=v"0.18.0")
-Package Pluto:
+PackageV1 Pluto:
   * repo: https://github.com/fonsp/Pluto.jl.git
   * uuid: c3e4b0f8-55cb-11ea-2926-15256bba5781
   * version: 0.18.0
@@ -85,7 +85,7 @@ end
 
 
 """
-    analyze(m::Module; kwargs...) -> Package
+    analyze(m::Module; kwargs...) -> PackageV1
 
 If you want to analyze a package which is already loaded in the current session,
 you can simply call `analyze`, which uses `pkgdir` to determine its source code:
@@ -94,8 +94,8 @@ you can simply call `analyze`, which uses `pkgdir` to determine its source code:
 julia> using DataFrames
 
 julia> analyze(DataFrames)
-Package DataFrames:
-  * repo: 
+PackageV1 DataFrames:
+  * repo:
   * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
   * version: 0.0.0
   * is reachable: true
@@ -122,7 +122,7 @@ function analyze(m::Module; kwargs...)
 end
 
 """
-    analyze(; kwargs...) -> Package
+    analyze(; kwargs...) -> PackageV1
 
 If you have an active Julia project with a package at top-level, then you can simply call `analyze()` to analyze its code.
 """
@@ -157,7 +157,7 @@ function analyze(pkg::Release; root=mktempdir(), auth=github_auth(), sleep=0)
     repo = pkg.repo
     subdir = pkg.subdir
     if !reachable
-        return Package(pkg.name, pkg.uuid, repo; reachable, subdir, version)
+        return PackageV1(pkg.name, pkg.uuid, repo; reachable, subdir, version)
     end
     only_subdir = true
     return analyze_code(local_dir; auth, subdir, reachable, only_subdir, repo, sleep, version)
@@ -168,7 +168,7 @@ function analyze(pkg::Added; root=mktempdir(), auth=github_auth(), sleep=0)
     subdir = something(pkg.subdir, "")
     repo = something(pkg.repo_url, "")
     if !reachable
-        return Package(pkg.name, pkg.uuid, repo; reachable, subdir, version)
+        return PackageV1(pkg.name, pkg.uuid, repo; reachable, subdir, version)
     end
     only_subdir = true
     return analyze_code(local_dir; auth, subdir, reachable, only_subdir, repo, sleep, version)
@@ -179,7 +179,7 @@ function analyze(pkg::Dev; root=mktempdir(), auth=github_auth(), sleep=0)
     subdir = ""
     repo = ""
     if !reachable
-        return Package(pkg.name, pkg.uuid, repo; reachable, subdir, version)
+        return PackageV1(pkg.name, pkg.uuid, repo; reachable, subdir, version)
     end
     only_subdir = true
     return analyze_code(local_dir; auth, subdir, reachable, only_subdir, repo, sleep, version)
@@ -189,7 +189,7 @@ function analyze(pkg::Trunk; root=mktempdir(), auth=github_auth(), sleep=0)
     local_dir, reachable, version, subdir = obtain_code(pkg; root, auth)
     repo = pkg.repo_url
     if !reachable
-        return Package("", UUID(0), repo; reachable, subdir, version)
+        return PackageV1("", UUID(0), repo; reachable, subdir, version)
     end
     only_subdir = false
     return analyze_code(local_dir; auth, subdir, reachable, only_subdir, repo, sleep, version)
@@ -204,7 +204,7 @@ end
 # This is an internal function. `analyze(path)` provides API access to this functionality.
 
 """
-    analyze_code(dir::AbstractString; repo = "", reachable=true, subdir="", auth::GitHub.Authorization=github_auth(), sleep=0, only_subdir=false, version=nothing) -> Package
+    analyze_code(dir::AbstractString; repo = "", reachable=true, subdir="", auth::GitHub.Authorization=github_auth(), sleep=0, only_subdir=false, version=nothing) -> PackageV1
 
 Analyze the package whose source code is located at the local path `dir`.  If
 the package's repository is hosted on GitHub and `auth` is a non-anonymous
@@ -252,18 +252,18 @@ function analyze_code(dir::AbstractString; repo="", reachable=true, subdir="", a
 
     # if `only_subdir` is true, and we are indeed in a subdirectory, we would get the paths wrong here.
     # So we will skip it here, and get them with the correct paths in the next block.
-    license_files = only_subdir && !isempty(subdir) ? LicenseTableEltype[] : _find_licenses(dir)
+    license_files = only_subdir && !isempty(subdir) ? LicenseV1[] : _find_licenses(dir)
 
     if isdir(pkgdir)
         if !isempty(subdir)
             # Look for licenses at top-level and in the subdirectory
-            subdir_licenses_files = [(; license_filename=joinpath(subdir, row.license_filename), row.licenses_found, row.license_file_percent_covered) for row in _find_licenses(pkgdir)]
+            subdir_licenses_files = [LicenseV1(; license_filename=joinpath(subdir, row.license_filename), row.licenses_found, row.license_file_percent_covered) for row in _find_licenses(pkgdir)]
             license_files = [subdir_licenses_files; license_files]
         end
         lines_of_code = count_loc(pkgdir)
     else
-        license_files = LicenseTableEltype[]
-        lines_of_code = LoCTableEltype[]
+        license_files = LicenseV1[]
+        lines_of_code = LinesOfCodeV1[]
     end
 
     if isdir(pkgdir)
@@ -279,10 +279,10 @@ function analyze_code(dir::AbstractString; repo="", reachable=true, subdir="", a
         repo_name = replace(replace(repo, r"^https://github\.com/" => ""), r"\.git$" => "")
         contribution_table(repo_name; auth)
     else
-        ContributionTableElType[]
+        ContributionsV1[]
     end
 
-    Package(name, uuid, repo; subdir, reachable, docs, runtests, travis, appveyor, cirrus,
+    PackageV1(name, uuid, repo; subdir, reachable, docs, runtests, travis, appveyor, cirrus,
             circle, drone, buildkite, azure_pipelines, gitlab_pipeline, github_actions,
             license_files, licenses_in_project, lines_of_code, contributors, version, tree_hash)
 end
