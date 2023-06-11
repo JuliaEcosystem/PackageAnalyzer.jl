@@ -1,9 +1,9 @@
 """
-    analyze_packages(pkg_entries; auth::GitHub.Authorization=github_auth(), sleep=0, root=mktempdir()) -> Vector{Package}
+    analyze_packages(pkg_entries; auth::GitHub.Authorization=github_auth(), sleep=0, root=mktempdir()) -> Vector{PackageV1}
 
 
 Analyze all packages in the iterable `pkg_entries`, using threads, storing their code in `root`
-if it needs to be downloaded.  Returns a `Vector{Package}`.
+if it needs to be downloaded.  Returns a `Vector{PackageV1}`.
 
 Each element of `pkg_entries` should be a valid input to [`analyze`](@ref).
 
@@ -19,7 +19,7 @@ function analyze_packages(pkg_entries; auth::GitHub.Authorization=github_auth(),
         put!(inputs, (i, r))
     end
     close(inputs)
-    outputs = Channel{Tuple{Int,Package}}(length(pkg_entries))
+    outputs = Channel{Tuple{Int,PackageV1}}(length(pkg_entries))
     Threads.foreach(inputs) do (i, pkg)
         put!(outputs, (i, analyze(pkg; auth, sleep, root)))
     end

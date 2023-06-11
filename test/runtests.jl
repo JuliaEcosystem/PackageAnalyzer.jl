@@ -5,6 +5,7 @@ using JLLWrappers
 import GitHub
 using RegistryInstances
 using Pkg
+using Legolas
 
 get_libpath() = get(ENV, JLLWrappers.LIBPATH_env, nothing)
 const orig_libpath = get_libpath()
@@ -13,6 +14,12 @@ const auth = GitHub.AnonymousAuth()
 
 const PACKAGE_ANALYZER_UUID = UUID("e713c705-17e4-4cec-abe0-95bf5bf3e10c")
 const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.jl"
+
+function test_serialization(results::Vector{PackageV1})
+    t = Legolas.read(Legolas.tobuffer(results, PackageV1SchemaVersion()))
+    packages = PackageV1.(Legolas.Tables.rows(t))
+    @test isequal(packages, results)
+end
 
 @testset "PackageAnalyzer" begin
     @testset "Basic" begin
@@ -33,6 +40,7 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
         @test packages == find_packages(["Cuba", "PolynomialRoots"])
         @test packages ⊆ find_packages()
         results = analyze_packages(packages; auth)
+        test_serialization(results)
         cuba, polyroots = results
         @test length(filter(p -> p.reachable, results)) == 2
         @test length(filter(p -> p.runtests, results)) == 2
@@ -48,14 +56,14 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
             @test isempty(readdir(root)) # dir starts empty
             measurements2 = analyze(find_package("Measurements"; version=:dev); auth, root)
             @test !isempty(readdir(root)) # code gets downloaded there
-            @test measurements2.version === nothing
+            @test ismissing(measurements2.version)
 
             measurements3 = analyze(find_package("Measurements"); auth, root)
             @test isequal(measurements, measurements3) # same version, just with a root
-            @test measurements.version isa VersionNumber
+            @test parse(VersionNumber, measurements.version) isa VersionNumber
 
             measurements4 = analyze(find_package("Measurements"; version=v"2.8.0"); auth, root)
-            @test measurements4.version == v"2.8.0"
+            @test parse(VersionNumber, measurements4.version) == v"2.8.0"
             @test isdir(joinpath(root, "Measurements", "PwGjt")) # not cleaned up yet
         end
     end
@@ -68,8 +76,9 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
         @test all(p -> p isa Release, few)
         results = analyze_packages(few; auth)
         @test length(results) == length(few)
+        test_serialization(results)
         # Version number saved out
-        @test all(results[i].version == few[i].version for i in 1:length(few))
+        @test all(parse(VersionNumber, results[i].version) == few[i].version for i in 1:length(few))
     end
 
     @testset "`analyze`" begin
@@ -84,11 +93,11 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
             @test pkg.license_files[1].licenses_found == ["MIT"]
             @test pkg.license_files[1].license_filename == "LICENSE"
             @test pkg.license_files[1].license_file_percent_covered > 90
-            @test pkg.license_files isa Vector{<:NamedTuple}
+            @test pkg.license_files isa Vector{PackageAnalyzer.LicenseV1}
             @test keys(pkg.license_files[1]) == (:license_filename, :licenses_found, :license_file_percent_covered)
             @test isempty(pkg.licenses_in_project)
             @test !isempty(pkg.lines_of_code)
-            @test pkg.lines_of_code isa Vector{<:NamedTuple}
+            @test pkg.lines_of_code isa Vector{PackageAnalyzer.LinesOfCodeV1}
             @test keys(pkg.lines_of_code[1]) == (:directory, :language, :sublanguage, :files, :code, :comments, :docstrings, :blanks)
             idx = findfirst(row -> row.directory=="src" && row.language==:Julia && row.sublanguage===nothing, pkg.lines_of_code)
             @test idx !== nothing
@@ -102,17 +111,17 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
         # the tests folder isn't a package!
         # But this helps catch issues in error paths for when things go wrong
         bad_pkg = analyze(@__DIR__; auth)
-        @test bad_pkg.version === nothing
+        @test ismissing(bad_pkg.version)
         @test bad_pkg.uuid == UUID(UInt128(0))
         @test !bad_pkg.cirrus
         @test isempty(bad_pkg.license_files)
         @test isempty(bad_pkg.licenses_in_project)
-        @test bad_pkg.version === nothing
+        @test ismissing(bad_pkg.version)
 
 
         # The argument is a package name
         pkg = analyze("Pluto"; auth, version=:dev)
-        @test pkg.version === nothing
+        @test ismissing(pkg.version)
 
         # Just make sure we got the UUID correctly and some statistics are collected.
         @test pkg.uuid == UUID("c3e4b0f8-55cb-11ea-2926-15256bba5781")
@@ -122,7 +131,7 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
         @test_throws ArgumentError analyze("license_in_project"; auth)
 
         old = analyze("PackageAnalyzer"; version=v"0.1", auth)
-        @test old.version == v"0.1" # we save out the version number
+        @test parse(VersionNumber, old.version) == v"0.1" # we save out the version number
         @test old.tree_hash == "a4cb0648ddcbeb6bc161f87906a0c17c456a27dc"
         @test old.docs == true
         @test old.subdir == ""
@@ -142,15 +151,16 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
 
         stable = analyze(find_package("PackageAnalyzer"; version=:stable); auth, root)
         # For `stable`, we save out the corresponding `VersionNumber`
-        @test stable.version isa VersionNumber
+        @test parse(VersionNumber, stable.version) isa VersionNumber
 
 
     end
 
     @testset "`find_packages` with `analyze`" begin
         results = analyze_packages(find_packages("DataFrames", "Flux"); auth) # this method is threaded
-        @test results isa Vector{PackageAnalyzer.Package}
+        @test results isa Vector{PackageV1}
         @test length(results) == 2
+        test_serialization(results)
         # DataFrames currently has 16k LoC; Flux has 5k. Let's check that they aren't mixed up
         # due to some kind of race condition.
         @test results[1].name == "DataFrames"
@@ -163,12 +173,13 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
 
 
         results = analyze_packages(find_packages("DataFrames"); auth)
-        @test results isa Vector{PackageAnalyzer.Package}
+        @test results isa Vector{PackageV1}
         @test length(results) == 1
         @test results[1].name == "DataFrames"
+        test_serialization(results)
 
         result = analyze(find_package("DataFrames"); auth)
-        @test result isa PackageAnalyzer.Package
+        @test result isa PackageV1
         @test result.name == "DataFrames"
 
         # Don't error when not finding stdlibs in `find_packages`
@@ -186,7 +197,7 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
         # This also makes sure trying to clone the repo doesn't prompt for
         # username/password
         result = PackageAnalyzer.analyze("https://github.com/giordano/DOES_NOT_EXIST.jl"; auth)
-        @test result isa PackageAnalyzer.Package
+        @test result isa PackageV1
         @test !result.reachable
         @test isempty(result.name)
     end
@@ -297,7 +308,7 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
             @warn "Skipping contributors tests since `PackageAnalyzer.github_auth()` is anonymous"
         else
             pkg = analyze("DataFrames")
-            @test pkg.contributors isa Vector{<:NamedTuple}
+            @test pkg.contributors isa Vector{PackageAnalyzer.ContributionsV1}
             @test length(pkg.contributors) > 160 # ==183 right now, and it shouldn't go down...
             @test PackageAnalyzer.count_contributors(pkg) > 150
             @test PackageAnalyzer.count_commits(pkg) > 2000
@@ -375,6 +386,16 @@ const PACKAGE_ANALYZER_URL = "https://github.com/JuliaEcosystem/PackageAnalyzer.
         push!(registry_info(pkg_copy).version_info, high_version => fake_version_info)
         found2 = find_package("PackageAnalyzer"; registries)
         @test found2.version == high_version
+    end
+
+    @testset "Serialization backwards compatibility" begin
+        # Ensure we can still deserialize this table in the future
+        # Table generated by:
+        # m = analyze_manifest(joinpath(pkgdir(PackageAnalyzer), "Manifest.toml"))
+        # Legolas.write("11June23_table.package-analyzer.package.arrow", m, PackageV1SchemaVersion())
+        table = Legolas.read(joinpath(pkgdir(PackageAnalyzer), "test", "11June23_table.package-analyzer.package.arrow"))
+        pkgs = PackageV1.(Legolas.Tables.rows(table))
+        @test pkgs isa Vector{PackageV1}
     end
 
     @testset "Thread-safety" begin

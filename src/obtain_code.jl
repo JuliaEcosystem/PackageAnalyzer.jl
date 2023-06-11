@@ -69,7 +69,7 @@ function obtain_code(release::Release; root=mktempdir(), auth=github_auth())
 
     repo = release.repo
     if repo === nothing
-        error("Package $(release.name) does not have assocaiated repo URL in registry at $(release.registry_path)")
+        error("PackageV1 $(release.name) does not have assocaiated repo URL in registry at $(release.registry_path)")
     end
     reachable = download_tree_hash(dest, repo; tree_hash, auth)
 

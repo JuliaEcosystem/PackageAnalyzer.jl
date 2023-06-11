@@ -66,15 +66,15 @@ end
 function contribution_table(repo_name; auth)
     return @maybecatch begin
         parse_contributions.(GitHub.contributors(GitHub.Repo(repo_name); auth, params=Dict("anon" => "true"))[1])
-    end "Could not obtain contributors for $(repo_name)" ContributionTableElType[]
+    end "Could not obtain contributors for $(repo_name)" ContributionsV1[]
 end
 
 function parse_contributions(c)
     contrib = c["contributor"]
     if contrib.typ == "Anonymous"
-        return (; login=missing, id=missing, contrib.name, type=contrib.typ, contributions=c["contributions"])
+        return ContributionsV1(; contrib.name, type=contrib.typ, contributions=c["contributions"])
     else
-        return (; contrib.login, contrib.id, name=missing, type=contrib.typ, contributions=c["contributions"])
+        return ContributionsV1(; contrib.login, contrib.id, type=contrib.typ, contributions=c["contributions"])
     end
 end
 
@@ -112,7 +112,7 @@ end
 
 # Don't error if licensecheck isn't working, just log it
 function _find_licenses(dir)
-    @maybecatch(find_licenses(dir), "Error finding licenses in $dir", LicenseTableEltype[])
+    @maybecatch(find_licenses(dir), "Error finding licenses in $dir", LicenseV1[])
 end
 
 function get_tree_hash(dir::AbstractString)
