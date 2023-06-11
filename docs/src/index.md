@@ -131,7 +131,7 @@ struct PackageV1
     buildkite::Bool # does it use Buildkite?
     azure_pipelines::Bool # does it use Azure Pipelines?
     gitlab_pipeline::Bool # does it use Gitlab Pipeline?
-    license_files::Vector{LicenseV1}} # a table of all possible license files
+    license_files::Vector{LicenseV1} # a table of all possible license files
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
     lines_of_code::Vector{LinesOfCodeV2} # table of lines of code
     contributors::Vector{ContributorsV1} # table of contributor data
