@@ -21,8 +21,10 @@ function test_serialization(results::Vector{PackageV1})
     @test isequal(packages, results)
 end
 
+catch_exceptions_value = PackageAnalyzer.CATCH_EXCEPTIONS[]
+try
 # Throw exceptions instead of just logging them
-# PackageAnalyzer.CATCH_EXCEPTIONS[] = false
+PackageAnalyzer.CATCH_EXCEPTIONS[] = false
 
 @testset "PackageAnalyzer" begin
     @testset "Basic" begin
@@ -108,7 +110,7 @@ end
         end
 
         # Cannot pass `subdir` for these
-        @test_throws ArgumentError analyze("Pluto"; subdir="test")
+        @test_throws ArgumentError analyze("DataFrames"; subdir="test")
         @test_throws ArgumentError analyze(pkgdir(PackageAnalyzer); subdir="test")
 
         # the tests folder isn't a package!
@@ -123,11 +125,11 @@ end
 
 
         # The argument is a package name
-        pkg = analyze("Pluto"; auth, version=:dev)
+        pkg = analyze("DataFrames"; auth, version=:dev)
         @test ismissing(pkg.version)
 
         # Just make sure we got the UUID correctly and some statistics are collected.
-        @test pkg.uuid == UUID("c3e4b0f8-55cb-11ea-2926-15256bba5781")
+        @test pkg.uuid == UUID("a93c6f00-e57d-5684-b7b6-d8193f3e46c0")
         @test !isempty(pkg.license_files)
         @test !isempty(pkg.lines_of_code)
         # The argument looks like a package name but it isn't a registered package
@@ -199,7 +201,13 @@ end
         # we check the error path here; the success path is covered by other tests.
         # This also makes sure trying to clone the repo doesn't prompt for
         # username/password
-        result = PackageAnalyzer.analyze("https://github.com/giordano/DOES_NOT_EXIST.jl"; auth)
+        local result
+        try
+            PackageAnalyzer.CATCH_EXCEPTIONS[] = true
+            result = PackageAnalyzer.analyze("https://github.com/giordano/DOES_NOT_EXIST.jl"; auth)
+        finally
+            PackageAnalyzer.CATCH_EXCEPTIONS[] = false
+        end
         @test result isa PackageV1
         @test !result.reachable
         @test isempty(result.name)
@@ -406,4 +414,7 @@ end
         # should be executed at the very end of the test suite.
         @test orig_libpath == get_libpath()
     end
+end
+finally
+    PackageAnalyzer.CATCH_EXCEPTIONS[] = catch_exceptions_value
 end
