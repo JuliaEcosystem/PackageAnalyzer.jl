@@ -18,7 +18,7 @@ function count_loc(dir)
 end
 
 function make_loc_table(json)
-    table = LinesOfCodeV1[]
+    table = LinesOfCodeV2[]
     ismissing(json) && return table
     for (language, language_loc) in pairs(json)
         # we want to count lines of code per toplevel directory, per language, and per sublanguage (e.g. for Julia inside of Markdown)
@@ -34,7 +34,7 @@ function make_loc_table(json)
             end
         end
         for ((directory, sublanguage), count) in pairs(counts)
-            push!(table, LinesOfCodeV1(; directory, language, sublanguage, count.files, count.code, count.comments, docstrings=0, count.blanks))
+            push!(table, LinesOfCodeV2(; directory, language, sublanguage, count.files, count.code, count.comments, docstrings=0, count.blanks))
         end
     end
     d_count = counts_by_col(table, :directory)
@@ -125,7 +125,7 @@ function _count_lines!(counts, node::GreenNodeWrapper)
 end
 
 function count_julia_loc(dir)
-    table = LoCTableEltype[]
+    table = LinesOfCodeV2[]
     for path in readdir(dir; join=true)
         n_files = 0
         # Could be a LittleDict for efficency, but that would require
@@ -153,7 +153,7 @@ function count_julia_loc(dir)
         if n_files > 0
             # Here we are using the same format we get from `tokei`, except
             # with the addition of `docstrings`.
-            push!(table, (; directory=basename(path),
+            push!(table, LinesOfCodeV2(; directory=basename(path),
                 language=:Julia,
                 sublanguage=nothing, files=n_files,
                 code=counts[Code],

@@ -112,7 +112,7 @@ end
 
 # Don't error if licensecheck isn't working, just log it
 function _find_licenses(dir)
-    @maybecatch(find_licenses(dir), "Error finding licenses in $dir", LicenseV1[])
+    @maybecatch(LicenseV1.(find_licenses(dir)), "Error finding licenses in $dir", LicenseV1[])
 end
 
 function get_tree_hash(dir::AbstractString)

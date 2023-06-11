@@ -133,7 +133,7 @@ struct PackageV1
     gitlab_pipeline::Bool # does it use Gitlab Pipeline?
     license_files::Vector{LicenseV1}} # a table of all possible license files
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
-    lines_of_code::Vector{LinesOfCodeV1} # table of lines of code
+    lines_of_code::Vector{LinesOfCodeV2} # table of lines of code
     contributors::Vector{ContributorsV1} # table of contributor data
     version::Union{String, Missing} # the version number, if a release was analyzed
     tree_hash::String # the tree hash of the code that was analyzed
@@ -142,7 +142,7 @@ end
 
 where:
 * `LicenseV1` contains fields `license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64`,
-* `LinesOfCodeV1` contains fields `directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int`,
+* `LinesOfCodeV2` contains fields `directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int`,
 * and `ContributorsV1` contains fields `login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int`.
 
 

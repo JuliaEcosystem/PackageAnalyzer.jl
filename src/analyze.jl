@@ -263,7 +263,7 @@ function analyze_code(dir::AbstractString; repo="", reachable=true, subdir="", a
         lines_of_code = count_loc(pkgdir)
     else
         license_files = LicenseV1[]
-        lines_of_code = LinesOfCodeV1[]
+        lines_of_code = LinesOfCodeV2[]
     end
 
     if isdir(pkgdir)

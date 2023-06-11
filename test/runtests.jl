@@ -21,6 +21,9 @@ function test_serialization(results::Vector{PackageV1})
     @test isequal(packages, results)
 end
 
+# Throw exceptions instead of just logging them
+# PackageAnalyzer.CATCH_EXCEPTIONS[] = false
+
 @testset "PackageAnalyzer" begin
     @testset "Basic" begin
         # Test some properties of the `Measurements` package.  NOTE: they may change
@@ -97,8 +100,8 @@ end
             @test keys(pkg.license_files[1]) == (:license_filename, :licenses_found, :license_file_percent_covered)
             @test isempty(pkg.licenses_in_project)
             @test !isempty(pkg.lines_of_code)
-            @test pkg.lines_of_code isa Vector{PackageAnalyzer.LinesOfCodeV1}
-            @test keys(pkg.lines_of_code[1]) == (:directory, :language, :sublanguage, :files, :code, :comments, :docstrings, :blanks)
+            @test pkg.lines_of_code isa Vector{PackageAnalyzer.LinesOfCodeV2}
+            @test keys(pkg.lines_of_code[1]) == (:directory, :language, :sublanguage, :files, :code, :comments, :blanks, :docstrings)
             idx = findfirst(row -> row.directory=="src" && row.language==:Julia && row.sublanguage===nothing, pkg.lines_of_code)
             @test idx !== nothing
             @test pkg.lines_of_code[idx].code > 200

@@ -76,7 +76,7 @@ end
 
 @schema "package-analyzer.lines-of-code" LinesOfCode
 
-@version LinesOfCodeV1 begin
+@version LinesOfCodeV2 begin
     directory::String
     language::Symbol
     sublanguage::Union{Nothing, Symbol}
@@ -84,6 +84,7 @@ end
     code::Int
     comments::Int
     blanks::Int
+    docstrings::Union{Missing, Int}
 end
 
 @schema "package-analyzer.contributions" Contributions
@@ -99,9 +100,16 @@ end
 
 @schema "package-analyzer.package" Package
 
+# Handle version serialization
+# https://github.com/apache/arrow-julia/issues/461
 convert_version(::Missing) = missing
 convert_version(::Nothing) = missing
 convert_version(v::Any) = string(v)
+
+# Upgrade V1's
+upgrade_lines_of_code(loc::Vector{LinesOfCodeV2}) = loc
+upgrade_lines_of_code(loc) = LinesOfCodeV2.(loc)
+
 @version PackageV1 begin
     name::String # name of the package
     uuid::UUID # uuid of the package
@@ -121,13 +129,14 @@ convert_version(v::Any) = string(v)
     gitlab_pipeline::Bool # does it use Gitlab Pipeline?
     license_files::Vector{LicenseV1} # a table of all possible license files
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
-    lines_of_code::Vector{LinesOfCodeV1} # table of lines of code
+    lines_of_code::Vector{LinesOfCodeV2} = upgrade_lines_of_code(lines_of_code) # table of lines of code
     contributors::Vector{ContributionsV1} # table of contributor data
     # Note: ideally this would be Union{Nothing, VersionNumber}, however
     # Arrow seems to not be able to serialize that correctly: https://github.com/apache/arrow-julia/issues/461.
     version::Union{Missing, String}=convert_version(version) # the version number, if a release was analyzed
     tree_hash::String # the tree hash of the code that was analyzed
 end
+
 function PackageV1(name, uuid, repo;
                  subdir="",
                  reachable=false,
@@ -144,7 +153,7 @@ function PackageV1(name, uuid, repo;
                  gitlab_pipeline=false,
                  license_files=LicenseV1[],
                  licenses_in_project=String[],
-                 lines_of_code=LinesOfCodeV1[],
+                 lines_of_code=LinesOfCodeV2[],
                  contributors=ContributionsV1[],
                  version=nothing,
                  tree_hash="",
@@ -357,6 +366,8 @@ using .CategorizeLines
 
 # tokei, counting
 include("count_loc.jl")
+
+include("deprecated_schemas.jl")
 
 
 end # module
