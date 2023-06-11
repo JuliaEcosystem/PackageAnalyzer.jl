@@ -189,19 +189,27 @@ function Base.show(io::IO, p::PackageV1)
             l_docs = count_docs(p)
             l_readme = count_readme(p)
 
-            l_src_docstring = count_docstrings(p, "src")
+
             p_test = @sprintf("%.1f", 100 * l_test / (l_test + l_src))
             p_docs = @sprintf("%.1f", 100 * l_docs / (l_docs + l_src))
 
-            n = l_src_docstring + l_readme
-            p_docstrings = @sprintf("%.1f", 100 * n / (n + l_src))
+
+
             body *= """
                   * Julia code in `src`: $(l_src) lines
                   * Julia code in `test`: $(l_test) lines ($(p_test)% of `test` + `src`)
                   * documentation in `docs`: $(l_docs) lines ($(p_docs)% of `docs` + `src`)
-                  * documentation in README & docstrings: $(n) lines ($(p_docstrings)% of README + `src`)
                 """
-        end
+
+            l_src_docstring = count_docstrings(p, "src")
+            if !ismissing(l_src_docstring)
+                n = l_src_docstring + l_readme
+                p_docstrings = @sprintf("%.1f", 100 * n / (n + l_src))
+                body *= """
+                      * documentation in README & docstrings: $(n) lines ($(p_docstrings)% of README + `src`)
+                    """
+                end
+            end
         if isempty(p.license_files)
             body *= "  * no license found\n"
         else

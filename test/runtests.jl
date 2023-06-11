@@ -407,6 +407,9 @@ PackageAnalyzer.CATCH_EXCEPTIONS[] = false
         table = Legolas.read(joinpath(pkgdir(PackageAnalyzer), "test", "11June23_table.package-analyzer.package.arrow"))
         pkgs = PackageV1.(Legolas.Tables.rows(table))
         @test pkgs isa Vector{PackageV1}
+
+        # Ensure `show` doesn't throw on the old packages
+        @test sprint(show, MIME"text/plain"(), pkgs[1]) isa String
     end
 
     @testset "Thread-safety" begin
