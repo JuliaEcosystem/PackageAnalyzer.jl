@@ -151,7 +151,7 @@ To run the analysis for multiple packages you can either use broadcasting
 ```julia
 analyze.(pkg_entries)
 ```
-or use the function `analyze_packages(pkg_entries)` which
+or use the function [`analyze_packages(pkg_entries)`](@ref) which
 runs the analysis with multiple threads. Here, `pkg_entries` may be any valid input to `analyze`.
 
 You can use the function [`find_packages`](@ref) to find all packages in a given
@@ -173,7 +173,7 @@ Do not abuse this function!
 You can also use `find_packages_in_manifest` to use a Manifest.toml to lookup
 packages and their versions. Besides handling release dependencies, this should also correctly handle
 dev'd dependencies, and non-released `Pkg.add`'d dependencies. The helper `analyze_manifest` is provided
-as a convenience to composing `find_packages_in_manifest` and `analyze_packages`.
+as a convenience to composing `find_packages_in_manifest` and [`analyze_packages`](@ref).
 
 ## License information
 
