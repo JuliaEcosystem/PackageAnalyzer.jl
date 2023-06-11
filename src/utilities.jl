@@ -68,16 +68,16 @@ function contribution_table(repo_name; auth)
         parse_contributions.(GitHub.contributors(GitHub.Repo(repo_name); auth, params=Dict("anon" => "true"))[1])
     catch e
         @error "Could not obtain contributors for $(repo_name)" exception = (e, catch_backtrace())
-        ContributionTableElType[]
+        ContributionsV1[]
     end
 end
 
 function parse_contributions(c)
     contrib = c["contributor"]
     if contrib.typ == "Anonymous"
-        return (; login=missing, id=missing, contrib.name, type=contrib.typ, contributions=c["contributions"])
+        return ContributionsV1(; contrib.name, type=contrib.typ, contributions=c["contributions"])
     else
-        return (; contrib.login, contrib.id, name=missing, type=contrib.typ, contributions=c["contributions"])
+        return ContributionsV1(; contrib.login, contrib.id, type=contrib.typ, contributions=c["contributions"])
     end
 end
 
@@ -116,10 +116,10 @@ end
 # Don't error if licensecheck isn't working, just log it
 function _find_licenses(dir)
     try
-        find_licenses(dir)
+        LicenseV1.(find_licenses(dir))
     catch e
         @error "Error finding licenses in $dir" exception=e maxlog=2
-        LicenseTableEltype[]
+        LicenseV1[]
     end
 end
 

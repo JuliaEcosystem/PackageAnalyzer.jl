@@ -11,6 +11,8 @@ using Git: Git
 using Downloads
 using Tar
 using CodecZlib
+using Legolas
+using Legolas: @schema, @version
 
 # We wrap `registry_info` for thread-safety, so we don't want to pull into the namespace here
 using RegistryInstances: RegistryInstances, reachable_registries, PkgEntry
@@ -19,6 +21,9 @@ using RegistryInstances: RegistryInstances, reachable_registries, PkgEntry
 export find_package, find_packages, find_packages_in_manifest
 # Ways to analyze them
 export analyze, analyze_manifest, analyze_packages
+
+# To support (de)-serialization
+export PackageV1, PackageV1SchemaVersion
 
 # borrowed from <https://github.com/JuliaRegistries/RegistryTools.jl/blob/841a56d8274e2857e3fd5ea993ba698cdbf51849/src/builtin_pkgs.jl>
 const stdlibs = isdefined(Pkg.Types, :stdlib) ? Pkg.Types.stdlib : Pkg.Types.stdlibs
@@ -29,11 +34,43 @@ const STDLIBS = Dict(k => get_stdlib_name(v) for (k, v) in stdlibs())
 is_stdlib(name::AbstractString) = name in values(STDLIBS)
 is_stdlib(uuid::UUID) = uuid in keys(STDLIBS)
 
-const LicenseTableEltype = @NamedTuple{license_filename::String, licenses_found::Vector{String}, license_file_percent_covered::Float64}
-const ContributionTableElType = @NamedTuple{login::Union{String,Missing}, id::Union{Int,Missing}, name::Union{String,Missing}, type::String, contributions::Int}
-const LoCTableEltype = @NamedTuple{directory::String, language::Symbol, sublanguage::Union{Nothing, Symbol}, files::Int, code::Int, comments::Int, blanks::Int}
+@schema "package-analyzer.license" License
 
-struct Package
+@version LicenseV1 begin
+    license_filename::String
+    licenses_found::Vector{String}
+    license_file_percent_covered::Float64
+end
+
+@schema "package-analyzer.lines-of-code" LinesOfCode
+
+@version LinesOfCodeV1 begin
+    directory::String
+    language::Symbol
+    sublanguage::Union{Nothing, Symbol}
+    files::Int
+    code::Int
+    comments::Int
+    blanks::Int
+end
+
+@schema "package-analyzer.contributions" Contributions
+
+@version ContributionsV1 begin
+    login::Union{String,Missing}
+    id::Union{Int,Missing}
+    name::Union{String,Missing}
+    type::String
+    contributions::Int
+end
+
+
+@schema "package-analyzer.package" Package
+
+convert_version(::Missing) = missing
+convert_version(::Nothing) = missing
+convert_version(v::Any) = string(v)
+@version PackageV1 begin
     name::String # name of the package
     uuid::UUID # uuid of the package
     repo::String # URL of the repository
@@ -50,14 +87,16 @@ struct Package
     buildkite::Bool # does it use Buildkite?
     azure_pipelines::Bool # does it use Azure Pipelines?
     gitlab_pipeline::Bool # does it use Gitlab Pipeline?
-    license_files::Vector{LicenseTableEltype} # a table of all possible license files
+    license_files::Vector{LicenseV1} # a table of all possible license files
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
-    lines_of_code::Vector{LoCTableEltype} # table of lines of code
-    contributors::Vector{ContributionTableElType} # table of contributor data
-    version::Union{VersionNumber, Nothing} # the version number, if a release was analyzed
+    lines_of_code::Vector{LinesOfCodeV1} # table of lines of code
+    contributors::Vector{ContributionsV1} # table of contributor data
+    # Note: ideally this would be Union{Nothing, VersionNumber}, however
+    # Arrow seems to not be able to serialize that correctly: https://github.com/apache/arrow-julia/issues/461.
+    version::Union{Missing, String}=convert_version(version) # the version number, if a release was analyzed
     tree_hash::String # the tree hash of the code that was analyzed
 end
-function Package(name, uuid, repo;
+function PackageV1(name, uuid, repo;
                  subdir="",
                  reachable=false,
                  docs=false,
@@ -71,35 +110,21 @@ function Package(name, uuid, repo;
                  buildkite=false,
                  azure_pipelines=false,
                  gitlab_pipeline=false,
-                 license_files=LicenseTableEltype[],
+                 license_files=LicenseV1[],
                  licenses_in_project=String[],
-                 lines_of_code=LoCTableEltype[],
-                 contributors=ContributionTableElType[],
+                 lines_of_code=LinesOfCodeV1[],
+                 contributors=ContributionsV1[],
                  version=nothing,
                  tree_hash=""
                  )
-    return Package(name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
+    return PackageV1(; name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
                    license_files, licenses_in_project, lines_of_code, contributors, version, tree_hash)
 end
 
-# define `isequal`, `==`, and `hash` just in terms of the fields
-for f in (:isequal, :(==))
-    @eval begin
-        function Base.$f(A::Package, B::Package)
-            for i = 1:fieldcount(Package)
-                $f(getfield(A, i), getfield(B, i)) || return false
-            end
-            true
-        end
-    end
-end
-
-Base.hash(A::Package, h::UInt) = hash(:Package, hash(ntuple(i -> getfield(A, i), fieldcount(Package)), h))
-
-function Base.show(io::IO, p::Package)
+function Base.show(io::IO, p::PackageV1)
     body = """
-        Package $(p.name):
+        PackageV1 $(p.name):
           * repo: $(p.repo)
         """
     if !isempty(p.subdir)
@@ -279,12 +304,12 @@ include("find_packages.jl")
 # `PkgSource` -> code directory
 include("obtain_code.jl")
 
-# `analyze_code`: `code directory -> `Package`
-# `analyze`: `PkgSource` -> code directory -> `Package`
-# `analyze`: input -> `PkgSource` -> code directory -> `Package`
+# `analyze_code`: `code directory -> `PackageV1`
+# `analyze`: `PkgSource` -> code directory -> `PackageV1`
+# `analyze`: input -> `PkgSource` -> code directory -> `PackageV1`
 include("analyze.jl")
 
-# Collection of `PkgSource` -> `Vector{Package}`
+# Collection of `PkgSource` -> `Vector{PackageV1}`
 include("parallel.jl")
 
 # github, parsing
