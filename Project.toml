@@ -4,7 +4,6 @@ authors = ["Mosè Giordano <mose@gnu.org>"]
 version = "2.0.0"
 
 [deps]
-Arrow = "69666777-d1a9-59fb-9406-91d4454c9d45"
 CodecZlib = "944b1d66-785c-5afd-91f1-9de20f533193"
 Downloads = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 Git = "d7ba0133-e1db-5d97-8f8c-041e4b3a1eb2"
