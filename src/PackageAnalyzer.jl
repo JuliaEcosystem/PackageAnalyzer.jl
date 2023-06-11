@@ -92,7 +92,7 @@ convert_version(v::Any) = string(v)
     lines_of_code::Vector{LinesOfCodeV1} # table of lines of code
     contributors::Vector{ContributionsV1} # table of contributor data
     # Note: ideally this would be Union{Nothing, VersionNumber}, however
-    # Arrow seems to not be able to serialize that correctly.
+    # Arrow seems to not be able to serialize that correctly: https://github.com/apache/arrow-julia/issues/461.
     version::Union{Missing, String}=convert_version(version) # the version number, if a release was analyzed
     tree_hash::String # the tree hash of the code that was analyzed
 end
