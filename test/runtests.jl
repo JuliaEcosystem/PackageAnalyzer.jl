@@ -141,7 +141,7 @@ PackageAnalyzer.CATCH_EXCEPTIONS[] = false
         @test old.docs == true
         @test old.subdir == ""
         # This shouln't change, unless we change *how* we count LoC, since the code is fixed:
-        @test PackageAnalyzer.count_julia_loc(old.lines_of_code, "src") == 326
+        @test PackageAnalyzer.sum_julia_loc(old.lines_of_code, "src") == 326
 
         root = mktempdir()
         old2 = analyze(find_package("PackageAnalyzer"; version=v"0.1"); auth, root)
@@ -169,12 +169,12 @@ PackageAnalyzer.CATCH_EXCEPTIONS[] = false
         # DataFrames currently has 16k LoC; Flux has 5k. Let's check that they aren't mixed up
         # due to some kind of race condition.
         @test results[1].name == "DataFrames"
-        @test PackageAnalyzer.count_julia_loc(results[1], "src") > 10000
-        @test PackageAnalyzer.count_docs(results[1]) > 5000
-        @test PackageAnalyzer.count_readme(results[1]) > 5
+        @test PackageAnalyzer.sum_julia_loc(results[1], "src") > 10000
+        @test PackageAnalyzer.sum_doc_lines(results[1]) > 5000
+        @test PackageAnalyzer.sum_readme_lines(results[1]) > 5
 
         @test results[2].name == "Flux"
-        @test PackageAnalyzer.count_julia_loc(results[2].lines_of_code, "src") < 14000
+        @test PackageAnalyzer.sum_julia_loc(results[2].lines_of_code, "src") < 14000
 
 
         results = analyze_packages(find_packages("DataFrames"); auth)
@@ -321,9 +321,9 @@ PackageAnalyzer.CATCH_EXCEPTIONS[] = false
             pkg = analyze("DataFrames")
             @test pkg.contributors isa Vector{PackageAnalyzer.ContributionsV1}
             @test length(pkg.contributors) > 160 # ==183 right now, and it shouldn't go down...
-            @test PackageAnalyzer.count_contributors(pkg) > 150
-            @test PackageAnalyzer.count_commits(pkg) > 2000
-            @test PackageAnalyzer.count_contributors(pkg; type="Anonymous") > 10
+            @test PackageAnalyzer.sum_contributors(pkg) > 150
+            @test PackageAnalyzer.sum_commits(pkg) > 2000
+            @test PackageAnalyzer.sum_contributors(pkg; type="Anonymous") > 10
         end
     end
 
