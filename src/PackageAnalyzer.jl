@@ -184,16 +184,13 @@ function Base.show(io::IO, p::PackageV1)
           * tree hash: $(p.tree_hash)
         """
         if !isempty(p.lines_of_code)
-            l_src = count_julia_loc(p, "src")
-            l_test = count_julia_loc(p, "test")
-            l_docs = count_docs(p)
-            l_readme = count_readme(p)
-
+            l_src = sum_julia_loc(p, "src")
+            l_test = sum_julia_loc(p, "test")
+            l_docs = sum_doc_lines(p)
+            l_readme = sum_readme_lines(p)
 
             p_test = @sprintf("%.1f", 100 * l_test / (l_test + l_src))
             p_docs = @sprintf("%.1f", 100 * l_docs / (l_docs + l_src))
-
-
 
             body *= """
                   * Julia code in `src`: $(l_src) lines
@@ -201,7 +198,7 @@ function Base.show(io::IO, p::PackageV1)
                   * documentation in `docs`: $(l_docs) lines ($(p_docs)% of `docs` + `src`)
                 """
 
-            l_src_docstring = count_docstrings(p, "src")
+            l_src_docstring = sum_docstrings(p, "src")
             if !ismissing(l_src_docstring)
                 n = l_src_docstring + l_readme
                 p_docstrings = @sprintf("%.1f", 100 * n / (n + l_src))
@@ -225,9 +222,9 @@ function Base.show(io::IO, p::PackageV1)
             body *= "    * OSI approved: $(all(is_osi_approved, p.licenses_in_project))\n"
         end
         if !isempty(p.contributors)
-            n_anon = count_contributors(p; type="Anonymous")
-            body *= "  * number of contributors: $(count_contributors(p)) (and $(n_anon) anonymous contributors)\n"
-            body *= "  * number of commits: $(count_commits(p))\n"
+            n_anon = sum_contributors(p; type="Anonymous")
+            body *= "  * number of contributors: $(sum_contributors(p)) (and $(n_anon) anonymous contributors)\n"
+            body *= "  * number of commits: $(sum_commits(p))\n"
         end
         body *= """
               * has `docs/make.jl`: $(p.docs)
@@ -373,7 +370,7 @@ include("LineCategories.jl")
 using .CategorizeLines
 
 # tokei, counting
-include("count_loc.jl")
+include("count_lines_of_code.jl")
 
 include("deprecated_schemas.jl")
 

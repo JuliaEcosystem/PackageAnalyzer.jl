@@ -260,7 +260,7 @@ function analyze_code(dir::AbstractString; repo="", reachable=true, subdir="", a
             subdir_licenses_files = [LicenseV1(; license_filename=joinpath(subdir, row.license_filename), row.licenses_found, row.license_file_percent_covered) for row in _find_licenses(pkgdir)]
             license_files = [subdir_licenses_files; license_files]
         end
-        lines_of_code = count_loc(pkgdir)
+        lines_of_code = count_lines_of_code(pkgdir)
     else
         license_files = LicenseV1[]
         lines_of_code = LinesOfCodeV2[]

@@ -4,7 +4,7 @@
 using JuliaSyntax: SourceFile
 
 # Entrypoint
-function count_loc(dir)
+function count_lines_of_code(dir)
     # we pass `dir` to the command object so that we get relative paths in the `tokei` output.
     # This makes it easy to process later, since we have uniform filepaths
     json = @maybecatch(JSON3.read(read(Cmd(`$(tokei()) --output json .`; dir))), "`tokei` error", missing)
@@ -13,7 +13,7 @@ function count_loc(dir)
     filter!(table) do row
         row.language !== :Julia
     end
-    append!(table, count_julia_loc(dir))
+    append!(table, count_julia_lines_of_code(dir))
     return table
 end
 
@@ -37,14 +37,14 @@ function make_loc_table(json)
             push!(table, LinesOfCodeV2(; directory, language, sublanguage, count.files, count.code, count.comments, docstrings=0, count.blanks))
         end
     end
-    d_count = counts_by_col(table, :directory)
-    l_count = counts_by_col(table, :language)
-    sl_count = counts_by_col(table, :sublanguage)
+    d_count = sum_lines_by_col(table, :directory)
+    l_count = sum_lines_by_col(table, :language)
+    sl_count = sum_lines_by_col(table, :sublanguage)
     sort!(table, by=row -> (d_count[row.directory], l_count[row.language], sl_count[row.sublanguage]), rev=true)
     return table
 end
 
-function counts_by_col(table, col)
+function sum_lines_by_col(table, col)
     vals = unique(getproperty(row, col) for row in table)
     return Dict(val => sum(row.code for row in table if getproperty(row, col) == val) for val in vals)
 end
@@ -59,28 +59,28 @@ end
 ##### Counting helpers
 #####
 
-count_commits(table) = sum(row.contributions for row in table; init=0)
-count_commits(pkg::PackageV1) = count_commits(pkg.contributors)
+sum_commits(table) = sum(row.contributions for row in table; init=0)
+sum_commits(pkg::PackageV1) = sum_commits(pkg.contributors)
 
-count_contributors(table; type="User") = count(row.type == type for row in table)
-count_contributors(pkg::PackageV1; kwargs...) = count_contributors(pkg.contributors; kwargs...)
+sum_contributors(table; type="User") = count(row.type == type for row in table)
+sum_contributors(pkg::PackageV1; kwargs...) = sum_contributors(pkg.contributors; kwargs...)
 
 
-count_julia_loc(table, dir) = sum(row.code for row in table if row.directory == dir && row.language == :Julia; init=0)
+sum_julia_loc(table, dir) = sum(row.code for row in table if row.directory == dir && row.language == :Julia; init=0)
 
-count_docstrings(table, dir) = sum(row.docstrings for row in table if row.directory == dir && row.language == :Julia; init=0)
+sum_docstrings(table, dir) = sum(row.docstrings for row in table if row.directory == dir && row.language == :Julia; init=0)
 
-function count_docs(table, dirs=("docs", "doc"))
+function sum_doc_lines(table, dirs=("docs", "doc"))
     rm_langs = (:TOML, :SVG, :CSS, :Javascript)
     sum(row.code + row.comments for row in table if lowercase(row.directory) in dirs && row.language ∉ rm_langs && row.sublanguage ∉ rm_langs; init=0)
 end
 
-count_readme(table) = count_docs(table, ("readme", "readme.md"))
+sum_readme_lines(table) = sum_doc_lines(table, ("readme", "readme.md"))
 
-count_docstrings(pkg::PackageV1, args...) = count_docstrings(pkg.lines_of_code, args...)
-count_julia_loc(pkg::PackageV1, args...) = count_julia_loc(pkg.lines_of_code, args...)
-count_docs(pkg::PackageV1, args...) = count_docs(pkg.lines_of_code, args...)
-count_readme(pkg::PackageV1, args...) = count_readme(pkg.lines_of_code, args...)
+sum_docstrings(pkg::PackageV1, args...) = sum_docstrings(pkg.lines_of_code, args...)
+sum_julia_loc(pkg::PackageV1, args...) = sum_julia_loc(pkg.lines_of_code, args...)
+sum_doc_lines(pkg::PackageV1, args...) = sum_doc_lines(pkg.lines_of_code, args...)
+sum_readme_lines(pkg::PackageV1, args...) = sum_readme_lines(pkg.lines_of_code, args...)
 
 #####
 ##### Custom Julia line counting
@@ -124,7 +124,7 @@ function _count_lines!(counts, node::GreenNodeWrapper)
     return nothing
 end
 
-function count_julia_loc(dir)
+function count_julia_lines_of_code(dir)
     table = LinesOfCodeV2[]
     for path in readdir(dir; join=true)
         n_files = 0
