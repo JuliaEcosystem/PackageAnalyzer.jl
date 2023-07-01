@@ -412,6 +412,36 @@ PackageAnalyzer.CATCH_EXCEPTIONS[] = false
         @test sprint(show, MIME"text/plain"(), pkgs[1]) isa String
     end
 
+    @testset "Count docstrings" begin
+        lc = LineCategories("lines_of_code/docstrings.jl")
+
+        # Line 4 is debatable, but we need to make a choice
+        @test all(lc.dict[i] == PackageAnalyzer.Docstring for i in 1:8)
+        @test lc.dict[9] == PackageAnalyzer.Code
+        @test lc.dict[10] == PackageAnalyzer.Blank
+        @test lc.dict[11] == PackageAnalyzer.Docstring
+        @test lc.dict[12] == PackageAnalyzer.Code
+        @test lc.dict[13] == PackageAnalyzer.Blank
+        @test lc.dict[14] == PackageAnalyzer.Docstring
+
+        result = PackageAnalyzer.count_julia_lines_of_code("lines_of_code")
+        @test result isa Vector{PackageAnalyzer.LinesOfCodeV2}
+        @test length(result) == 1
+        loc = only(result)
+
+        @test loc.docstrings == 10
+        @test loc.code == 2
+        @test loc.blanks == 2
+        @test loc.comments == 0
+        @test loc.files == 1
+        @test loc.language == :Julia
+        @test loc.sublanguage == nothing
+
+        # Awkward, but consistent with what we've been doing with tokei
+        @test loc.directory == "docstrings.jl"
+
+
+    end
     @testset "Thread-safety" begin
         # Make sure none of the above commands leaks LD_LIBRARY_PATH.  This test
         # should be executed at the very end of the test suite.
