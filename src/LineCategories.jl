@@ -10,16 +10,15 @@ using JuliaSyntax: GreenNode, is_trivia, haschildren, is_error, children, span, 
 # However, a line may have multiple things on it, including comments, docstrings, code, etc.
 # We will choose the single category by a simple precedence rule, given by the following ordering.
 
-# WIP- figure out correct implementation and category ordering.
-# It is tricky because `module ... end` should have `module` and `end` counting
+# Some constructs should apply to all lines between them counting, while other's shouldn't. For example, `module ... end` should have `module` and `end` counting
 # as code, but not necessarily all the stuff in between. Whereas for docstrings,
 # if we have a big docstring block, we do want to count all the lines in between as docstring.
-# This seems to work OK but not sure it handles all edge cases correctly yet.
-# We put `Blank` lowest, since if there's anything else on the line, we want to count it as that.
-# We put `Code` next, since it is the fallback, and we don't want it to override when we have specific information.
-# Then comment, then docstring, so comments inside of docstrings count as docstrings.
-# In the implementation, we treat code as only applying to the first and last line,
+# So in the implementation, we treat `Code` as only applying to the first and last line,
 # while the rest apply to all intermediate lines.
+
+# For the ordering itself, we put `Blank` lowest, since if there's anything else on the line, we want to count it as that.
+# We put `Code` next, since it is the fallback, and we don't want it to override when we have more specific information.
+# Then comment, then docstring, so comments inside of docstrings count as docstrings.
 """
     LineCategory
 
@@ -99,7 +98,7 @@ function categorize_lines!(d::LineCategories, node, source, nesting=0, pos=1, pa
     end
 
     # Update with the information we have from this level
-    inclusive = true
+    inclusive = true # all inclusive except `Code`
     if k == K"Comment"
         line_category = Comment
     elseif k == K"NewlineWs"

@@ -424,15 +424,17 @@ PackageAnalyzer.CATCH_EXCEPTIONS[] = false
         @test lc.dict[13] == PackageAnalyzer.Blank
         @test lc.dict[14] == PackageAnalyzer.Docstring
 
+        show_str = sprint(show, MIME"text/plain"(), lc)
         result = PackageAnalyzer.count_julia_lines_of_code("lines_of_code")
         @test result isa Vector{PackageAnalyzer.LinesOfCodeV2}
         @test length(result) == 1
         loc = only(result)
 
-        @test loc.docstrings == 10
-        @test loc.code == 2
-        @test loc.blanks == 2
-        @test loc.comments == 0
+
+        @test loc.docstrings == 10 == count(r"Docstring", show_str)
+        @test loc.code == 2 == count(r"Code", show_str)
+        @test loc.blanks == 2 == count(r"Blank", show_str)
+        @test loc.comments == 0 == count(r"Comment", show_str)
         @test loc.files == 1
         @test loc.language == :Julia
         @test loc.sublanguage == nothing
