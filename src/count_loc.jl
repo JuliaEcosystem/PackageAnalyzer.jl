@@ -98,7 +98,7 @@ function AbstractTrees.children(wrapper::GreenNodeWrapper)
     return map(n -> GreenNodeWrapper(n, wrapper.source), JuliaSyntax.children(wrapper.node))
 end
 
-function parse_green_one(file_path)
+function parse_green_node(file_path)
     file = read(file_path, String)
     parsed = @maybecatch(JuliaSyntax.parseall(JuliaSyntax.GreenNode, file; ignore_trivia=false, filename=file_path),
         "Error during `JuliaSyntax.parseall` of $(file_path)",
@@ -114,7 +114,7 @@ end
 
 # This can be used to easily see the categorization, e.g.
 # PackageAnalyzer.LineCategories(pathof(PackageAnalyzer))
-CategorizeLines.LineCategories(path::AbstractString; kw...) = LineCategories(parse_green_one(path); kw...)
+CategorizeLines.LineCategories(path::AbstractString; kw...) = LineCategories(parse_green_node(path); kw...)
 
 function _count_lines!(counts, node::GreenNodeWrapper)
     cats = LineCategories(node)
@@ -136,14 +136,14 @@ function count_julia_lines_of_code(dir)
             Docstring => 0)
         if isfile(path)
             endswith(path, ".jl") || continue
-            node = parse_green_one(path)
+            node = parse_green_node(path)
             _count_lines!(counts, node)
             n_files += 1
         else
             for (root, dirs, files) in walkdir(path)
                 for file_name in files
                     if endswith(file_name, ".jl")
-                        node = parse_green_one(joinpath(root, file_name))
+                        node = parse_green_node(joinpath(root, file_name))
                         _count_lines!(counts, node)
                         n_files += 1
                     end
