@@ -33,8 +33,6 @@ const CATCH_EXCEPTIONS = Ref(true)
 # We turn off exception handling for our tests, to ensure we aren't throwing exceptions
 # that we're missing. But we have it on by default, since in ordinary usage we want to
 # be sure we are catching all exceptions.
-# We wrap all public API methods in this, which should make it very difficult to throw
-# an exception.
 macro maybecatch(expr, log_str, ret=nothing)
     quote
         try
