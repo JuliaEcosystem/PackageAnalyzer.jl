@@ -413,7 +413,8 @@ PackageAnalyzer.CATCH_EXCEPTIONS[] = false
     end
 
     @testset "Count docstrings" begin
-        lc = LineCategories("lines_of_code/docstrings.jl")
+        loc_dir = joinpath(pkgdir(PackageAnalyzer), "test", "lines_of_code")
+        lc = LineCategories(joinpath(loc_dir, "docstrings.jl"))
 
         # Line 4 is debatable, but we need to make a choice
         @test all(lc.dict[i] == PackageAnalyzer.Docstring for i in 1:8)
@@ -425,11 +426,10 @@ PackageAnalyzer.CATCH_EXCEPTIONS[] = false
         @test lc.dict[14] == PackageAnalyzer.Docstring
 
         show_str = sprint(show, MIME"text/plain"(), lc)
-        result = PackageAnalyzer.count_julia_lines_of_code("lines_of_code")
+        result = PackageAnalyzer.count_julia_lines_of_code(loc_dir)
         @test result isa Vector{PackageAnalyzer.LinesOfCodeV2}
         @test length(result) == 1
         loc = only(result)
-
 
         @test loc.docstrings == 10 == count(r"Docstring", show_str)
         @test loc.code == 2 == count(r"Code", show_str)
@@ -441,8 +441,6 @@ PackageAnalyzer.CATCH_EXCEPTIONS[] = false
 
         # Awkward, but consistent with what we've been doing with tokei
         @test loc.directory == "docstrings.jl"
-
-
     end
     @testset "Thread-safety" begin
         # Make sure none of the above commands leaks LD_LIBRARY_PATH.  This test
