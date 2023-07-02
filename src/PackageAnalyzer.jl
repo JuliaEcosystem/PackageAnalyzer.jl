@@ -368,7 +368,7 @@ include("LineCategories.jl")
 using .CategorizeLines
 
 # tokei, counting
-include("count_lines_of_code.jl")
+include("count_loc.jl")
 
 include("deprecated_schemas.jl")
 
