@@ -6,11 +6,14 @@ using Pkg, TOML, UUIDs, Printf
 using LicenseCheck # for `find_license` and `is_osi_approved`
 using JSON3 # for interfacing with `tokei` to count lines of code
 using Tokei_jll # count lines of code
-using GitHub # Use GitHub API to get extra information about the repo
-using Git: Git
+import GitHub # Use GitHub API to get extra information about the repo
+import Git: Git
 using Downloads
 using Tar
 using CodecZlib
+using AbstractTrees
+using JuliaSyntax
+using JuliaSyntax: @K_str, kind
 using Legolas
 using Legolas: @schema, @version
 
@@ -20,7 +23,34 @@ using RegistryInstances: RegistryInstances, reachable_registries, PkgEntry
 # Ways to find packages
 export find_package, find_packages, find_packages_in_manifest
 # Ways to analyze them
-export analyze, analyze_manifest, analyze_packages
+export analyze, analyze_manifest, analyze_packages, LineCategories
+
+##
+# Borrowed from
+# https://github.com/beacon-biosignals/SlackThreads.jl/blob/74351c2863ec9a1cf22732873d4d2816aa9c140d/src/SlackThreads.jl#L27-L49
+const CATCH_EXCEPTIONS = Ref(true)
+
+# We turn off exception handling for our tests, to ensure we aren't throwing exceptions
+# that we're missing. But we have it on by default, since in ordinary usage we want to
+# be sure we are catching all exceptions.
+macro maybecatch(expr, log_str, ret=nothing)
+    quote
+        try
+            $(esc(expr))
+        catch e
+            if $(CATCH_EXCEPTIONS)[]
+                @debug $(esc(log_str)) exception = (e, catch_backtrace())
+                $(esc(ret))
+            else
+                # No stacktrace, because we'll get one anyway
+                @debug $(esc(log_str)) exception = e
+                rethrow()
+            end
+        end
+    end
+end
+#
+##
 
 # To support (de)-serialization
 export PackageV1, PackageV1SchemaVersion
@@ -44,7 +74,7 @@ end
 
 @schema "package-analyzer.lines-of-code" LinesOfCode
 
-@version LinesOfCodeV1 begin
+@version LinesOfCodeV2 begin
     directory::String
     language::Symbol
     sublanguage::Union{Nothing, Symbol}
@@ -52,6 +82,7 @@ end
     code::Int
     comments::Int
     blanks::Int
+    docstrings::Union{Missing, Int}
 end
 
 @schema "package-analyzer.contributions" Contributions
@@ -67,9 +98,16 @@ end
 
 @schema "package-analyzer.package" Package
 
+# Handle version serialization
+# https://github.com/apache/arrow-julia/issues/461
 convert_version(::Missing) = missing
 convert_version(::Nothing) = missing
 convert_version(v::Any) = string(v)
+
+# Upgrade V1's
+upgrade_lines_of_code(loc::Vector{LinesOfCodeV2}) = loc
+upgrade_lines_of_code(loc) = LinesOfCodeV2.(loc)
+
 @version PackageV1 begin
     name::String # name of the package
     uuid::UUID # uuid of the package
@@ -89,13 +127,14 @@ convert_version(v::Any) = string(v)
     gitlab_pipeline::Bool # does it use Gitlab Pipeline?
     license_files::Vector{LicenseV1} # a table of all possible license files
     licenses_in_project::Vector{String} # any licenses in the `license` key of the Project.toml
-    lines_of_code::Vector{LinesOfCodeV1} # table of lines of code
+    lines_of_code::Vector{LinesOfCodeV2} = upgrade_lines_of_code(lines_of_code) # table of lines of code
     contributors::Vector{ContributionsV1} # table of contributor data
     # Note: ideally this would be Union{Nothing, VersionNumber}, however
     # Arrow seems to not be able to serialize that correctly: https://github.com/apache/arrow-julia/issues/461.
     version::Union{Missing, String}=convert_version(version) # the version number, if a release was analyzed
     tree_hash::String # the tree hash of the code that was analyzed
 end
+
 function PackageV1(name, uuid, repo;
                  subdir="",
                  reachable=false,
@@ -112,14 +151,15 @@ function PackageV1(name, uuid, repo;
                  gitlab_pipeline=false,
                  license_files=LicenseV1[],
                  licenses_in_project=String[],
-                 lines_of_code=LinesOfCodeV1[],
+                 lines_of_code=LinesOfCodeV2[],
                  contributors=ContributionsV1[],
                  version=nothing,
-                 tree_hash=""
+                 tree_hash="",
                  )
     return PackageV1(; name, uuid, repo, subdir, reachable, docs, runtests, github_actions, travis,
                    appveyor, cirrus, circle, drone, buildkite, azure_pipelines, gitlab_pipeline,
-                   license_files, licenses_in_project, lines_of_code, contributors, version, tree_hash)
+                   license_files, licenses_in_project, lines_of_code, contributors, version,
+                   tree_hash)
 end
 
 function Base.show(io::IO, p::PackageV1)
@@ -142,20 +182,29 @@ function Base.show(io::IO, p::PackageV1)
           * tree hash: $(p.tree_hash)
         """
         if !isempty(p.lines_of_code)
-            l_src = count_julia_loc(p, "src")
-            l_test = count_julia_loc(p, "test")
-            l_docs = count_docs(p)
-            l_readme = count_readme(p)
+            l_src = sum_julia_loc(p, "src")
+            l_test = sum_julia_loc(p, "test")
+            l_docs = sum_doc_lines(p)
+            l_readme = sum_readme_lines(p)
 
             p_test = @sprintf("%.1f", 100 * l_test / (l_test + l_src))
             p_docs = @sprintf("%.1f", 100 * l_docs / (l_docs + l_src))
+
             body *= """
                   * Julia code in `src`: $(l_src) lines
                   * Julia code in `test`: $(l_test) lines ($(p_test)% of `test` + `src`)
                   * documentation in `docs`: $(l_docs) lines ($(p_docs)% of `docs` + `src`)
-                  * documentation in README: $(l_readme) lines
                 """
-        end
+
+            l_src_docstring = sum_docstrings(p, "src")
+            if !ismissing(l_src_docstring)
+                n = l_src_docstring + l_readme
+                p_docstrings = @sprintf("%.1f", 100 * n / (n + l_src))
+                body *= """
+                      * documentation in README & docstrings: $(n) lines ($(p_docstrings)% of README + `src`)
+                    """
+                end
+            end
         if isempty(p.license_files)
             body *= "  * no license found\n"
         else
@@ -171,9 +220,9 @@ function Base.show(io::IO, p::PackageV1)
             body *= "    * OSI approved: $(all(is_osi_approved, p.licenses_in_project))\n"
         end
         if !isempty(p.contributors)
-            n_anon = count_contributors(p; type="Anonymous")
-            body *= "  * number of contributors: $(count_contributors(p)) (and $(n_anon) anonymous contributors)\n"
-            body *= "  * number of commits: $(count_commits(p))\n"
+            n_anon = sum_contributors(p; type="Anonymous")
+            body *= "  * number of contributors: $(sum_contributors(p)) (and $(n_anon) anonymous contributors)\n"
+            body *= "  * number of commits: $(sum_commits(p))\n"
         end
         body *= """
               * has `docs/make.jl`: $(p.docs)
@@ -315,7 +364,13 @@ include("parallel.jl")
 # github, parsing
 include("utilities.jl")
 
+include("LineCategories.jl")
+using .CategorizeLines
+
 # tokei, counting
 include("count_loc.jl")
+
+include("deprecated_schemas.jl")
+
 
 end # module

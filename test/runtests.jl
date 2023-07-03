@@ -21,6 +21,11 @@ function test_serialization(results::Vector{PackageV1})
     @test isequal(packages, results)
 end
 
+catch_exceptions_value = PackageAnalyzer.CATCH_EXCEPTIONS[]
+try
+# Throw exceptions instead of just logging them
+PackageAnalyzer.CATCH_EXCEPTIONS[] = false
+
 @testset "PackageAnalyzer" begin
     @testset "Basic" begin
         # Test some properties of the `Measurements` package.  NOTE: they may change
@@ -97,15 +102,15 @@ end
             @test keys(pkg.license_files[1]) == (:license_filename, :licenses_found, :license_file_percent_covered)
             @test isempty(pkg.licenses_in_project)
             @test !isempty(pkg.lines_of_code)
-            @test pkg.lines_of_code isa Vector{PackageAnalyzer.LinesOfCodeV1}
-            @test keys(pkg.lines_of_code[1]) == (:directory, :language, :sublanguage, :files, :code, :comments, :blanks)
+            @test pkg.lines_of_code isa Vector{PackageAnalyzer.LinesOfCodeV2}
+            @test keys(pkg.lines_of_code[1]) == (:directory, :language, :sublanguage, :files, :code, :comments, :blanks, :docstrings)
             idx = findfirst(row -> row.directory=="src" && row.language==:Julia && row.sublanguage===nothing, pkg.lines_of_code)
             @test idx !== nothing
             @test pkg.lines_of_code[idx].code > 200
         end
 
         # Cannot pass `subdir` for these
-        @test_throws ArgumentError analyze("Pluto"; subdir="test")
+        @test_throws ArgumentError analyze("DataFrames"; subdir="test")
         @test_throws ArgumentError analyze(pkgdir(PackageAnalyzer); subdir="test")
 
         # the tests folder isn't a package!
@@ -120,11 +125,11 @@ end
 
 
         # The argument is a package name
-        pkg = analyze("Pluto"; auth, version=:dev)
+        pkg = analyze("DataFrames"; auth, version=:dev)
         @test ismissing(pkg.version)
 
         # Just make sure we got the UUID correctly and some statistics are collected.
-        @test pkg.uuid == UUID("c3e4b0f8-55cb-11ea-2926-15256bba5781")
+        @test pkg.uuid == UUID("a93c6f00-e57d-5684-b7b6-d8193f3e46c0")
         @test !isempty(pkg.license_files)
         @test !isempty(pkg.lines_of_code)
         # The argument looks like a package name but it isn't a registered package
@@ -136,7 +141,7 @@ end
         @test old.docs == true
         @test old.subdir == ""
         # This shouln't change, unless we change *how* we count LoC, since the code is fixed:
-        @test PackageAnalyzer.count_julia_loc(old.lines_of_code, "src") == 549
+        @test PackageAnalyzer.sum_julia_loc(old.lines_of_code, "src") == 326
 
         root = mktempdir()
         old2 = analyze(find_package("PackageAnalyzer"; version=v"0.1"); auth, root)
@@ -164,12 +169,12 @@ end
         # DataFrames currently has 16k LoC; Flux has 5k. Let's check that they aren't mixed up
         # due to some kind of race condition.
         @test results[1].name == "DataFrames"
-        @test PackageAnalyzer.count_julia_loc(results[1], "src") > 14000
-        @test PackageAnalyzer.count_docs(results[1]) > 5000
-        @test PackageAnalyzer.count_readme(results[1]) > 5
+        @test PackageAnalyzer.sum_julia_loc(results[1], "src") > 10000
+        @test PackageAnalyzer.sum_doc_lines(results[1]) > 5000
+        @test PackageAnalyzer.sum_readme_lines(results[1]) > 5
 
         @test results[2].name == "Flux"
-        @test PackageAnalyzer.count_julia_loc(results[2].lines_of_code, "src") < 14000
+        @test PackageAnalyzer.sum_julia_loc(results[2].lines_of_code, "src") < 14000
 
 
         results = analyze_packages(find_packages("DataFrames"); auth)
@@ -196,7 +201,13 @@ end
         # we check the error path here; the success path is covered by other tests.
         # This also makes sure trying to clone the repo doesn't prompt for
         # username/password
-        result = PackageAnalyzer.analyze("https://github.com/giordano/DOES_NOT_EXIST.jl"; auth)
+        local result
+        try
+            PackageAnalyzer.CATCH_EXCEPTIONS[] = true
+            result = PackageAnalyzer.analyze("https://github.com/giordano/DOES_NOT_EXIST.jl"; auth)
+        finally
+            PackageAnalyzer.CATCH_EXCEPTIONS[] = false
+        end
         @test result isa PackageV1
         @test !result.reachable
         @test isempty(result.name)
@@ -310,9 +321,9 @@ end
             pkg = analyze("DataFrames")
             @test pkg.contributors isa Vector{PackageAnalyzer.ContributionsV1}
             @test length(pkg.contributors) > 160 # ==183 right now, and it shouldn't go down...
-            @test PackageAnalyzer.count_contributors(pkg) > 150
-            @test PackageAnalyzer.count_commits(pkg) > 2000
-            @test PackageAnalyzer.count_contributors(pkg; type="Anonymous") > 10
+            @test PackageAnalyzer.sum_contributors(pkg) > 150
+            @test PackageAnalyzer.sum_commits(pkg) > 2000
+            @test PackageAnalyzer.sum_contributors(pkg; type="Anonymous") > 10
         end
     end
 
@@ -396,11 +407,47 @@ end
         table = Legolas.read(joinpath(pkgdir(PackageAnalyzer), "test", "11June23_table.package-analyzer.package.arrow"))
         pkgs = PackageV1.(Legolas.Tables.rows(table))
         @test pkgs isa Vector{PackageV1}
+
+        # Ensure `show` doesn't throw on the old packages
+        @test sprint(show, MIME"text/plain"(), pkgs[1]) isa String
     end
 
+    @testset "Count docstrings" begin
+        loc_dir = joinpath(pkgdir(PackageAnalyzer), "test", "lines_of_code")
+        lc = LineCategories(joinpath(loc_dir, "docstrings.jl"))
+
+        # Line 4 is debatable, but we need to make a choice
+        @test all(lc.dict[i] == PackageAnalyzer.Docstring for i in 1:8)
+        @test lc.dict[9] == PackageAnalyzer.Code
+        @test lc.dict[10] == PackageAnalyzer.Blank
+        @test lc.dict[11] == PackageAnalyzer.Docstring
+        @test lc.dict[12] == PackageAnalyzer.Code
+        @test lc.dict[13] == PackageAnalyzer.Blank
+        @test lc.dict[14] == PackageAnalyzer.Docstring
+
+        show_str = sprint(show, MIME"text/plain"(), lc)
+        result = PackageAnalyzer.count_julia_lines_of_code(loc_dir)
+        @test result isa Vector{PackageAnalyzer.LinesOfCodeV2}
+        @test length(result) == 1
+        loc = only(result)
+
+        @test loc.docstrings == 10 == count(r"Docstring", show_str)
+        @test loc.code == 2 == count(r"Code", show_str)
+        @test loc.blanks == 2 == count(r"Blank", show_str)
+        @test loc.comments == 0 == count(r"Comment", show_str)
+        @test loc.files == 1
+        @test loc.language == :Julia
+        @test loc.sublanguage == nothing
+
+        # Awkward, but consistent with what we've been doing with tokei
+        @test loc.directory == "docstrings.jl"
+    end
     @testset "Thread-safety" begin
         # Make sure none of the above commands leaks LD_LIBRARY_PATH.  This test
         # should be executed at the very end of the test suite.
         @test orig_libpath == get_libpath()
     end
+end
+finally
+    PackageAnalyzer.CATCH_EXCEPTIONS[] = catch_exceptions_value
 end

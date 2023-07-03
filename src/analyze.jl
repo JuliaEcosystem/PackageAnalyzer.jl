@@ -141,7 +141,7 @@ end
 Convienence function to run [`find_packages_in_manifest`](@ref) then [`analyze`](@ref) on the results. Positional argument `path_to_manifest` defaults to `joinpath(dirname(Base.active_project()), "Manifest.toml")`.
 """
 function analyze_manifest(args...; registries=reachable_registries(),
-                          auth=github_auth(), sleep=0)
+    auth=github_auth(), sleep=0)
     pkgs = find_packages_in_manifest(args...; registries)
     return analyze_packages(pkgs; auth, sleep)
 end
@@ -260,10 +260,10 @@ function analyze_code(dir::AbstractString; repo="", reachable=true, subdir="", a
             subdir_licenses_files = [LicenseV1(; license_filename=joinpath(subdir, row.license_filename), row.licenses_found, row.license_file_percent_covered) for row in _find_licenses(pkgdir)]
             license_files = [subdir_licenses_files; license_files]
         end
-        lines_of_code = count_loc(pkgdir)
+        lines_of_code = count_lines_of_code(pkgdir)
     else
         license_files = LicenseV1[]
-        lines_of_code = LinesOfCodeV1[]
+        lines_of_code = LinesOfCodeV2[]
     end
 
     if isdir(pkgdir)
