@@ -1,7 +1,7 @@
 name = "PackageAnalyzer"
 uuid = "e713c705-17e4-4cec-abe0-95bf5bf3e10c"
 authors = ["Mosè Giordano <mose@gnu.org>"]
-version = "2.0.0"
+version = "3.0.0"
 
 [deps]
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
