@@ -3,7 +3,7 @@
 module CategorizeLines
 export LineCategories, LineCategory, Blank, Code, Docstring, Comment, categorize_lines!
 
-using JuliaSyntax: GreenNode, is_trivia, haschildren, is_error, children, span, SourceFile, source_location, Kind, kind, @K_str
+using JuliaSyntax: GreenNode, is_trivia, haschildren, is_error, children, span, SourceFile, Kind, kind, @K_str, source_line
 
 # Every line will have a single category. This way the total number across all categories
 # equals the total number of lines. This is useful for debugging and is reassuring to users.
@@ -80,7 +80,7 @@ end
 # Based on the recursive printing code for GreenNode's
 # Here, instead of printing, we update our line number information.
 function categorize_lines!(d::LineCategories, node, source, nesting=0, pos=1, parent_kind=nothing)
-    starting_line, _ = source_location(source, pos)
+    starting_line = source_line(source, pos)
     k = kind(node)
 
     # Recurse over children
@@ -92,7 +92,7 @@ function categorize_lines!(d::LineCategories, node, source, nesting=0, pos=1, pa
             categorize_lines!(d, x, source, new_nesting, p, k)
             p += x.span
         end
-        ending_line, _ = source_location(source, p)
+        ending_line = source_line(source, p)
     else
         ending_line = starting_line
     end
