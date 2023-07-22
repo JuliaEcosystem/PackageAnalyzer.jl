@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Saving results · PackageAnalyzer.jl</title><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">PackageAnalyzer.jl</a></span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><a class="tocitem" href="../api/">API Reference</a></li><li class="is-active"><a class="tocitem" href>Saving results</a><ul class="internal"><li><a class="tocitem" href="#Saving-results"><span>Saving results</span></a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Saving results</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Saving results</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/JuliaEcosystem/PackageAnalyzer.jl/blob/main/docs/src/serialization.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h2 id="Saving-results"><a class="docs-heading-anchor" href="#Saving-results">Saving results</a><a id="Saving-results-1"></a><a class="docs-heading-anchor-permalink" href="#Saving-results" title="Permalink"></a></h2><p>PackageAnalyzer uses <a href="https://github.com/beacon-biosignals/Legolas.jl">Legolas.jl</a> to define several schemas to support serialization. These schemas may be updated in backwards-compatible ways in non-breaking releases, by e.g. adding additional optional fields.</p><p>A table compliant with the <code>package-analyzer.package</code> schema may be serialized with</p><pre><code class="language-julia hljs">using Legolas
+Legolas.write(io, table, PackageV1SchemaVersion())</code></pre><p>and read back by</p><pre><code class="language-julia hljs">io = Legolas.read(io)</code></pre><p>For example,</p><pre><code class="language-julia-repl hljs" style="display:block;">julia&gt; using DataFrames, Legolas, PackageAnalyzer</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; results = analyze_packages(find_packages(&quot;DataFrames&quot;, &quot;Flux&quot;));</code><code class="nohighlight hljs ansi" style="display:block;"></code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; Legolas.write(&quot;packages.arrow&quot;, results, PackageV1SchemaVersion())</code><code class="nohighlight hljs ansi" style="display:block;">2-element Vector{PackageV1}:
+ PackageV1 DataFrames:
+  * repo: https://github.com/JuliaData/DataFrames.jl.git
+  * uuid: a93c6f00-e57d-5684-b7b6-d8193f3e46c0
+  * version: 1.6.1
+  * is reachable: true
+  * tree hash: 04c738083f29f86e62c8afc341f0967d8717bdb8
+  * Julia code in `src`: 12029 lines
+  * Julia code in `test`: 29964 lines (71.4% of `test` + `src`)
+  * documentation in `docs`: 7608 lines (38.7% of `docs` + `src`)
+  * documentation in README &amp; docstrings: 7374 lines (38.0% of README + `src`)
+  * has license(s) in file: MIT
+    * filename: LICENSE.md
+    * OSI approved: true
+  * number of contributors: 200 (and 20 anonymous contributors)
+  * number of commits: 2781
+  * has `docs/make.jl`: true
+  * has `test/runtests.jl`: true
+  * has continuous integration: true
+    * GitHub Actions
+ PackageV1 Flux:
+  * repo: https://github.com/FluxML/Flux.jl.git
+  * uuid: 587475ba-b771-5e3f-ad9e-33799f191a9c
+  * version: 0.14.1
+  * is reachable: true
+  * tree hash: e0a829d77e750a916a52df71b82fde7f6b336a92
+  * Julia code in `src`: 2407 lines
+  * Julia code in `test`: 3482 lines (59.1% of `test` + `src`)
+  * documentation in `docs`: 4002 lines (62.4% of `docs` + `src`)
+  * documentation in README &amp; docstrings: 3654 lines (60.3% of README + `src`)
+  * has license(s) in file: MIT
+    * filename: LICENSE.md
+    * OSI approved: true
+  * number of contributors: 206 (and 11 anonymous contributors)
+  * number of commits: 4763
+  * has `docs/make.jl`: true
+  * has `test/runtests.jl`: true
+  * has continuous integration: true
+    * GitHub Actions
+    * Buildkite</code><br/><code class="language-julia-repl hljs" style="display:block;">julia&gt; roundtripped_results = DataFrame(Arrow.Table(&quot;packages.arrow&quot;))</code><code class="nohighlight hljs ansi" style="display:block;">ERROR: UndefVarError: Arrow not defined</code><code class="nohighlight hljs ansi" style="display:block;"></code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../api/">« API Reference</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Saturday 22 July 2023 22:59">Saturday 22 July 2023</span>. Using Julia version 1.6.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
