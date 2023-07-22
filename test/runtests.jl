@@ -162,18 +162,18 @@ PackageAnalyzer.CATCH_EXCEPTIONS[] = false
     end
 
     @testset "`find_packages` with `analyze`" begin
-        results = analyze_packages(find_packages("DataFrames", "Flux"); auth) # this method is threaded
+        results = analyze_packages(find_packages("DataFrames", "DSP"); auth) # this method is threaded
         @test results isa Vector{PackageV1}
         @test length(results) == 2
         test_serialization(results)
-        # DataFrames currently has 16k LoC; Flux has 5k. Let's check that they aren't mixed up
+        # DataFrames currently has 16k LoC; DSP has 4.5k. Let's check that they aren't mixed up
         # due to some kind of race condition.
         @test results[1].name == "DataFrames"
         @test PackageAnalyzer.sum_julia_loc(results[1], "src") > 10000
         @test PackageAnalyzer.sum_doc_lines(results[1]) > 5000
         @test PackageAnalyzer.sum_readme_lines(results[1]) > 5
 
-        @test results[2].name == "Flux"
+        @test results[2].name == "DSP"
         @test PackageAnalyzer.sum_julia_loc(results[2].lines_of_code, "src") < 14000
 
 
