@@ -14,14 +14,14 @@ To install the package, in Julia's REPL, press `]` to enter the Pkg mode and run
 the command
 
 ```
-add https://github.com/JuliaEcosystem/PackageAnalyzer.jl
+add PackageAnalyzer
 ```
 
 Alternatively, you can run
 
 ```julia
 using Pkg
-Pkg.add("https://github.com/JuliaEcosystem/PackageAnalyzer.jl")
+Pkg.add("PackageAnalyzer")
 ```
 
 ## Quick example
