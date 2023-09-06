@@ -53,6 +53,16 @@ Package Flux:
 
 See the [docs](https://JuliaEcosystem.github.io/PackageAnalyzer.jl/dev/) for more!
 
+## Talks and blog posts
+
+Check out our JuliaCon 2023 talk:
+
+[![](https://img.youtube.com/vi/KfQTFVtZTYY/0.jpg)](https://youtu.be/KfQTFVtZTYY)
+
+The Pluto notebook demos from that talk are available [here](https://github.com/ericphanson/PackageAnalyzerJuliaCon2023).
+
+See also our [2021 JuliaCon talk](https://www.youtube.com/watch?v=9YWwiFbaRx8) and [associated blog post](https://julialang.org/blog/2021/08/general-survey/).
+
 ## License
 
 The `PackageAnalyzer.jl` package is licensed under the MIT "Expat" License.  The
