@@ -264,7 +264,9 @@ end
 #
 # They may ask for a specific version, which we treat like release.
 """
-Abstract type for package source
+    abstract type PkgSource
+    
+Represents the installed version of a package, e.g. a release from a registry, or a `Pkg.add`'d package, or a `Pkg.dev`'d package.
 """
 abstract type PkgSource end
 
