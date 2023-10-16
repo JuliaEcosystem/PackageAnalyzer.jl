@@ -263,6 +263,9 @@ end
 # or they may ask for the dev version, which again we treat the same way.
 #
 # They may ask for a specific version, which we treat like release.
+"""
+Abstract type for package source
+"""
 abstract type PkgSource end
 
 # Represents the released version of a package

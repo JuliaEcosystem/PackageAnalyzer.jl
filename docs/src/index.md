@@ -111,7 +111,7 @@ You can pass the keyword argument `root` to specify a directory to store downloa
 
 ## The `PackageV1` struct
 
-The returned values from [`analyze`](@ref), and [`analyze!`](@ref) are objects of the type `PackageV1`, which has the following fields:
+The returned values from [`analyze`](@ref) are objects of the type `PackageV1`, which has the following fields:
 
 ```julia
 struct PackageV1
