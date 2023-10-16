@@ -173,7 +173,7 @@ julia> summary(result)
 Do not abuse this function!
 
 !!! warning
-    Cloning all the repos in General will take more than 20 GB of disk space and can take up to a few hours to complete.
+    Cloning all the repos in [General](https://github.com/JuliaRegistries/General) will take more than 20 GB of disk space and can take up to a few hours to complete.
 
 
 You can also use `find_packages_in_manifest` to use a Manifest.toml to lookup

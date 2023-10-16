@@ -6,7 +6,7 @@
     find_packages(names; registries=reachable_registries()) -> Vector{PkgSource}
 
 Find all packages in the given registry (specified by the `registry` keyword
-argument), the General registry by default. Return a vector of
+argument), the [General](https://github.com/JuliaRegistries/General) registry by default. Return a vector of
 [`PkgSource`](@ref) pointing to to the directories of each package in the
 registry.
 
