@@ -111,7 +111,7 @@ You can pass the keyword argument `root` to specify a directory to store downloa
 
 ## The `PackageV1` struct
 
-The returned values from [`analyze`](@ref), and [`analyze!`](@ref) are objects of the type `PackageV1`, which has the following fields:
+The returned values from [`analyze`](@ref) are objects of the type `PackageV1`, which has the following fields:
 
 ```julia
 struct PackageV1
@@ -173,7 +173,7 @@ julia> summary(result)
 Do not abuse this function!
 
 !!! warning
-    Cloning all the repos in General will take more than 20 GB of disk space and can take up to a few hours to complete.
+    Cloning all the repos in [General](https://github.com/JuliaRegistries/General) will take more than 20 GB of disk space and can take up to a few hours to complete.
 
 
 You can also use `find_packages_in_manifest` to use a Manifest.toml to lookup

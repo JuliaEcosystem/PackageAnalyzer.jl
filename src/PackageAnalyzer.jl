@@ -263,6 +263,11 @@ end
 # or they may ask for the dev version, which again we treat the same way.
 #
 # They may ask for a specific version, which we treat like release.
+"""
+    abstract type PkgSource
+    
+Represents the installed version of a package, e.g. a release from a registry, or a `Pkg.add`'d package, or a `Pkg.dev`'d package.
+"""
 abstract type PkgSource end
 
 # Represents the released version of a package

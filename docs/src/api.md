@@ -1,5 +1,5 @@
 ## API reference
 
 ```@autodocs
-Modules = [PackageAnalyzer]
+Modules = [PackageAnalyzer, PackageAnalyzer.CategorizeLines]
 ```

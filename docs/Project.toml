@@ -6,4 +6,4 @@ PackageAnalyzer = "e713c705-17e4-4cec-abe0-95bf5bf3e10c"
 
 [compat]
 Legolas = "0.5"
-Documenter = "0.27"
+Documenter = "1"
