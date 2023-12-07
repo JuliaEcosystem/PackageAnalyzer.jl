@@ -183,17 +183,20 @@ function Base.show(io::IO, p::PackageV1)
         """
         if !isempty(p.lines_of_code)
             l_src = sum_julia_loc(p, "src")
+            l_ext = sum_julia_loc(p, "ext")
             l_test = sum_julia_loc(p, "test")
             l_docs = sum_doc_lines(p)
             l_readme = sum_readme_lines(p)
 
-            p_test = @sprintf("%.1f", 100 * l_test / (l_test + l_src))
-            p_docs = @sprintf("%.1f", 100 * l_docs / (l_docs + l_src))
+            p_ext = @sprintf("%.1f", 100 * l_ext / (l_test + l_src + l_ext))
+            p_test = @sprintf("%.1f", 100 * l_test / (l_test + l_src + l_ext))
+            p_docs = @sprintf("%.1f", 100 * l_docs / (l_docs + l_src + l_ext))
 
             body *= """
                   * Julia code in `src`: $(l_src) lines
-                  * Julia code in `test`: $(l_test) lines ($(p_test)% of `test` + `src`)
-                  * documentation in `docs`: $(l_docs) lines ($(p_docs)% of `docs` + `src`)
+                  * Julia code in `ext`: $(l_ext) lines ($(p_ext)% of `test` + `src` + `ext`)
+                  * Julia code in `test`: $(l_test) lines ($(p_test)% of `test` + `src` + `ext`)
+                  * documentation in `docs`: $(l_docs) lines ($(p_docs)% of `docs` + `src` + `ext`)
                 """
 
             l_src_docstring = sum_docstrings(p, "src")
