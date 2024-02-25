@@ -1,7 +1,6 @@
 #####
 ##### Entrypoint & helpers
 #####
-using JuliaSyntax: SourceFile
 
 # Entrypoint
 function count_lines_of_code(dir)
