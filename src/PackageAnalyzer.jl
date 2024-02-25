@@ -13,7 +13,7 @@ using Tar
 using CodecZlib
 using AbstractTrees
 using JuliaSyntax
-using JuliaSyntax: @K_str, kind
+using JuliaSyntax: @K_str
 using Legolas
 using Legolas: @schema, @version
 
@@ -268,7 +268,7 @@ end
 # They may ask for a specific version, which we treat like release.
 """
     abstract type PkgSource
-    
+
 Represents the installed version of a package, e.g. a release from a registry, or a `Pkg.add`'d package, or a `Pkg.dev`'d package.
 """
 abstract type PkgSource end

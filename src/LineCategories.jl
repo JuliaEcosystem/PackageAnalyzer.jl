@@ -3,7 +3,7 @@
 module CategorizeLines
 export LineCategories, LineCategory, Blank, Code, Docstring, Comment, categorize_lines!
 
-using JuliaSyntax: GreenNode, is_trivia, haschildren, is_error, children, span, SourceFile, Kind, kind, @K_str, source_line
+using JuliaSyntax: haschildren, children, SourceFile, kind, @K_str, source_line
 
 # Every line will have a single category. This way the total number across all categories
 # equals the total number of lines. This is useful for debugging and is reassuring to users.
