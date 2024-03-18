@@ -19,6 +19,6 @@ For example,
 using DataFrames, Legolas, PackageAnalyzer
 results = analyze_packages(find_packages("DataFrames", "Flux"));
 Legolas.write("packages.arrow", results, PackageV1SchemaVersion())
-roundtripped_results = DataFrame(Arrow.Table("packages.arrow"))
+roundtripped_results = DataFrame(Legolas.read("packages.arrow"))
 rm("packages.arrow") # hide
 ```
