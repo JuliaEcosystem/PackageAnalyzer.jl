@@ -1,5 +1,6 @@
 [![Build Status](https://github.com/JuliaEcosystem/PackageAnalyzer.jl/workflows/CI/badge.svg)](https://github.com/JuliaEcosystem/PackageAnalyzer.jl/actions?query=workflow%3ACI)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://juliaecosystem.github.io/PackageAnalyzer.jl/dev/)
+[![DOI](https://zenodo.org/badge/332265222.svg)](https://zenodo.org/doi/10.5281/zenodo.10835825)
 
 # PackageAnalyzer
 
