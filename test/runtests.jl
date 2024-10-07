@@ -244,15 +244,15 @@ PackageAnalyzer.CATCH_EXCEPTIONS[] = false
     end
 
     @testset "`parse_project`" begin
-        bad_project = (; name="Invalid Project.toml", uuid=UUID(UInt128(0)), licenses_in_project=String[])
+        bad_project(dir) = (; name="Invalid Project.toml at $dir", uuid=UUID(UInt128(0)), licenses_in_project=String[])
         # malformatted TOML file
-        @test parse_project("missingquote") == bad_project
+        @test parse_project("missingquote") == bad_project("missingquote")
 
         # bad UUID
-        @test parse_project("baduuid") == bad_project
+        @test parse_project("baduuid") == bad_project("baduuid")
 
         # non-existent folder
-        @test parse_project("rstratarstra") == bad_project
+        @test parse_project("rstratarstra") == bad_project("rstratarstra")
 
         # proper Project.toml
         this_project = (; name = "PackageAnalyzer", uuid = PACKAGE_ANALYZER_UUID, licenses_in_project = String[])
