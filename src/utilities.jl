@@ -44,7 +44,7 @@ end
 #####
 
 function parse_project(dir)
-    bad_project = (; name="Invalid Project.toml", uuid=UUID(UInt128(0)), licenses_in_project=String[])
+    bad_project = (; name="Invalid Project.toml at $dir", uuid=UUID(UInt128(0)), licenses_in_project=String[])
     project_path = joinpath(dir, "Project.toml")
     if !isfile(project_path)
         project_path = joinpath(dir, "JuliaProject.toml")
