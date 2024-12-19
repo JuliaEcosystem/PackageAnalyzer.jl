@@ -19,7 +19,7 @@ jobs:
       matrix:
         julia-version:
           - "1.6" # previous LTS
-          - "1.10"
+          - "1.10" # current LTS
           - "nightly"
         os:
           - ubuntu-latest
