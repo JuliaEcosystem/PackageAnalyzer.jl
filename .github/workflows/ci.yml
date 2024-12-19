@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         julia-version:
-          - "1.6"
+          - "1.6" # previous LTS
           - "1.10"
           - "nightly"
         os:
