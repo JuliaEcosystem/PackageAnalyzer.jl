@@ -7,6 +7,8 @@
 Package to analyze the prevalence of documentation, testing and continuous
 integration in Julia packages in a given registry.
 
+Hello world.
+
 ## Installation
 
 The package works on Julia v1.6 and following versions.
