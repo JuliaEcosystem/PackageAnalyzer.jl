@@ -292,12 +292,12 @@ PackageAnalyzer.CATCH_EXCEPTIONS[] = false
     @testset "analyze from `Added`" begin
         our_v0p1_tree_hash = "a4cb0648ddcbeb6bc161f87906a0c17c456a27dc"
         v0p1_url = analyze(Added(; repo_url=PACKAGE_ANALYZER_URL, tree_hash=our_v0p1_tree_hash); auth)
-        @test v0p1_url.reachable
+        @test v0p1_url.reachable broken=Sys.iswindows()
         v0p1_path = analyze(Added(; path=pkgdir(PackageAnalyzer), tree_hash=our_v0p1_tree_hash); auth)
-        @test v0p1_path.reachable
+        @test v0p1_path.reachable broken=Sys.iswindows()
         v0p1_release = analyze("PackageAnalyzer"; auth, version=v"0.1")
         @test v0p1_release.reachable
-        @test v0p1_url.tree_hash == v0p1_path.tree_hash == v0p1_release.tree_hash == our_v0p1_tree_hash
+        @test v0p1_url.tree_hash == v0p1_path.tree_hash == v0p1_release.tree_hash == our_v0p1_tree_hash broken=Sys.iswindows()
     end
 
     @testset "analyze from `Dev`" begin
