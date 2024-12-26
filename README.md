@@ -9,7 +9,7 @@ integration in Julia packages in a given registry.
 
 ## Installation
 
-The package works on Julia v1.6 and following versions.
+The package works on Julia v1.10 and following versions.
 
 To install the package, in Julia's REPL, press `]` to enter the Pkg mode and run
 the command
