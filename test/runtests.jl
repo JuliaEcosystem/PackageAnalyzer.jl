@@ -447,6 +447,10 @@ PackageAnalyzer.CATCH_EXCEPTIONS[] = false
         # should be executed at the very end of the test suite.
         @test orig_libpath == get_libpath()
     end
+
+    @testset "artifact_licenses.jl" begin
+        include("artifact_licenses/test_wrapper.jl")
+    end
 end
 finally
     PackageAnalyzer.CATCH_EXCEPTIONS[] = catch_exceptions_value
