@@ -1,2 +1,5 @@
 Manifest.toml
 docs/build
+
+# macOS-specific:
+.DS_Store
