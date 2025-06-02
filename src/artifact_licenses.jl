@@ -118,7 +118,6 @@ function get_licenses_from_artifact_hash(hash::Base.SHA1)
     if isempty(licenses)
         msg = "No licenses found for artifact $(hash)"
         @error msg
-        # error(msg)
     end
     return licenses
 end
