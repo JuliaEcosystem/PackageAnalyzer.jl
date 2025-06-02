@@ -64,8 +64,8 @@ pkgid_to_licenses = PackageAnalyzer.artifact_license_map(
         ]
         append!(my_list_of_expected_licenses, windows_specific_list)
     end
-    unique!(my_list_of_expected_licenses)
     sort!(my_list_of_expected_licenses)
+    unique!(my_list_of_expected_licenses)
 
 
     my_list_of_actually_observed_licenses = String[]
