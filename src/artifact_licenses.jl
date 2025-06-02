@@ -60,12 +60,7 @@ _get_git_tree_sha1(x::Dict) = Base.SHA1(x["git-tree-sha1"])
 # Note: This covers the hashes for all platforms (not just the user's current platform).
 _get_possible_artifact_hashes_from_info(info::Dict) = [_get_git_tree_sha1(info)]
 function _get_possible_artifact_hashes_from_info(info::Vector)
-    vec = Base.SHA1[]
-    for x in info
-        git_tree_sha1 = _get_git_tree_sha1(x)
-        push!(vec, git_tree_sha1)
-    end
-    return vec
+    return _get_git_tree_sha1.(info)
 end
 
 # Take in the filename of an Artifacts.toml file.
