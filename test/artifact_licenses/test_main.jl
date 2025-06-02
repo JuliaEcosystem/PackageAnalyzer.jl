@@ -90,8 +90,8 @@ pkgid_to_licenses = PackageAnalyzer.artifact_license_map(
         end
     end
 
-    unique!(my_list_of_actually_observed_licenses)
     sort!(my_list_of_actually_observed_licenses)
+    unique!(my_list_of_actually_observed_licenses)
 
     if my_list_of_actually_observed_licenses != my_list_of_expected_licenses
         @error "" join(my_list_of_actually_observed_licenses, ',') join(my_list_of_expected_licenses, ',')
