@@ -76,8 +76,8 @@ pkgid_to_licenses = PackageAnalyzer.artifact_license_map(
             @test !isempty(original_licenses)
         else
             licenses_collapsed = reduce(vcat, [x.licenses_found for x in original_licenses])
-            unique!(licenses_collapsed)
             sort!(licenses_collapsed)
+            unique!(licenses_collapsed)
 
             if licenses_collapsed ⊈ my_list_of_expected_licenses
                 println()
