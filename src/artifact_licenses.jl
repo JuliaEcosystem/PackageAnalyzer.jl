@@ -86,11 +86,7 @@ function get_possible_artifact_hashes_from_local_dir(local_dir::String; pkg)
         msg = "Did not find any {,Julia}Artifacts.toml files for package: $(pkg)"
         error(msg)
     end
-    possible_hashes = Base.SHA1[]
-    for artifacts_toml in artifacts_toml_files
-        hashes = get_possible_artifact_hashes_from_artifacts_toml(artifacts_toml::String)
-        append!(possible_hashes, hashes)
-    end
+    possible_hashes = get_possible_artifact_hashes_from_artifacts_toml.(artifacts_toml_files) |> Iterators.flatten |> collect
     unique!(possible_hashes)
     return possible_hashes
 end
