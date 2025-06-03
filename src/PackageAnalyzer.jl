@@ -2,6 +2,7 @@ module PackageAnalyzer
 
 # Standard libraries
 using Pkg, TOML, UUIDs, Printf
+import Artifacts
 # Third-party packages
 using LicenseCheck # for `find_license` and `is_osi_approved`
 using JSON3 # for interfacing with `tokei` to count lines of code
@@ -380,5 +381,6 @@ include("count_loc.jl")
 
 include("deprecated_schemas.jl")
 
+include("artifact_licenses.jl")
 
 end # module
