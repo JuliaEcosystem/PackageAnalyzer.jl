@@ -447,15 +447,21 @@ PackageAnalyzer.CATCH_EXCEPTIONS[] = false
         # should be executed at the very end of the test suite.
         @test orig_libpath == get_libpath()
     end
+end
+finally
+    PackageAnalyzer.CATCH_EXCEPTIONS[] = catch_exceptions_value
+end
 
-    @testset "Graceful handling of unparseable files" begin
+# This test relies on catching exceptions
+try
+    PackageAnalyzer.CATCH_EXCEPTIONS[] = true
+    @testset "Graceful handling of unparsable files" begin
         # This codebase includes an uncommented `TODO` which fails to parse
         # in `sample/test1.jl` we should just skip that file instead of erroing out
         pkg = analyze("Pluto"; version=v"0.18.0")
         l_src = PackageAnalyzer.sum_julia_loc(pkg, "src")
         @test l_src > 6000
     end
-end
-finally
+catch
     PackageAnalyzer.CATCH_EXCEPTIONS[] = catch_exceptions_value
 end
