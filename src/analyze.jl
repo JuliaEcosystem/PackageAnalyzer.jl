@@ -41,8 +41,8 @@ PackageV1 Pluto:
   * tree hash: db1306745717d127037c5697436b04cfb9d7b3dd
   * Julia code in `src`: 8337 lines
   * Julia code in `test`: 5448 lines (39.5% of `test` + `src`)
-  * documention in `docs`: 0 lines (0.0% of `docs` + `src`)
-  * documention in README: 118 lines
+  * documentation in `docs`: 0 lines (0.0% of `docs` + `src`)
+  * documentation in README: 118 lines
   * has license(s) in file: MIT
     * filename: LICENSE
     * OSI approved: true
@@ -102,8 +102,8 @@ PackageV1 DataFrames:
   * tree hash: db2a9cb664fcea7836da4b414c3278d71dd602d2
   * Julia code in `src`: 15628 lines
   * Julia code in `test`: 21089 lines (57.4% of `test` + `src`)
-  * documention in `docs`: 6270 lines (28.6% of `docs` + `src`)
-  * documention in README: 21 lines
+  * documentation in `docs`: 6270 lines (28.6% of `docs` + `src`)
+  * documentation in README: 21 lines
   * has license(s) in file: MIT
     * filename: LICENSE.md
     * OSI approved: true
@@ -138,7 +138,7 @@ end
     analyze_manifest([path_to_manifest]; registries=reachable_registries(),
                      auth=github_auth(), sleep=0)
 
-Convienence function to run [`find_packages_in_manifest`](@ref) then [`analyze`](@ref) on the results. Positional argument `path_to_manifest` defaults to `joinpath(dirname(Base.active_project()), "Manifest.toml")`.
+Convenience function to run [`find_packages_in_manifest`](@ref) then [`analyze`](@ref) on the results. Positional argument `path_to_manifest` defaults to `joinpath(dirname(Base.active_project()), "Manifest.toml")`.
 """
 function analyze_manifest(args...; registries=reachable_registries(),
     auth=github_auth(), sleep=0)

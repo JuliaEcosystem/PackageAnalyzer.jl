@@ -32,7 +32,7 @@ Currently:
 @enum LineCategory Blank Code Comment Docstring
 
 # We will store the categories assigned to each line in a file with the following structure.
-# This keeps the `SourceFile` to facillitate printing.
+# This keeps the `SourceFile` to facilitate printing.
 """
     LineCategories(path)
 
