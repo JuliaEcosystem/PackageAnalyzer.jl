@@ -54,6 +54,8 @@ Package Flux:
 
 See the [docs](https://JuliaEcosystem.github.io/PackageAnalyzer.jl/dev/) for more!
 
+One special feature of PackageAnalyzer is a custom JuliaSyntax-based line-of-code counting implementation which correctly distinguishes between Julia docstrings, comments, and code.
+
 ## Talks and blog posts
 
 Check out our JuliaCon 2023 talk:

@@ -1,7 +1,7 @@
 name = "PackageAnalyzer"
 uuid = "e713c705-17e4-4cec-abe0-95bf5bf3e10c"
 authors = ["Mosè Giordano <mose@gnu.org>"]
-version = "3.1.0"
+version = "3.2.0"
 
 [deps]
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
@@ -28,7 +28,7 @@ Git = "1.2.1"
 GitHub = "5.4"
 Legolas = "0.5"
 JSON3 = "1.5.1"
-JuliaSyntax = "0.4"
+JuliaSyntax = "1"
 LicenseCheck = "0.2"
 RegistryInstances = "0.1"
 julia = "1.10"

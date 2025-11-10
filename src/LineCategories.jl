@@ -88,7 +88,7 @@ function categorize_lines!(d::LineCategories, node, source, nesting=0, pos=1, pa
     if !is_leaf
         new_nesting = nesting + 1
         p = pos
-        for x in children(node)
+        for x in something(children(node), ())
             categorize_lines!(d, x, source, new_nesting, p, k)
             p += x.span
         end
