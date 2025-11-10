@@ -3,7 +3,7 @@
 module CategorizeLines
 export LineCategories, LineCategory, Blank, Code, Docstring, Comment, categorize_lines!
 
-using JuliaSyntax: haschildren, children, SourceFile, kind, @K_str, source_line
+using JuliaSyntax: JuliaSyntax, children, SourceFile, kind, @K_str, source_line
 
 # Every line will have a single category. This way the total number across all categories
 # equals the total number of lines. This is useful for debugging and is reassuring to users.
@@ -32,7 +32,7 @@ Currently:
 @enum LineCategory Blank Code Comment Docstring
 
 # We will store the categories assigned to each line in a file with the following structure.
-# This keeps the `SourceFile` to facillitate printing.
+# This keeps the `SourceFile` to facilitate printing.
 """
     LineCategories(path)
 
@@ -84,11 +84,11 @@ function categorize_lines!(d::LineCategories, node, source, nesting=0, pos=1, pa
     k = kind(node)
 
     # Recurse over children
-    is_leaf = !haschildren(node)
+    is_leaf = JuliaSyntax.is_leaf(node)
     if !is_leaf
         new_nesting = nesting + 1
         p = pos
-        for x in children(node)
+        for x in something(children(node), ())
             categorize_lines!(d, x, source, new_nesting, p, k)
             p += x.span
         end

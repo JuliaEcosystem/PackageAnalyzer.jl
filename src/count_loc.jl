@@ -94,14 +94,16 @@ struct GreenNodeWrapper
 end
 
 function AbstractTrees.children(wrapper::GreenNodeWrapper)
-    return map(n -> GreenNodeWrapper(n, wrapper.source), JuliaSyntax.children(wrapper.node))
+    return map(n -> GreenNodeWrapper(n, wrapper.source), something(JuliaSyntax.children(wrapper.node), ()))
 end
+
+const EMPTY_TREE = JuliaSyntax.GreenNode(JuliaSyntax.SyntaxHead(K"toplevel", 0), 0, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[])
 
 function parse_green_node(file_path)
     file = read(file_path, String)
     parsed = @maybecatch(JuliaSyntax.parseall(JuliaSyntax.GreenNode, file; ignore_trivia=false, filename=file_path),
         "Error during `JuliaSyntax.parseall` of $(file_path)",
-        JuliaSyntax.GreenNode(JuliaSyntax.SyntaxHead(K"toplevel", 0), 0, ()))
+        EMPTY_TREE)
     return GreenNodeWrapper(parsed, JuliaSyntax.SourceFile(file; filename=file_path))
 end
 
@@ -127,7 +129,7 @@ function count_julia_lines_of_code(dir)
     table = LinesOfCodeV2[]
     for path in readdir(dir; join=true)
         n_files = 0
-        # Could be a LittleDict for efficency, but that would require
+        # Could be a LittleDict for efficiency, but that would require
         # a dependency on OrderedCollections.jl
         counts = Dict{LineCategory,Int}(Comment => 0,
             Blank => 0,

@@ -5,7 +5,7 @@
 """
     PackageAnalyzer.github_auth(token::String="")
 
-Obtain a GitHub authetication.  Use the `token` argument if it is non-empty,
+Obtain a GitHub authentication.  Use the `token` argument if it is non-empty,
 otherwise use the `GITHUB_TOKEN` and `GITHUB_AUTH` environment variables, if set
 and of length 40.  If all these methods fail, return an anonymous
 authentication.
