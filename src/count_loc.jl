@@ -97,11 +97,13 @@ function AbstractTrees.children(wrapper::GreenNodeWrapper)
     return map(n -> GreenNodeWrapper(n, wrapper.source), something(JuliaSyntax.children(wrapper.node), ()))
 end
 
+const EMPTY_TREE = JuliaSyntax.GreenNode(JuliaSyntax.SyntaxHead(K"toplevel", 0), 0, JuliaSyntax.GreenNode{JuliaSyntax.SyntaxHead}[])
+
 function parse_green_node(file_path)
     file = read(file_path, String)
     parsed = @maybecatch(JuliaSyntax.parseall(JuliaSyntax.GreenNode, file; ignore_trivia=false, filename=file_path),
         "Error during `JuliaSyntax.parseall` of $(file_path)",
-        JuliaSyntax.GreenNode(JuliaSyntax.SyntaxHead(K"toplevel", 0), 0, ()))
+        EMPTY_TREE)
     return GreenNodeWrapper(parsed, JuliaSyntax.SourceFile(file; filename=file_path))
 end
 
